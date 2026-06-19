@@ -6,29 +6,18 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const Database = require('better-sqlite3');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 const PORT = process.env.PORT || 3000;
-
 const db = new Database(path.join(__dirname, 'proctor.db'));
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, name TEXT NOT NULL, org TEXT NOT NULL, role TEXT DEFAULT 'interviewer', created_at INTEGER DEFAULT (strftime('%s','now')));
-  CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, name TEXT NOT NULL, org TEXT NOT NULL, owner_id TEXT NOT NULL, invite_code TEXT UNIQUE NOT NULL, created_at INTEGER DEFAULT (strftime('%s','now')));
-  CREATE TABLE IF NOT EXISTS team_members (team_id TEXT NOT NULL, user_id TEXT NOT NULL, role TEXT DEFAULT 'member', PRIMARY KEY (team_id, user_id));
-  CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, candidate_name TEXT, interviewer_id TEXT NOT NULL, team_id TEXT, status TEXT DEFAULT 'waiting', trust_score INTEGER DEFAULT 100, flags TEXT DEFAULT '[]', questions TEXT DEFAULT '[]', display_count INTEGER DEFAULT 1, recording_url TEXT, started_at INTEGER, ended_at INTEGER, created_at INTEGER DEFAULT (strftime('%s','now')));
-  CREATE TABLE IF NOT EXISTS flags (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, time_offset TEXT NOT NULL, text TEXT NOT NULL, detail TEXT, severity TEXT NOT NULL, created_at INTEGER DEFAULT (strftime('%s','now')));
-`);
-
+db.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, name TEXT NOT NULL, org TEXT NOT NULL, role TEXT DEFAULT 'interviewer', created_at INTEGER DEFAULT (strftime('%s','now')));CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, candidate_name TEXT, interviewer_id TEXT NOT NULL, team_id TEXT, status TEXT DEFAULT 'waiting', trust_score INTEGER DEFAULT 100, flags TEXT DEFAULT '[]', questions TEXT DEFAULT '[]', display_count INTEGER DEFAULT 1, recording_url TEXT, started_at INTEGER, ended_at INTEGER, created_at INTEGER DEFAULT (strftime('%s','now')));CREATE TABLE IF NOT EXISTS flags (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, time_offset TEXT NOT NULL, text TEXT NOT NULL, detail TEXT, severity TEXT NOT NULL, created_at INTEGER DEFAULT (strftime('%s','now')));CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY, name TEXT NOT NULL, org TEXT NOT NULL, owner_id TEXT NOT NULL, invite_code TEXT UNIQUE NOT NULL, created_at INTEGER DEFAULT (strftime('%s','now')));CREATE TABLE IF NOT EXISTS team_members (team_id TEXT NOT NULL, user_id TEXT NOT NULL, role TEXT DEFAULT 'member', PRIMARY KEY (team_id, user_id));`);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({ secret: 'proctor-secret-' + Math.random().toString(36), resave: false, saveUninitialized: false, cookie: { maxAge: 7*24*60*60*1000 } }));
-
+app.use(session({ secret: 'proctor-' + Math.random().toString(36), resave: false, saveUninitialized: false, cookie: { maxAge: 7*24*60*60*1000 } }));
 function requireAuth(req,res,next){ if(!req.session.userId)return res.status(401).json({error:'Not authenticated'}); next(); }
 function generateCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<6;i++){if(i===3)r+='-';r+=c[Math.floor(Math.random()*c.length)];} return r; }
-
 app.post('/api/auth/signup',async(req,res)=>{const{email,password,name,org}=req.body;if(!email||!password||!name||!org)return res.json({error:'All fields required'});if(password.length<6)return res.json({error:'Password must be at least 6 characters'});try{const hashed=await bcrypt.hash(password,10);const id=uuidv4();db.prepare('INSERT INTO users(id,email,password,name,org)VALUES(?,?,?,?,?)').run(id,email.toLowerCase(),hashed,name,org);req.session.userId=id;req.session.userName=name;req.session.userOrg=org;res.json({ok:true,name,org});}catch(e){if(e.message.includes('UNIQUE'))return res.json({error:'Email already registered'});res.json({error:'Signup failed: '+e.message});}});
 app.post('/api/auth/login',async(req,res)=>{const{email,password}=req.body;const u=db.prepare('SELECT* FROM users WHERE email=?').get(email.toLowerCase());if(!u)return res.json({error:'No account found with that email'});const m=await bcrypt.compare(password,u.password);if(!m)return res.json({error:'Incorrect password'});req.session.userId=u.id;req.session.userName=u.name;req.session.userOrg=u.org;res.json({ok:true,name:u.name,org:u.org});});
 app.post('/api/auth/logout',(req,res)=>{req.session.destroy();res.json({ok:true});});
@@ -48,4 +37,4 @@ app.get('/session/:id',(req,res)=>res.sendFile(path.join(__dirname,'public/pages
 app.get('/join/:code',(req,res)=>res.sendFile(path.join(__dirname,'public/pages/candidate.html')));
 const rooms={};
 io.on('connection',(socket)=>{socket.on('join-room',({sessionId,role})=>{socket.join(sessionId);if(!rooms[sessionId])rooms[sessionId]={};rooms[sessionId][role]=socket.id;socket.data.sessionId=sessionId;socket.data.role=role;socket.to(sessionId).emit('peer-joined',{role});const o=Object.entries(rooms[sessionId]).filter(([r])=>r!==role);if(o.length)socket.emit('peer-already-present',{role:o[0][0]});});socket.on('webrtc-offer',({...d})=>{socket.to(d.sessionId).emit('webrtc-offer',{offer:d.offer});});socket.on('webrtc-answer',({...d})=>{socket.to(d.sessionId).emit('webrtc-answer',{answer:d.answer});});socket.on('webrtc-ice',({sessionId,candidate})=>{socket.to(sessionId).emit('webrtc-ice',{candidate});});socket.on('recording-started',({sessionId})=>{socket.to(sessionId).emit('recording-started');});socket.on('recording-stopped',({sessionId})=>{socket.to(sessionId).emit('recording-stopped');});socket.on('next-question',({sessionId,qIdx})=>{socket.to(sessionId).emit('next-question',{qIdx});});socket.on('candidate-flag',({ sessionId,...flag })=>{socket.to(sessionId).emit('candidate-flag',flag);try{db.prepare('INSERT INTO flags(id,session_id,time_offset,text,detail,severity)VALUES(?,?,?,?,?,?)').run(uuidv4(),sessionId,flag.time||'00:00',flag.text,flag.detail||'',flag.sev||'medium');const p={high:12,medium:6,low:2}[flag.sev]||5;db.prepare('UPDATE sessions SET trust_score=MAX(0,trust_score-?) WHERE id=?').run(p,sessionId);}catch(e){}});socket.on('disconnect',()=>{const{sessionId,role}=socket.data;if(sessionId&&rooms[sessionId]){delete rooms[sessionId][role];socket.to(sessionId).emit('peer-left',{role});}});});
-server.listen(PORT,()=>{console.log(`Secure Interview running on port ${PORT}`);});
+server.listen(PORT,()=>{console.log('Secure Interview running on port '+PORT);});
