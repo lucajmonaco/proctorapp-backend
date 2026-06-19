@@ -1,3 +1,4 @@
+// Fly.io deploy: 2026-06-19T17:49:59.110Z
 const express=require('express'),http=require('http'),{Server}=require('socket.io'),session=require('express-session'),bcrypt=require('bcryptjs'),{v4:uuidv4}=require('uuid'),path=require('path'),fs=require('fs'),Database=require('better-sqlite3');
 const app=express(),server=http.createServer(app),io=new Server(server,{cors:{origin:'*'}}),PORT=process.env.PORT||8080;
 const db=new Database(path.join(__dirname,'proctor.db'));
