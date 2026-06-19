@@ -177,6 +177,21 @@ app.post('/api/teams/join', requireAuth, (req, res) => {
   res.json({ ok: true, teamName: team.name });
 });
 
+
+app.get('/diag', (req, res) => {
+  const fs = require('fs'), p = require('path');
+  const dirs = [
+    __dirname,
+    p.join(__dirname, 'public'),
+    p.join(__dirname, 'public', 'pages'),
+    '/app', '/app/public', '/app/public/pages',
+    '/home/app', '/home/app/public', '/home/app/public/pages',
+    process.cwd(), p.join(process.cwd(),'public'), p.join(process.cwd(),'public','pages')
+  ];
+  const result = { __dirname, cwd: process.cwd() };
+  dirs.forEach(d => { try { result[d] = fs.readdirSync(d); } catch(e) { result[d] = e.message; } });
+  res.json(result);
+});
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html')));
 app.get('/session/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'session.html')));
