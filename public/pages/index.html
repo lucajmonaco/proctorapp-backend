@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Secure Interview — Interview Integrity Platform</title>
+<title>Secure Interview â Interview Integrity Platform</title>
 <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
 <div id="app">
 <nav class="navbar">
-  <div class="nav-brand">🛡️ SecureInterview</div>
+  <div class="nav-brand">ð¡ï¸ SecureInterview</div>
   <div class="nav-links" id="nav-links">
     <a href="/dashboard" class="btn btn-primary" id="nav-dashboard" style="display:none">Dashboard</a>
     <button class="btn btn-outline" id="nav-login">Sign In</button>
@@ -29,10 +29,10 @@
 </section>
 <section class="features">
   <div class="features-grid">
-    <div class="feature-card"><div class="feature-icon">📹</div><h3>Live Video Proctoring</h3><p>WebRTC-powered video monitoring with zero plugins required.</p></div>
-    <div class="feature-card"><div class="feature-icon">🎯</div><h3>Trust Score</h3><p>Real-time AI scoring that flags suspicious behavior instantly.</p></div>
-    <div class="feature-card"><div class="feature-icon">⚡</div><h3>Instant Alerts</h3><p>Get notified the moment something looks off during the interview.</p></div>
-    <div class="feature-card"><div class="feature-icon">📊</div><h3>Full Reports</h3><p>Detailed session reports with timestamps and flag summaries.</p></div>
+    <div class="feature-card"><div class="feature-icon">ð¹</div><h3>Live Video Proctoring</h3><p>WebRTC-powered video monitoring with zero plugins required.</p></div>
+    <div class="feature-card"><div class="feature-icon">ð¯</div><h3>Trust Score</h3><p>Real-time AI scoring that flags suspicious behavior instantly.</p></div>
+    <div class="feature-card"><div class="feature-icon">â¡</div><h3>Instant Alerts</h3><p>Get notified the moment something looks off during the interview.</p></div>
+    <div class="feature-card"><div class="feature-icon">ð</div><h3>Full Reports</h3><p>Detailed session reports with timestamps and flag summaries.</p></div>
   </div>
 </section>
 </main>
@@ -42,7 +42,7 @@
 <div id="auth-modal" class="modal hidden">
   <div class="modal-backdrop"></div>
   <div class="modal-content">
-    <button class="modal-close" id="modal-close">✕</button>
+    <button class="modal-close" id="modal-close">â</button>
     <div id="login-form">
       <h2>Sign In</h2>
       <input type="email" id="login-email" placeholder="Email" class="input">
@@ -66,7 +66,6 @@
 
 <script src="/js/utils.js"></script>
 <script>
-const $ = id => document.getElementById(id);
 
 async function checkAuth() {
   const me = await api('/api/auth/me');
