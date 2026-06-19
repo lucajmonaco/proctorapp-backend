@@ -192,10 +192,10 @@ app.get('/diag', (req, res) => {
   dirs.forEach(d => { try { result[d] = fs.readdirSync(d); } catch(e) { result[d] = e.message; } });
   res.json(result);
 });
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html')));
-app.get('/session/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'session.html')));
-app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'candidate.html')));
+app.get('/', (req, res) => { try { res.setHeader('Content-Type','text/html'); res.send(require('fs').readFileSync(require('path').join(__dirname,'public','pages','index.html'))); } catch(e) { res.status(500).send('ERR:'+e.message); } });
+app.get('/dashboard', (req, res) => { try { res.setHeader('Content-Type','text/html'); res.send(require('fs').readFileSync(require('path').join(__dirname,'public','pages','dashboard.html'))); } catch(e) { res.status(500).send('ERR:'+e.message); } });
+app.get('/session/:id', (req, res) => { try { res.setHeader('Content-Type','text/html'); res.send(require('fs').readFileSync(require('path').join(__dirname,'public','pages','session.html'))); } catch(e) { res.status(500).send('ERR:'+e.message); } });
+app.get('/join/:code', (req, res) => { try { res.setHeader('Content-Type','text/html'); res.send(require('fs').readFileSync(require('path').join(__dirname,'public','pages','candidate.html'))); } catch(e) { res.status(500).send('ERR:'+e.message); } });
 
 const rooms = {};
 io.on('connection', (socket) => {
