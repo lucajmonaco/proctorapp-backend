@@ -155,7 +155,7 @@ io.on('connection',(socket)=>{
   });
   socket.on('webrtc-offer',({sessionId,offer})=>{ socket.to(sessionId).emit('webrtc-offer',{offer}); });
   socket.on('webrtc-answer',({...d})=>{ socket.to(d.sessionId).emit('webrtc-answer',{answer:d.answer}); });
-  socket.on('webrtc-ice',({(sessionId,candidate})=>{ socket.to(sessionId).emit('webrtc-ice',{
+  socket.on('webrtc-ice',({sessionId,candidate})=>{ socket.to(sessionId).emit('webrtc-ice',{
 candidate}); });
   socket.on('recording-started',({sessionId})=>{ socket.to(sessionId).emit('recording-started'); });
   socket.on('recording-stopped',({...d})=>{ socket.to(d.sessionId).emit('recording-stopped'); });
