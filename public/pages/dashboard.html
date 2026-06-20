@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard — Secure Interview</title>
+<title>Dashboard â Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
@@ -28,7 +28,7 @@
   <div id="stats-row" class="stats-row" style="display:none">
     <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total Sessions</div></div>
     <div class="stat-card"><div class="stat-val trust-hi" id="stat-active">0</div><div class="stat-label">Active Now</div></div>
-    <div class="stat-card"><div class="stat-val trust-mid" id="stat-avg">—</div><div class="stat-label">Avg Trust Score</div></div>
+    <div class="stat-card"><div class="stat-val trust-mid" id="stat-avg">N/A</div><div class="stat-label">Avg Trust Score</div></div>
   </div>
 
   <div class="tabs-bar">
@@ -52,7 +52,7 @@
     <button class="modal-x" onclick="hideModal('ov-new-session')">&#10005;</button>
     <h3>New Interview Session</h3>
     <p class="modal-sub">Create a session and share the invite link with your candidate.</p>
-    <div class="field"><label class="label">Session Title *</label><input class="input" id="ns-title" placeholder="e.g. Senior Engineer — Round 2"></div>
+    <div class="field"><label class="label">Session Title *</label><input class="input" id="ns-title" placeholder="e.g. Senior Engineer â Round 2"></div>
     <div class="field"><label class="label">Candidate Name</label><input class="input" id="ns-candidate" placeholder="e.g. Jane Smith"></div>
     <div class="field">
       <label class="label">Interview Questions <span style="color:var(--text3);font-weight:400">(one per line)</span></label>
@@ -162,10 +162,12 @@ async function loadSessions(){
     return;
   }
   var active=sessions.filter(function(s){return s.status==='active';}).length;
-  var avgScore=Math.round(sessions.reduce(function(a,s){return a+(s.trust_score||100);},0)/sessions.length);
+  // Only include ended sessions in avg trust score (waiting sessions haven't been scored yet)
+  var scoredSessions=sessions.filter(function(s){return s.status==='ended'&&s.trust_score!=null;});
+  var avgScore=scoredSessions.length>0?Math.round(scoredSessions.reduce(function(a,s){return a+(s.trust_score||100);},0)/scoredSessions.length):null;
   $('stat-total').textContent=sessions.length;
   $('stat-active').textContent=active;
-  $('stat-avg').textContent=avgScore+'%';
+  $('stat-avg').textContent=avgScore!=null?(avgScore+'%'):'N/A';
   $('stats-row').style.display='grid';
   sessions.forEach(function(s){el.appendChild(buildSessionRow(s));});
 }
