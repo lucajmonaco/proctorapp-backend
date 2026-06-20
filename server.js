@@ -112,7 +112,7 @@ function generateSessionCode() {
   return generateCode(3) + '-' + generateCode(3);
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ ORG AUTH ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ ORG AUTH ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 // Create a new organization (company signup)
 app.post('/api/auth/org/create', async (req, res) => {
   const { orgName, email, password, name } = req.body;
@@ -184,7 +184,7 @@ app.get('/api/auth/me', (req, res) => {
   res.json({ loggedIn: true, ...user, orgName: org?.name, orgCode: org?.code });
 });
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SESSIONS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ SESSIONS ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 app.post('/api/sessions', requireAuth, (req, res) => {
   const { title, candidateName, questions } = req.body;
   const id = uuidv4();
@@ -229,14 +229,14 @@ app.post('/api/sessions/:id/flags', (req, res) => {
   res.json({ ok: true, id });
 });
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ RECORDINGS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ RECORDINGS ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 app.post('/api/recordings/upload', requireAuth, upload.single('recording'), async (req, res) => {
   try {
     const { sessionId, durationSecs } = req.body;
     if (!req.file) return res.json({ error: 'No file uploaded' });
     const sess = db.prepare('SELECT * FROM sessions WHERE id=?').get(sessionId);
     if (!sess) return res.json({ error: 'Session not found' });
-    // Always use LIVE values from DB Ã¢ÂÂ trust_score is updated in real-time as flags come in
+    // Always use LIVE values from DB ÃÂ¢ÃÂÃÂ trust_score is updated in real-time as flags come in
     const freshSess = db.prepare('SELECT trust_score FROM sessions WHERE id=?').get(sessionId);
     const flagCount = db.prepare('SELECT COUNT(*) as cnt FROM flags WHERE session_id=?').get(sessionId);
     const shareToken = uuidv4().replace(/-/g, '');
@@ -313,7 +313,7 @@ function streamVideo(req, res, filePath) {
   }
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ TEAMS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ TEAMS ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 app.post('/api/teams', requireAuth, (req, res) => {
   const { name } = req.body;
   if (!name) return res.json({ error: 'Team name required' });
@@ -339,7 +339,7 @@ app.post('/api/teams/join', requireAuth, (req, res) => {
   res.json({ ok: true, teamName: team.name });
 });
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ PAGE ROUTES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ PAGE ROUTES ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html')));
 app.get('/session/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'session.html')));
@@ -347,7 +347,7 @@ app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.get('/recordings', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'recordings.html')));
 app.get('/share/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'share.html')));
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SOCKET.IO ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ SOCKET.IO ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 const rooms = {};
 io.on('connection', (socket) => {
   socket.on('join-room', ({ sessionId, role }) => {
@@ -370,7 +370,27 @@ io.on('connection', (socket) => {
     try {
       const id = uuidv4();
       db.prepare('INSERT INTO flags (id,session_id,time_offset,text,detail,severity) VALUES (?,?,?,?,?,?)').run(id, sessionId, flag.time || '00:00', flag.text, flag.detail || '', flag.severity || 'medium');
-      const penalty = { high: 12, medium: 6, low: 2 }[flag.severity] || 5;
+      // Weighted penalty system - calibrated so 0% = worst possible interview
+      // Occasional mistakes don't destroy the score; sustained cheating does
+      var flagText = (flag.text||'').toLowerCase();
+      var penalty = 2; // default
+      if(flagText.includes('background voice')||flagText.includes('coaching')) penalty = 6;
+      else if(flagText.includes('multiple display')) penalty = 8;
+      else if(flagText.includes('devtools')) penalty = 4;
+      else if(flagText.includes('screen config')) penalty = 5;
+      else if(flagText.includes('extended absence')) penalty = 5;
+      else if(flagText.includes('tab switch')) penalty = 4;
+      else if(flagText.includes('new tab')) penalty = 3;
+      else if(flagText.includes('window switch')||flagText.includes('window blur')) penalty = 2;
+      else if(flagText.includes('face not visible')) penalty = 2;
+      else if(flagText.includes('gaze')||flagText.includes('eye')) penalty = 1;
+      else if(flagText.includes('copy')||flagText.includes('paste')||flagText.includes('cut')) penalty = 2;
+      else if(flagText.includes('shortcut')||flagText.includes('keyboard')) penalty = 1;
+      else if(flagText.includes('right-click')||flagText.includes('right click')) penalty = 0.5;
+      else if(flagText.includes('resize')) penalty = 0.5;
+      else if(flag.severity === 'high') penalty = 4;
+      else if(flag.severity === 'medium') penalty = 2;
+      else if(flag.severity === 'low') penalty = 1;
       db.prepare('UPDATE sessions SET trust_score = MAX(0, trust_score - ?) WHERE id=?').run(penalty, sessionId);
     } catch(e) {}
   });
