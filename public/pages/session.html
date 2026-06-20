@@ -4,9 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Session — Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
-<style>
-body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-</style>
+<style>body{display:flex;flex-direction:column;height:100vh;overflow:hidden}</style>
 </head>
 <body>
 <div class="topbar">
@@ -15,14 +13,11 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
     <span id="s-code" class="pill"></span>
     <span id="rec-ind" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--red);font-weight:600"><span class="rec-dot"></span>REC</span>
     <button id="rec-btn" class="btn btn-danger btn-sm" onclick="toggleRec()">&#9679; Record</button>
-    <span id="share-btn-wrap">
-      <button id="share-screen-btn" class="btn btn-purple btn-sm" onclick="toggleScreenShare()">&#128247; Share Screen</button>
-    </span>
+    <button id="share-screen-btn" class="btn btn-purple btn-sm" onclick="toggleScreenShare()">&#128247; Share Screen</button>
     <div class="topbar-sep"></div>
     <span id="s-status" class="badge badge-default">Waiting...</span>
   </div>
 </div>
-
 <div class="session-layout">
   <div class="video-pane" id="video-pane">
     <video id="remote-vid" autoplay playsinline></video>
@@ -30,47 +25,41 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
     <div class="video-overlay-tl">
       <span id="timer-chip" class="video-chip" style="display:none">00:00</span>
     </div>
-    <div id="screenshare-bar" class="screen-share-bar">
-      &#128247; You are sharing your screen — <button onclick="stopScreenShare()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-left:8px">Stop Sharing</button>
+    <div id="screenshare-bar" class="screen-share-bar" style="display:none">
+      &#128247; Sharing your screen — candidate can see it &nbsp;
+      <button onclick="stopScreenShare()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:12px">Stop</button>
     </div>
   </div>
-
   <div class="sidebar">
     <div class="sb-head">
       <div class="sb-title" id="s-title">Loading...</div>
       <div class="sb-meta" id="s-cand"></div>
     </div>
-
     <div class="trust-box">
       <div class="trust-label">Trust Score</div>
       <div class="trust-num trust-hi" id="trust-num">100</div>
       <div class="trust-sub trust-hi" id="trust-sub">Excellent</div>
       <div class="trust-bar"><div class="trust-bar-fill" id="trust-bar-fill" style="width:100%;background:var(--green)"></div></div>
     </div>
-
     <div class="sb-tabs">
       <button class="sb-tab active" id="tab-f-btn" onclick="switchTab('flags',this)">&#9873; Flags <span id="flag-badge"></span></button>
       <button class="sb-tab" onclick="switchTab('questions',this)">&#10067; Questions</button>
     </div>
-
     <div id="sbp-flags" class="sb-panel active">
       <div class="no-items"><div class="no-items-icon">&#9989;</div>No flags yet — session looks clean.</div>
     </div>
     <div id="sbp-questions" class="sb-panel"></div>
-
     <div id="q-nav" style="display:none" class="q-nav">
       <button class="btn btn-outline btn-sm" onclick="prevQ()" style="flex:1">&#8592; Prev</button>
       <button class="btn btn-primary btn-sm" onclick="nextQ()" style="flex:1">Next &#8594;</button>
     </div>
-
     <div class="sb-foot">
       <button class="btn btn-danger btn-sm" onclick="endSession()" style="flex:1">&#9726; End Session</button>
-      <button class="btn btn-outline btn-sm" onclick="copyInvite()" title="Copy candidate invite link">&#128279; Invite</button>
-      <a href="/recordings" class="btn btn-outline btn-sm" title="View recordings">&#127902;</a>
+      <button class="btn btn-outline btn-sm" onclick="copyInvite()">&#128279; Invite</button>
+      <a href="/recordings" class="btn btn-outline btn-sm" title="Recordings">&#127902;</a>
     </div>
   </div>
 </div>
-
 <div id="toast-container"></div>
 <script src="/js/utils.js"></script>
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
@@ -78,7 +67,7 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 var sessionId=location.pathname.split('/').pop();
 var socket,pc,localStream,screenStream,sessionData,qIdx=0;
 var mediaRecorder=null,recChunks=[],isRec=false,recStart=null;
-var isScreenSharing=false,timerInterval=null,sessionStartTime=null;
+var isScreenSharing=false,timerInterval=null;
 
 function switchTab(name,btn){
   document.querySelectorAll('.sb-tab').forEach(function(t){t.classList.remove('active');});
@@ -91,31 +80,23 @@ function setTrust(v){
   var cls=trustClass(v),lbl=trustLabel(v);
   var n=$('trust-num'),s=$('trust-sub'),bar=$('trust-bar-fill');
   n.textContent=v;n.className='trust-num '+cls;s.className='trust-sub '+cls;s.textContent=lbl;
-  var col=v>=80?'var(--green)':v>=60?'var(--amber)':'var(--red)';
-  bar.style.width=v+'%';bar.style.background=col;
+  bar.style.width=v+'%';bar.style.background=v>=80?'var(--green)':v>=60?'var(--amber)':'var(--red)';
 }
 
-function buildFlagCard(f,isNew){
-  var div=document.createElement('div');
-  div.className='flag-card'+(isNew?' '+f.severity:' '+f.severity);
-  if(isNew){div.style.animation='toastIn .3s ease';}
-  var title=document.createElement('div');title.className='flag-title';title.textContent=f.text;
-  var det=document.createElement('div');det.className='flag-detail';det.textContent=f.detail||'';
+function buildFlagCard(f){
+  var div=document.createElement('div');div.className='flag-card '+f.severity;div.style.animation='toastIn .3s ease';
+  var title=document.createElement('div');title.className='flag-title';title.textContent=f.text;div.appendChild(title);
+  if(f.detail){var det=document.createElement('div');det.className='flag-detail';det.textContent=f.detail;div.appendChild(det);}
   var time=document.createElement('div');time.className='flag-time';
   time.innerHTML='<span class="flag-count">'+f.severity.toUpperCase()+'</span> '+f.time_offset;
-  div.appendChild(title);if(f.detail)div.appendChild(det);div.appendChild(time);
-  return div;
+  div.appendChild(time);return div;
 }
 
-var flagTotal=0;
 function renderFlags(flags){
   var el=$('sbp-flags');el.innerHTML='';
-  flagTotal=flags.length;
-  var badge=$('flag-badge');
-  badge.textContent=flagTotal>0?' ('+flagTotal+')':'';
-  badge.style.color=flagTotal>0?'var(--red)':'';
+  var badge=$('flag-badge');badge.textContent=flags.length>0?' ('+flags.length+')':'';badge.style.color=flags.length>0?'var(--red)':'';
   if(!flags.length){el.innerHTML='<div class="no-items"><div class="no-items-icon">&#9989;</div>No flags yet — session looks clean.</div>';return;}
-  flags.forEach(function(f){el.appendChild(buildFlagCard(f,false));});
+  flags.forEach(function(f){el.appendChild(buildFlagCard(f));});
   el.scrollTop=el.scrollHeight;
 }
 
@@ -127,8 +108,7 @@ function renderQuestions(qs){
     var div=document.createElement('div');div.className='q-card'+(i===qIdx?' active':'');
     var num=document.createElement('div');num.className='q-num';num.textContent='Q'+(i+1);
     var txt=document.createElement('div');txt.textContent=q;
-    div.appendChild(num);div.appendChild(txt);
-    div.onclick=function(){goQ(i);};el.appendChild(div);
+    div.appendChild(num);div.appendChild(txt);div.onclick=function(){goQ(i);};el.appendChild(div);
   });
 }
 
@@ -137,12 +117,10 @@ function nextQ(){if(sessionData&&sessionData.questions&&qIdx<sessionData.questio
 function prevQ(){if(qIdx>0)goQ(qIdx-1);}
 
 function startTimer(){
-  sessionStartTime=Date.now();
-  $('timer-chip').style.display='flex';
+  var t0=Date.now();$('timer-chip').style.display='flex';
   timerInterval=setInterval(function(){
-    var s=Math.floor((Date.now()-sessionStartTime)/1000);
-    var m=Math.floor(s/60),sec=s%60;
-    $('timer-chip').textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+    var s=Math.floor((Date.now()-t0)/1000);
+    $('timer-chip').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
   },1000);
 }
 
@@ -150,14 +128,13 @@ function toggleRec(){if(isRec)stopRec();else startRec();}
 
 function startRec(){
   var vid=$('remote-vid');
-  if(!vid.srcObject){toast('No candidate video to record yet','red');return;}
+  if(!vid.srcObject){toast('No candidate video yet — wait for them to join','red');return;}
   var canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;
   var ctx=canvas.getContext('2d');isRec=true;recStart=Date.now();
   (function draw(){
     if(!isRec)return;
     ctx.drawImage(vid,0,0,1280,720);
-    var lv=$('local-vid');
-    if(lv.srcObject){ctx.drawImage(lv,1060,590,210,120);}
+    var lv=$('local-vid');if(lv.srcObject){ctx.drawImage(lv,1060,590,210,120);}
     ctx.fillStyle='rgba(239,68,68,.9)';ctx.fillRect(10,10,58,26);
     ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.fillText('REC',18,28);
     requestAnimationFrame(draw);
@@ -168,8 +145,8 @@ function startRec(){
   mediaRecorder=new MediaRecorder(cs,{mimeType:mime});
   recChunks=[];mediaRecorder.ondataavailable=function(e){if(e.data.size>0)recChunks.push(e.data);};
   mediaRecorder.start(1000);
-  $('rec-btn').textContent='■ Stop & Save';$('rec-btn').className='btn btn-outline btn-sm';
-  $('rec-ind').style.display='flex';toast('&#9679; Recording started','green');
+  $('rec-btn').textContent='&#9632; Stop & Save';$('rec-btn').className='btn btn-outline btn-sm';
+  $('rec-ind').style.display='flex';toast('Recording started','green');
 }
 
 function stopRec(){
@@ -189,7 +166,7 @@ function stopRec(){
 }
 
 async function uploadRecording(blob,dur){
-  toast('Saving to library...','amber');
+  toast('Saving to Recordings library...','amber');
   try{
     var fd=new FormData();fd.append('recording',blob,'recording.webm');
     fd.append('sessionId',sessionId);fd.append('durationSecs',String(dur));
@@ -201,32 +178,70 @@ async function uploadRecording(blob,dur){
 }
 
 // ── SCREEN SHARING ──
-async function toggleScreenShare(){
-  if(isScreenSharing)stopScreenShare();else startScreenShare();
-}
+// KEY: We use pc.getSenders() + replaceTrack() to swap the video track
+// sent to the candidate. This is the ONLY way to send screen share over WebRTC.
+async function toggleScreenShare(){if(isScreenSharing)stopScreenShare();else startScreenShare();}
 
 async function startScreenShare(){
   try{
-    screenStream=await navigator.mediaDevices.getDisplayMedia({video:{cursor:'always'},audio:false});
-    isScreenSharing=true;
+    screenStream=await navigator.mediaDevices.getDisplayMedia({
+      video:{cursor:'always'},audio:false
+    });
+    var screenTrack=screenStream.getVideoTracks()[0];
+
+    // Show screen locally so interviewer can confirm what's being shared
     $('remote-vid').srcObject=screenStream;
-    $('share-screen-btn').textContent='&#128247; Stop Sharing';
+
+    // Replace the video track being sent to the candidate via WebRTC
+    if(pc){
+      var senders=pc.getSenders();
+      var vs=senders.find(function(s){return s.track&&s.track.kind==='video';});
+      if(vs){
+        vs.replaceTrack(screenTrack).then(function(){
+          toast('&#128247; Screen sharing — candidate can now see your screen','blue',4000);
+        }).catch(function(e){toast('Track replace failed: '+e.message,'red');});
+      }else{
+        toast('No video sender found — make sure candidate is connected first','red');
+      }
+    }else{
+      toast('Not connected yet — connect to candidate first, then share screen','red');
+      screenStream.getTracks().forEach(function(t){t.stop();});screenStream=null;return;
+    }
+
+    screenTrack.onended=function(){stopScreenShare();};
+    isScreenSharing=true;
+    $('share-screen-btn').textContent='&#9726; Stop Sharing';
     $('share-screen-btn').className='btn btn-amber btn-sm';
     $('screenshare-bar').style.display='flex';
-    screenStream.getVideoTracks()[0].onended=function(){stopScreenShare();};
-    toast('Screen sharing started — candidate can see your screen','blue');
   }catch(e){
-    if(e.name!=='AbortError')toast('Could not start screen share: '+e.message,'red');
+    if(e.name!=='AbortError')toast('Screen share failed: '+e.message,'red');
   }
 }
 
 function stopScreenShare(){
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop();});screenStream=null;}
   isScreenSharing=false;
+
+  // Restore camera track to peer connection
+  if(pc&&localStream){
+    var camTrack=localStream.getVideoTracks()[0];
+    var senders=pc.getSenders();
+    var vs=senders.find(function(s){return s.track&&s.track.kind==='video';});
+    if(vs&&camTrack){
+      vs.replaceTrack(camTrack).catch(function(){});
+    }
+  }
+
+  // Restore candidate video in main pane
+  if(pc){
+    var rcvrs=pc.getReceivers();
+    var vr=rcvrs.find(function(r){return r.track&&r.track.kind==='video';});
+    if(vr){$('remote-vid').srcObject=new MediaStream([vr.track]);}
+  }
+
   $('share-screen-btn').textContent='&#128247; Share Screen';
   $('share-screen-btn').className='btn btn-purple btn-sm';
   $('screenshare-bar').style.display='none';
-  if(pc&&pc.getReceivers().length>0)$('remote-vid').srcObject=pc.getRemoteStreams?pc.getRemoteStreams()[0]:null;
   toast('Screen sharing stopped','amber');
 }
 
@@ -260,11 +275,8 @@ function connectSocket(){
     toast('&#9873; '+flag.text,'amber');
     var s=await get('/api/sessions/'+sessionId);
     setTrust(s.trust_score!=null?s.trust_score:100);
-    var flags=s.flags||[];
-    renderFlags(flags);
-    var el=$('sbp-flags');
+    renderFlags(s.flags||[]);
     switchTab('flags',$('tab-f-btn'));
-    el.scrollTop=el.scrollHeight;
   });
   socket.on('peer-left',function(){$('s-status').textContent='Disconnected';$('s-status').className='badge badge-red';toast('Candidate disconnected','amber');});
 }
@@ -272,7 +284,10 @@ function connectSocket(){
 async function startWebRTC(isInit){
   pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
   if(localStream)localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream);});
-  pc.ontrack=function(e){if(!isScreenSharing)$('remote-vid').srcObject=e.streams[0];};
+  pc.ontrack=function(e){
+    // Only update remote video if we're NOT currently screen sharing
+    if(!isScreenSharing)$('remote-vid').srcObject=e.streams[0];
+  };
   pc.onicecandidate=function(e){if(e.candidate)socket.emit('webrtc-ice',{sessionId:sessionId,candidate:e.candidate});};
   if(isInit){var o=await pc.createOffer();await pc.setLocalDescription(o);socket.emit('webrtc-offer',{sessionId:sessionId,offer:o});}
 }
@@ -287,10 +302,8 @@ async function endSession(){
 }
 
 function copyInvite(){
-  var code=sessionData&&sessionData.code||'';
-  navigator.clipboard.writeText(location.origin+'/join/'+code).then(function(){toast('Candidate invite link copied!','green');});
+  navigator.clipboard.writeText(location.origin+'/join/'+(sessionData&&sessionData.code||'')).then(function(){toast('Candidate invite link copied!','green');});
 }
-
 init();
 </script>
 </body>
