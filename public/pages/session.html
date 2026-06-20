@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Session â Secure Interview</title>
+<title>Session Ã¢ÂÂ Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
 <style>body{display:flex;flex-direction:column;height:100vh;overflow:hidden}</style>
 </head>
@@ -14,6 +14,7 @@
     <span id="rec-ind" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--red);font-weight:600"><span class="rec-dot"></span>REC</span>
     <button id="rec-btn" class="btn btn-danger btn-sm" onclick="toggleRec()">&#9679; Record</button>
     <button id="share-screen-btn" class="btn btn-purple btn-sm" onclick="toggleScreenShare()">&#128247; Share Screen</button>
+    <button class="btn btn-outline btn-sm" onclick="toggleDevicePanel()" title="Camera &amp; microphone settings">&#9881;&#65039;</button>
     <div class="topbar-sep"></div>
     <span id="s-status" class="badge badge-default">Waiting...</span>
   </div>
@@ -25,8 +26,29 @@
     <div class="video-overlay-tl">
       <span id="timer-chip" class="video-chip" style="display:none">00:00</span>
     </div>
+    <!-- Device Settings Panel -->
+    <div id="device-settings-panel" style="display:none;position:absolute;top:60px;right:12px;background:#0f1319;border:1px solid #1e2a3a;border-radius:10px;padding:18px;width:300px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase">Device Settings</div>
+        <button onclick="toggleDevicePanel()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:2px">&#10005;</button>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:5px">&#127909; Camera</div>
+        <select id="int-sel-camera" style="width:100%;padding:7px 10px;background:#161b22;border:1px solid #1e2a3a;border-radius:6px;color:#e2e8f0;font-size:13px;outline:none;cursor:pointer" onchange="applyInterviewerDevices()"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:5px">&#127908; Microphone</div>
+        <select id="int-sel-mic" style="width:100%;padding:7px 10px;background:#161b22;border:1px solid #1e2a3a;border-radius:6px;color:#e2e8f0;font-size:13px;outline:none;cursor:pointer" onchange="applyInterviewerDevices()"></select>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:5px">&#128266; Speaker</div>
+        <select id="int-sel-speaker" style="width:100%;padding:7px 10px;background:#161b22;border:1px solid #1e2a3a;border-radius:6px;color:#e2e8f0;font-size:13px;outline:none;cursor:pointer" onchange="applyInterviewerSpeaker()"></select>
+      </div>
+      <div style="font-size:11px;color:#374151;margin-top:12px;text-align:center">Changes apply immediately</div>
+    </div>
+
     <div id="screenshare-bar" class="screen-share-bar" style="display:none">
-      &#128247; Sharing your screen â candidate can see it &nbsp;
+      &#128247; Sharing your screen Ã¢ÂÂ candidate can see it &nbsp;
       <button onclick="stopScreenShare()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:12px">Stop</button>
     </div>
   </div>
@@ -46,7 +68,7 @@
       <button class="sb-tab" onclick="switchTab('questions',this)">&#10067; Questions</button>
     </div>
     <div id="sbp-flags" class="sb-panel active">
-      <div class="no-items"><div class="no-items-icon">&#9989;</div>No flags yet â session looks clean.</div>
+      <div class="no-items"><div class="no-items-icon">&#9989;</div>No flags yet Ã¢ÂÂ session looks clean.</div>
     </div>
     <div id="sbp-questions" class="sb-panel"></div>
     <div id="q-nav" style="display:none" class="q-nav">
@@ -95,7 +117,7 @@ function buildFlagCard(f){
 function renderFlags(flags){
   var el=$('sbp-flags');el.innerHTML='';
   var badge=$('flag-badge');badge.textContent=flags.length>0?' ('+flags.length+')':'';badge.style.color=flags.length>0?'var(--red)':'';
-  if(!flags.length){el.innerHTML='<div class="no-items"><div class="no-items-icon">&#9989;</div>No flags yet â session looks clean.</div>';return;}
+  if(!flags.length){el.innerHTML='<div class="no-items"><div class="no-items-icon">&#9989;</div>No flags yet Ã¢ÂÂ session looks clean.</div>';return;}
   flags.forEach(function(f){el.appendChild(buildFlagCard(f));});
   el.scrollTop=el.scrollHeight;
 }
@@ -128,7 +150,7 @@ function toggleRec(){if(isRec)stopRec();else startRec();}
 
 function startRec(){
   var vid=$('remote-vid');
-  if(!vid.srcObject){toast('No candidate video yet â wait for them to join','red');return;}
+  if(!vid.srcObject){toast('No candidate video yet Ã¢ÂÂ wait for them to join','red');return;}
   var canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;
   var ctx=canvas.getContext('2d');isRec=true;recStart=Date.now();
   (function draw(){
@@ -177,7 +199,7 @@ async function uploadRecording(blob,dur){
   }catch(e){toast('Upload error: '+e.message,'red');}
 }
 
-// ââ SCREEN SHARING ââ
+// Ã¢ÂÂÃ¢ÂÂ SCREEN SHARING Ã¢ÂÂÃ¢ÂÂ
 // KEY: We use pc.getSenders() + replaceTrack() to swap the video track
 // sent to the candidate. This is the ONLY way to send screen share over WebRTC.
 async function toggleScreenShare(){if(isScreenSharing)stopScreenShare();else startScreenShare();}
@@ -198,13 +220,13 @@ async function startScreenShare(){
       var vs=senders.find(function(s){return s.track&&s.track.kind==='video';});
       if(vs){
         vs.replaceTrack(screenTrack).then(function(){
-          toast('&#128247; Screen sharing â candidate can now see your screen','blue',4000);
+          toast('&#128247; Screen sharing Ã¢ÂÂ candidate can now see your screen','blue',4000);
         }).catch(function(e){toast('Track replace failed: '+e.message,'red');});
       }else{
-        toast('No video sender found â make sure candidate is connected first','red');
+        toast('No video sender found Ã¢ÂÂ make sure candidate is connected first','red');
       }
     }else{
-      toast('Not connected yet â connect to candidate first, then share screen','red');
+      toast('Not connected yet Ã¢ÂÂ connect to candidate first, then share screen','red');
       screenStream.getTracks().forEach(function(t){t.stop();});screenStream=null;return;
     }
 
@@ -244,6 +266,108 @@ function stopScreenShare(){
   $('screenshare-bar').style.display='none';
   toast('Screen sharing stopped','amber');
 }
+
+// ── INTERVIEWER DEVICE SETTINGS ──
+var devicePanelOpen = false;
+
+async function toggleDevicePanel(){
+  devicePanelOpen = !devicePanelOpen;
+  var panel = document.getElementById('device-settings-panel');
+  if(devicePanelOpen){
+    panel.style.display = 'block';
+    await populateInterviewerDevices();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+async function populateInterviewerDevices(){
+  try {
+    var devices = await navigator.mediaDevices.enumerateDevices();
+    var cameras = devices.filter(function(d){return d.kind==='videoinput';});
+    var mics = devices.filter(function(d){return d.kind==='audioinput';});
+    var speakers = devices.filter(function(d){return d.kind==='audiooutput';});
+
+    function fill(selId, devs, label){
+      var sel = document.getElementById(selId);
+      if(!sel) return;
+      // Save current selection
+      var cur = sel.value;
+      sel.innerHTML = '';
+      devs.forEach(function(d,i){
+        var opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || (label+' '+(i+1));
+        if(d.deviceId === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if(!devs.length){ var opt=document.createElement('option');opt.textContent='No '+label+' found';sel.appendChild(opt); }
+    }
+
+    fill('int-sel-camera', cameras, 'Camera');
+    fill('int-sel-mic', mics, 'Microphone');
+
+    var spkSel = document.getElementById('int-sel-speaker');
+    if(speakers.length > 0){
+      fill('int-sel-speaker', speakers, 'Speaker');
+    } else {
+      if(spkSel) spkSel.innerHTML = '<option value="">Default Output</option>';
+    }
+  } catch(e){ console.warn('Device enumeration failed:', e.message); }
+}
+
+async function applyInterviewerDevices(){
+  var camId = document.getElementById('int-sel-camera').value;
+  var micId = document.getElementById('int-sel-mic').value;
+  try {
+    // Get new stream with selected devices
+    var newStream = await navigator.mediaDevices.getUserMedia({
+      video: camId ? {deviceId:{exact:camId}} : true,
+      audio: micId ? {deviceId:{exact:micId}} : true
+    });
+
+    // Stop old tracks
+    if(localStream) localStream.getTracks().forEach(function(t){t.stop();});
+    localStream = newStream;
+
+    // Update local preview
+    document.getElementById('local-vid').srcObject = localStream;
+
+    // Replace tracks in peer connection (so candidate gets new camera/mic)
+    if(pc){
+      var senders = pc.getSenders();
+      newStream.getTracks().forEach(function(newTrack){
+        var sender = senders.find(function(s){return s.track && s.track.kind === newTrack.kind;});
+        if(sender) sender.replaceTrack(newTrack).catch(function(e){console.warn('replaceTrack failed:',e.message);});
+      });
+    }
+    toast('Device changed', 'green');
+  } catch(e){ toast('Could not switch device: '+e.message, 'red'); }
+}
+
+function applyInterviewerSpeaker(){
+  var spk = document.getElementById('int-sel-speaker').value;
+  if(!spk) return;
+  var remoteVid = document.getElementById('remote-vid');
+  if(remoteVid && typeof remoteVid.setSinkId === 'function'){
+    remoteVid.setSinkId(spk)
+      .then(function(){ toast('Speaker changed', 'green'); })
+      .catch(function(e){ toast('Speaker change failed: '+e.message, 'red'); });
+  } else {
+    toast('Speaker switching not supported in this browser', 'amber');
+  }
+}
+
+// Close device panel when clicking outside
+document.addEventListener('click', function(e){
+  var panel = document.getElementById('device-settings-panel');
+  if(panel && panel.style.display === 'block'){
+    if(!panel.contains(e.target) && !e.target.title.includes('Camera')){
+      devicePanelOpen = false;
+      panel.style.display = 'none';
+    }
+  }
+});
 
 async function init(){
   var me=await requireLogin('/');if(!me)return;
