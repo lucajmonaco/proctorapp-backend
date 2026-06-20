@@ -6,15 +6,17 @@
 <link rel="stylesheet" href="/css/main.css">
 <style>
 body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;display:inline-block}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div class="topbar-logo">&#127737; Secure Interview</div>
+  <div class="topbar-logo">Secure Interview</div>
   <div class="topbar-right">
     <span id="s-code" style="font-size:12px;color:var(--text2)"></span>
     <span id="rec-ind" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--red)"><span class="rec-dot"></span>REC</span>
-    <button id="rec-btn" class="btn btn-danger" onclick="toggleRec()" style="font-size:12px;padding:4px 10px">&#9679; Record</button>
+    <button id="rec-btn" class="btn btn-danger" onclick="toggleRec()" style="font-size:12px;padding:4px 10px">Record</button>
     <span id="s-status" class="badge">Waiting for candidate...</span>
   </div>
 </div>
@@ -40,8 +42,8 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
     <div id="sbp-flags" class="sb-panel active"><div class="no-items">No flags yet</div></div>
     <div id="sbp-questions" class="sb-panel"></div>
     <div id="q-nav" style="display:none" class="q-nav">
-      <button class="btn" onclick="prevQ()" style="flex:1">&#8592; Prev</button>
-      <button class="btn btn-primary" onclick="nextQ()" style="flex:1">Next &#8594;</button>
+      <button class="btn" onclick="prevQ()" style="flex:1">Prev</button>
+      <button class="btn btn-primary" onclick="nextQ()" style="flex:1">Next</button>
     </div>
     <div class="sb-foot">
       <button class="btn btn-danger" onclick="endSession()" style="flex:1">End session</button>
@@ -53,143 +55,208 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 <script src="/js/utils.js"></script>
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 <script>
-const sessionId=location.pathname.split('/').pop();
-let socket,pc,localStream,sessionData,qIdx=0,mediaRecorder=null,recChunks=[],isRec=false;
+var sessionId = location.pathname.split('/').pop();
+var socket, pc, localStream, sessionData, qIdx = 0;
+var mediaRecorder = null, recChunks = [], isRec = false;
 
-function switchTab(name,btn){
-  document.querySelectorAll('.sb-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.sb-panel').forEach(p=>p.classList.remove('active'));
+function switchTab(name, btn) {
+  document.querySelectorAll('.sb-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.sb-panel').forEach(function(p){ p.classList.remove('active'); });
   btn.classList.add('active');
-  document.getElementById('sbp-'+name).classList.add('active');
+  document.getElementById('sbp-' + name).classList.add('active');
 }
 
-function setTrust(v){
-  const cls=trustClass(v);
-  const n=document.getElementById('trust-num'),s=document.getElementById('trust-sub');
-  n.textContent=v;n.className='trust-num '+cls;s.className='trust-sub '+cls;
-  s.textContent=v>=80?'Excellent':v>=60?'Good':v>=40?'Caution':'High Risk';
+function setTrust(v) {
+  var cls = trustClass(v);
+  var n = document.getElementById('trust-num');
+  var s = document.getElementById('trust-sub');
+  n.textContent = v; n.className = 'trust-num ' + cls;
+  s.className = 'trust-sub ' + cls;
+  s.textContent = v >= 80 ? 'Excellent' : v >= 60 ? 'Good' : v >= 40 ? 'Caution' : 'High Risk';
 }
 
-function renderFlags(flags){
-  const el=document.getElementById('sbp-flags');
-  if(!flags.length){el.innerHTML='<div class="no-items">No flags yet</div>';return;}
-  el.innerHTML=flags.map(f=>'<div class="flag-card '+f.severity+'"><div class="flag-title">'+f.text+'</div>'+(f.detail?'<div class="flag-detail">'+f.detail+'</div>':'')+'<div class="flag-time">'+f.severity.toUpperCase()+' &middot; '+f.time_offset+'</div></div>').join('');
-  el.scrollTop=el.scrollHeight;
+function buildFlagCard(f) {
+  var div = document.createElement('div');
+  div.className = 'flag-card ' + f.severity;
+  var title = document.createElement('div');
+  title.className = 'flag-title'; title.textContent = f.text;
+  div.appendChild(title);
+  if (f.detail) {
+    var det = document.createElement('div');
+    det.className = 'flag-detail'; det.textContent = f.detail;
+    div.appendChild(det);
+  }
+  var time = document.createElement('div');
+  time.className = 'flag-time'; time.textContent = f.severity.toUpperCase() + ' - ' + f.time_offset;
+  div.appendChild(time);
+  return div;
 }
 
-function renderQuestions(qs){
-  if(!qs||!qs.length){document.getElementById('sbp-questions').innerHTML='<div class="no-items">No questions added</div>';return;}
-  document.getElementById('q-nav').style.display='flex';
-  document.getElementById('sbp-questions').innerHTML=qs.map((q,i)=>'<div class="q-card'+(i===qIdx?' active':'')+'" onclick="goQ('+i+')">'+q+'</div>').join('');
+function renderFlags(flags) {
+  var el = document.getElementById('sbp-flags');
+  el.innerHTML = '';
+  if (!flags.length) { el.innerHTML = '<div class="no-items">No flags yet</div>'; return; }
+  flags.forEach(function(f){ el.appendChild(buildFlagCard(f)); });
+  el.scrollTop = el.scrollHeight;
 }
 
-function goQ(i){qIdx=i;renderQuestions(sessionData?.questions||[]);socket?.emit('next-question',{sessionId,qIdx});}
-function nextQ(){if(sessionData?.questions&&qIdx<sessionData.questions.length-1)goQ(qIdx+1);}
-function prevQ(){if(qIdx>0)goQ(qIdx-1);}
+function renderQuestions(qs) {
+  var el = document.getElementById('sbp-questions');
+  el.innerHTML = '';
+  if (!qs || !qs.length) { el.innerHTML = '<div class="no-items">No questions added</div>'; return; }
+  document.getElementById('q-nav').style.display = 'flex';
+  qs.forEach(function(q, i) {
+    var div = document.createElement('div');
+    div.className = 'q-card' + (i === qIdx ? ' active' : '');
+    div.textContent = q;
+    div.onclick = function(){ goQ(i); };
+    el.appendChild(div);
+  });
+}
 
-function toggleRec(){isRec?stopRec():startRec();}
+function goQ(i) {
+  qIdx = i;
+  renderQuestions(sessionData && sessionData.questions || []);
+  if (socket) socket.emit('next-question', {sessionId: sessionId, qIdx: qIdx});
+}
+function nextQ() { if (sessionData && sessionData.questions && qIdx < sessionData.questions.length - 1) goQ(qIdx + 1); }
+function prevQ() { if (qIdx > 0) goQ(qIdx - 1); }
 
-function startRec(){
-  const vid=document.getElementById('remote-vid');
-  if(!vid.srcObject){toast('No candidate video to record yet','red');return;}
-  const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;
-  const ctx=canvas.getContext('2d');
-  isRec=true;
-  (function draw(){
-    if(!isRec)return;
-    ctx.drawImage(vid,0,0,1280,720);
-    const lv=document.getElementById('local-vid');
-    if(lv.srcObject)ctx.drawImage(lv,1060,590,210,120);
-    ctx.fillStyle='rgba(248,81,73,.9)';ctx.fillRect(10,10,60,24);
-    ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.fillText('&#9679; REC',15,27);
+function toggleRec() { if (isRec) stopRec(); else startRec(); }
+
+function startRec() {
+  var vid = document.getElementById('remote-vid');
+  if (!vid.srcObject) { toast('No candidate video to record yet', 'red'); return; }
+  var canvas = document.createElement('canvas');
+  canvas.width = 1280; canvas.height = 720;
+  var ctx = canvas.getContext('2d');
+  isRec = true;
+  (function draw() {
+    if (!isRec) return;
+    ctx.drawImage(vid, 0, 0, 1280, 720);
+    var lv = document.getElementById('local-vid');
+    if (lv.srcObject) {
+      ctx.drawImage(lv, 1060, 590, 210, 120);
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+      ctx.strokeRect(1060, 590, 210, 120);
+    }
+    ctx.fillStyle = 'rgba(248,81,73,0.9)'; ctx.fillRect(10, 10, 55, 24);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.fillText('REC', 20, 27);
     requestAnimationFrame(draw);
   })();
-  const tracks=canvas.captureStream(30).getTracks();
-  if(localStream)localStream.getAudioTracks().forEach(t=>tracks.push(t));
-  const stream=new MediaStream(tracks);
-  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';
-  mediaRecorder=new MediaRecorder(stream,{mimeType:mime});
-  recChunks=[];
-  mediaRecorder.ondataavailable=e=>{if(e.data.size>0)recChunks.push(e.data);};
+  var csStream = canvas.captureStream(30);
+  if (localStream) localStream.getAudioTracks().forEach(function(t){ csStream.addTrack(t); });
+  var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  mediaRecorder = new MediaRecorder(csStream, {mimeType: mime});
+  recChunks = [];
+  mediaRecorder.ondataavailable = function(e){ if (e.data.size > 0) recChunks.push(e.data); };
   mediaRecorder.start(1000);
-  document.getElementById('rec-btn').textContent='&#9632; Stop & Save';
-  document.getElementById('rec-btn').className='btn';
-  document.getElementById('rec-ind').style.display='flex';
-  toast('Recording started','green');
+  document.getElementById('rec-btn').textContent = 'Stop & Save';
+  document.getElementById('rec-btn').className = 'btn';
+  document.getElementById('rec-ind').style.display = 'flex';
+  toast('Recording started', 'green');
 }
 
-function stopRec(){
-  if(!mediaRecorder)return;
-  isRec=false;
+function stopRec() {
+  if (!mediaRecorder) return;
+  isRec = false;
   mediaRecorder.stop();
-  mediaRecorder.onstop=()=>{
-    const blob=new Blob(recChunks,{type:'video/webm'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;a.download='interview-'+(sessionData?.code||'session')+'-'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.webm';
-    a.click();URL.revokeObjectURL(url);
-    toast('Recording saved!','green');
+  mediaRecorder.onstop = function() {
+    var blob = new Blob(recChunks, {type: 'video/webm'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'interview-' + (sessionData && sessionData.code || 'session') + '-' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.webm';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Recording saved!', 'green');
   };
-  document.getElementById('rec-btn').textContent='&#9679; Record';
-  document.getElementById('rec-btn').className='btn btn-danger';
-  document.getElementById('rec-ind').style.display='none';
+  document.getElementById('rec-btn').textContent = 'Record';
+  document.getElementById('rec-btn').className = 'btn btn-danger';
+  document.getElementById('rec-ind').style.display = 'none';
 }
 
-async function init(){
-  const me=await requireLogin('/');if(!me)return;
-  const s=await get('/api/sessions/'+sessionId);
-  if(s.error){toast(s.error,'red');return;}
-  sessionData=s;
-  document.getElementById('s-title').textContent=s.title;
-  document.getElementById('s-cand').textContent=s.candidate_name||'Candidate';
-  document.getElementById('s-code').textContent='Code: '+s.code;
-  setTrust(s.trust_score??100);
-  renderFlags(s.flags||[]);
-  renderQuestions(s.questions||[]);
+async function init() {
+  var me = await requireLogin('/');
+  if (!me) return;
+  var s = await get('/api/sessions/' + sessionId);
+  if (s.error) { toast(s.error, 'red'); return; }
+  sessionData = s;
+  document.getElementById('s-title').textContent = s.title;
+  document.getElementById('s-cand').textContent = s.candidate_name || 'Candidate';
+  document.getElementById('s-code').textContent = 'Code: ' + s.code;
+  setTrust(s.trust_score != null ? s.trust_score : 100);
+  renderFlags(s.flags || []);
+  renderQuestions(s.questions || []);
   await startMedia();
   connectSocket();
 }
 
-async function startMedia(){
-  try{localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});document.getElementById('local-vid').srcObject=localStream;}
-  catch(e){toast('Camera/mic: '+e.message,'amber');}
+async function startMedia() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    document.getElementById('local-vid').srcObject = localStream;
+  } catch(e) { toast('Camera/mic: ' + e.message, 'amber'); }
 }
 
-function connectSocket(){
-  socket=io();
-  socket.emit('join-room',{sessionId,role:'interviewer'});
-  socket.on('peer-joined',async({role})=>{if(role==='candidate'){document.getElementById('s-status').textContent='Live';document.getElementById('s-status').className='badge badge-green';await startWebRTC(true);}});
-  socket.on('peer-already-present',async()=>{document.getElementById('s-status').textContent='Live';document.getElementById('s-status').className='badge badge-green';await startWebRTC(true);});
-  socket.on('webrtc-offer',async({offer})=>{if(!pc)await startWebRTC(false);await pc.setRemoteDescription(offer);const a=await pc.createAnswer();await pc.setLocalDescription(a);socket.emit('webrtc-answer',{sessionId,answer:a});});
-  socket.on('webrtc-answer',async({answer})=>{await pc?.setRemoteDescription(answer);});
-  socket.on('webrtc-ice',async({candidate})=>{await pc?.addIceCandidate(candidate);});
-  socket.on('candidate-flag',async(flag)=>{
-    toast(flag.text,'amber');
-    const s=await get('/api/sessions/'+sessionId);
-    setTrust(s.trust_score??100);
-    renderFlags(s.flags||[]);
-    switchTab('flags',document.getElementById('tab-f-btn'));
+function connectSocket() {
+  socket = io();
+  socket.emit('join-room', {sessionId: sessionId, role: 'interviewer'});
+  socket.on('peer-joined', function(data) {
+    if (data.role === 'candidate') {
+      document.getElementById('s-status').textContent = 'Live';
+      document.getElementById('s-status').className = 'badge badge-green';
+      startWebRTC(true);
+    }
   });
-  socket.on('peer-left',()=>{document.getElementById('s-status').textContent='Disconnected';document.getElementById('s-status').className='badge badge-red';toast('Candidate disconnected','amber');});
+  socket.on('peer-already-present', function() {
+    document.getElementById('s-status').textContent = 'Live';
+    document.getElementById('s-status').className = 'badge badge-green';
+    startWebRTC(true);
+  });
+  socket.on('webrtc-offer', async function(data) {
+    if (!pc) await startWebRTC(false);
+    await pc.setRemoteDescription(data.offer);
+    var a = await pc.createAnswer(); await pc.setLocalDescription(a);
+    socket.emit('webrtc-answer', {sessionId: sessionId, answer: a});
+  });
+  socket.on('webrtc-answer', async function(data) { if (pc) await pc.setRemoteDescription(data.answer); });
+  socket.on('webrtc-ice', async function(data) { if (pc) await pc.addIceCandidate(data.candidate); });
+  socket.on('candidate-flag', async function(flag) {
+    toast(flag.text, 'amber');
+    var s = await get('/api/sessions/' + sessionId);
+    setTrust(s.trust_score != null ? s.trust_score : 100);
+    renderFlags(s.flags || []);
+    switchTab('flags', document.getElementById('tab-f-btn'));
+  });
+  socket.on('peer-left', function() {
+    document.getElementById('s-status').textContent = 'Disconnected';
+    document.getElementById('s-status').className = 'badge badge-red';
+    toast('Candidate disconnected', 'amber');
+  });
 }
 
-async function startWebRTC(isInit){
-  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-  localStream?.getTracks().forEach(t=>pc.addTrack(t,localStream));
-  pc.ontrack=e=>{document.getElementById('remote-vid').srcObject=e.streams[0];};
-  pc.onicecandidate=e=>{if(e.candidate)socket.emit('webrtc-ice',{sessionId,candidate:e.candidate});};
-  if(isInit){const o=await pc.createOffer();await pc.setLocalDescription(o);socket.emit('webrtc-offer',{sessionId,offer:o});}
+async function startWebRTC(isInit) {
+  pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
+  if (localStream) localStream.getTracks().forEach(function(t){ pc.addTrack(t, localStream); });
+  pc.ontrack = function(e){ document.getElementById('remote-vid').srcObject = e.streams[0]; };
+  pc.onicecandidate = function(e){ if (e.candidate) socket.emit('webrtc-ice', {sessionId: sessionId, candidate: e.candidate}); };
+  if (isInit) {
+    var o = await pc.createOffer(); await pc.setLocalDescription(o);
+    socket.emit('webrtc-offer', {sessionId: sessionId, offer: o});
+  }
 }
 
-async function endSession(){
-  if(isRec)stopRec();
-  if(!confirm('End this session?'))return;
-  await patch('/api/sessions/'+sessionId,{status:'ended'});
-  location.href='/dashboard';
+async function endSession() {
+  if (isRec) stopRec();
+  if (!confirm('End this session?')) return;
+  await patch('/api/sessions/' + sessionId, {status: 'ended'});
+  location.href = '/dashboard';
 }
 
-function copyInvite(){
-  navigator.clipboard.writeText(location.origin+'/join/'+(sessionData?.code||'')).then(()=>toast('Invite link copied!','green'));
+function copyInvite() {
+  var code = sessionData && sessionData.code || '';
+  navigator.clipboard.writeText(location.origin + '/join/' + code).then(function(){ toast('Invite link copied!', 'green'); });
 }
 
 init();
