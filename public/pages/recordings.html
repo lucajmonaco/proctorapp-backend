@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Recordings — Secure Interview</title>
+<title>Recordings â Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
@@ -32,8 +32,8 @@ function fmtSize(b){if(!b)return'';if(b<1048576)return(b/1024).toFixed(0)+' KB';
 function fmtDur(s){if(!s)return'0:00';return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
 function buildCard(rec){
-  var score=rec.trust_score||100;
-  var scoreClass=score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo';
+  var score=(rec.trust_score!==null&&rec.trust_score!==undefined)?rec.trust_score:100;
+  var scoreClass=score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo'; // score is now correctly 0 if candidate got 0
   var date=rec.created_at?new Date(rec.created_at*1000).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
   var card=document.createElement('div');card.className='rec-card';card.id='card-'+rec.id;
   var body=document.createElement('div');body.className='rec-card-body';
@@ -99,15 +99,15 @@ async function deleteRec(id){
   else toast('Failed to delete','red');
 }
 
-// ── COMPRESSION FIX ──
+// ââ COMPRESSION FIX ââ
 // Problem: playbackRate=16 captures ~16x faster than real-time, so a 10min video
 // becomes a ~37 second compressed file. The video content is correct but sped up.
 //
 // REAL FIX: Use MediaRecorder on the VIDEO element's stream directly,
 // but at a lower bitrate. This captures the FULL duration at real speed.
-// For email size: target ~15MB for a 30min interview (8kbps video = ~3.6MB/min at 720p→480p)
+// For email size: target ~15MB for a 30min interview (8kbps video = ~3.6MB/min at 720pâ480p)
 //
-// Approach: Fetch → create object URL → play video at 1x → record canvas at lower quality
+// Approach: Fetch â create object URL â play video at 1x â record canvas at lower quality
 // This is slow (real-time) but produces the FULL interview at email-able size.
 // We show a "real-time recording" progress bar.
 
@@ -141,7 +141,7 @@ async function compressRec(id, title, btn){
       src.load();
     });
 
-    // Dimensions: reduce to 640x360 (360p) for email — ~5-8MB per 30 min at low bitrate
+    // Dimensions: reduce to 640x360 (360p) for email â ~5-8MB per 30 min at low bitrate
     var W=640, H=360;
     // Use actual video dimensions if smaller
     if(src.videoWidth && src.videoWidth < W){ W=src.videoWidth; H=src.videoHeight; }
@@ -157,10 +157,10 @@ async function compressRec(id, title, btn){
     canvas.width=W; canvas.height=H;
     var ctx=canvas.getContext('2d');
 
-    // Use VP8 at low bitrate — targets ~4Mbps → ~30MB/hr → ~15MB per 30min interview
-    // For 20min interview that's ~10MB — easily emailable
+    // Use VP8 at low bitrate â targets ~4Mbps â ~30MB/hr â ~15MB per 30min interview
+    // For 20min interview that's ~10MB â easily emailable
     var mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8')?'video/webm;codecs=vp8':'video/webm';
-    var targetBitrate=400000; // 400kbps — good quality at 360p, ~3MB/min
+    var targetBitrate=400000; // 400kbps â good quality at 360p, ~3MB/min
 
     var csStream=canvas.captureStream(24); // 24fps output
     var recorder=new MediaRecorder(csStream,{mimeType:mime,videoBitsPerSecond:targetBitrate});
@@ -181,7 +181,7 @@ async function compressRec(id, title, btn){
         var pct=Math.min(12+Math.round((elapsed/knownDuration)*83),95);
         pf.style.width=pct+'%';
         var remaining=Math.round(knownDuration-elapsed);
-        pl.textContent='Compressing: '+fmtDur(Math.round(elapsed))+' / '+fmtDur(Math.round(knownDuration))+(remaining>0?' — '+fmtDur(remaining)+' remaining':'');
+        pl.textContent='Compressing: '+fmtDur(Math.round(elapsed))+' / '+fmtDur(Math.round(knownDuration))+(remaining>0?' â '+fmtDur(remaining)+' remaining':'');
       } else {
         var elapsed=(Date.now()-t0)/1000;
         pl.textContent='Compressing: '+fmtDur(Math.round(elapsed))+' processed...';
@@ -210,7 +210,7 @@ async function compressRec(id, title, btn){
     var compBlob=new Blob(chunks,{type:'video/webm'});
     var saved=Math.round((1-compBlob.size/origSize)*100);
     pf.style.width='100%';
-    pl.innerHTML='<strong>Done!</strong> '+fmtSize(origSize)+' → <strong>'+fmtSize(compBlob.size)+'</strong>'+(saved>0?' ('+saved+'% smaller)':'')+' — Full interview captured at 360p';
+    pl.innerHTML='<strong>Done!</strong> '+fmtSize(origSize)+' â <strong>'+fmtSize(compBlob.size)+'</strong>'+(saved>0?' ('+saved+'% smaller)':'')+' â Full interview captured at 360p';
 
     var url=URL.createObjectURL(compBlob);
     var a=document.createElement('a');
@@ -222,8 +222,8 @@ async function compressRec(id, title, btn){
     document.body.removeChild(src);
 
     var msg='Compressed download started!';
-    if(compBlob.size<20*1024*1024) msg+=' '+fmtSize(compBlob.size)+' — should be emailable.';
-    else msg+=' '+fmtSize(compBlob.size)+' — may need a file share service (Google Drive, Dropbox).';
+    if(compBlob.size<20*1024*1024) msg+=' '+fmtSize(compBlob.size)+' â should be emailable.';
+    else msg+=' '+fmtSize(compBlob.size)+' â may need a file share service (Google Drive, Dropbox).';
     toast(msg,'green',6000);
 
   } catch(e) {
