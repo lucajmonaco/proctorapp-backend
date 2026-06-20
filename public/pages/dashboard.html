@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard Ã¢ÂÂ Secure Interview</title>
+<title>Dashboard - Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
 <div class="topbar">
   <div class="topbar-logo">SecureInterview</div>
   <div class="topbar-right">
-    <a href="/recordings" class="btn btn-outline btn-sm">&#127902; Recordings</a>
+    <a href="/recordings" class="btn btn-outline btn-sm">Recordings</a>
     <div class="topbar-sep"></div>
     <span id="user-chip" style="font-size:12px;color:var(--text2)"></span>
     <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign out</button>
@@ -28,7 +28,7 @@
   <div id="stats-row" class="stats-row" style="display:none">
     <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total Sessions</div></div>
     <div class="stat-card"><div class="stat-val trust-hi" id="stat-active">0</div><div class="stat-label">Active Now</div></div>
-    <div class="stat-card"><div class="stat-val trust-mid" id="stat-avg">N/A</div><div class="stat-label">Avg Trust Score</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-avg">N/A</div><div class="stat-label">Avg Trust Score (Ended)</div></div>
   </div>
 
   <div class="tabs-bar">
@@ -49,19 +49,19 @@
 <!-- NEW SESSION MODAL -->
 <div id="ov-new-session" style="display:none">
   <div class="modal-inner" style="width:480px">
-    <button class="modal-x" onclick="hideModal('ov-new-session')">&#10005;</button>
+    <button class="modal-x" onclick="hideModal('ov-new-session')">X</button>
     <h3>New Interview Session</h3>
     <p class="modal-sub">Create a session and share the invite link with your candidate.</p>
-    <div class="field"><label class="label">Session Title *</label><input class="input" id="ns-title" placeholder="e.g. Senior Engineer Ã¢ÂÂ Round 2"></div>
+    <div class="field"><label class="label">Session Title *</label><input class="input" id="ns-title" placeholder="e.g. Senior Engineer Round 2"></div>
     <div class="field"><label class="label">Candidate Name</label><input class="input" id="ns-candidate" placeholder="e.g. Jane Smith"></div>
     <div class="field">
       <label class="label">Interview Questions <span style="color:var(--text3);font-weight:400">(one per line)</span></label>
-      <textarea class="input" id="ns-questions" rows="5" placeholder="Tell me about yourself and your background.&#10;What is your biggest technical strength?&#10;Describe a challenging project you worked on.&#10;How do you handle conflict on a team?&#10;Where do you see yourself in 5 years?"></textarea>
+      <textarea class="input" id="ns-questions" rows="5" placeholder="Tell me about yourself.&#10;What is your biggest strength?&#10;Describe a challenging project.&#10;How do you handle conflict?&#10;Where do you see yourself in 5 years?"></textarea>
     </div>
     <div id="ns-err" class="err" style="display:none"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="hideModal('ov-new-session')">Cancel</button>
-      <button class="btn btn-primary" id="ns-btn" onclick="createSession()">Create &amp; Open Session</button>
+      <button class="btn btn-primary" id="ns-btn" onclick="createSession()">Create and Open Session</button>
     </div>
   </div>
 </div>
@@ -69,7 +69,7 @@
 <!-- CREATE TEAM MODAL -->
 <div id="ov-create-team" style="display:none">
   <div class="modal-inner">
-    <button class="modal-x" onclick="hideModal('ov-create-team')">&#10005;</button>
+    <button class="modal-x" onclick="hideModal('ov-create-team')">X</button>
     <h3>Create Team</h3>
     <p class="modal-sub">Teams let you organize sessions and members within your company.</p>
     <div class="field"><label class="label">Team Name</label><input class="input" id="ct-name" placeholder="e.g. Engineering Hiring"></div>
@@ -84,7 +84,7 @@
 <!-- JOIN TEAM MODAL -->
 <div id="ov-join-team" style="display:none">
   <div class="modal-inner">
-    <button class="modal-x" onclick="hideModal('ov-join-team')">&#10005;</button>
+    <button class="modal-x" onclick="hideModal('ov-join-team')">X</button>
     <h3>Join Team</h3>
     <p class="modal-sub">Enter the invite code from your team admin.</p>
     <div class="field"><label class="label">Invite Code</label><input class="input" id="jt-code" placeholder="ABCD1234" style="font-family:monospace;letter-spacing:2px;text-transform:uppercase"></div>
@@ -114,30 +114,41 @@ function switchTab(name,btn){
 }
 
 function buildSessionRow(s){
-  var score=s.trust_score!=null?s.trust_score:100;
-  var scoreColor=score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)'; if(s.status!=='ended'&&score===100) scoreColor='var(--text3)';
-  var statusBadge=s.status==='active'?'<span class="badge badge-green">&#9679; Live</span>':s.status==='ended'?'<span class="badge badge-default">Ended</span>':'<span class="badge badge-amber">Waiting</span>';
-  var flagCount=(s.flags||[]).length;
-  var div=document.createElement('div');
-  div.className='session-row';
-  div.innerHTML='<div class="session-avatar">&#127908;</div>'
-    +'<div style="flex:1;min-width:0"><div class="sr-title">'+s.title+'</div>'
-    +'<div class="sr-meta">'+(s.candidate_name||'Candidate')+' &bull; '+fmtDate(s.created_at)+(flagCount?' &bull; <span style="color:var(--amber)">'+flagCount+' flags</span>':'')+'</div></div>'
-    +'<div class="sr-right"><span class="sr-score" style="color:'+scoreColor+'">'+score+'%</span>'+statusBadge+'</div>';
-  div.onclick=function(){window.location.href='/session/'+s.id;};
+  var score = s.trust_score != null ? s.trust_score : 100;
+  var scoreColor = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--amber)' : 'var(--red)';
+  var flagCount = (s.flags||[]).length;
+  var statusBadge;
+  if(s.status === 'active') statusBadge = '<span class="badge badge-green">Live</span>';
+  else if(s.status === 'ended') statusBadge = '<span class="badge badge-default">Ended</span>';
+  else statusBadge = '<span class="badge badge-amber">Waiting</span>';
+  var div = document.createElement('div');
+  div.className = 'session-row';
+  div.innerHTML = '<div class="session-avatar">S</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div class="sr-title">'+s.title+'</div>'
+    +'<div class="sr-meta">'+(s.candidate_name||'Candidate')+' - '+fmtDate(s.created_at)
+    +(flagCount ? ' - <span style="color:var(--amber)">'+flagCount+' flag'+(flagCount!==1?'s':'')+'</span>' : '')
+    +'</div></div>'
+    +'<div class="sr-right">'
+    +'<span class="sr-score" style="color:'+scoreColor+'">'+score+'%</span>'
+    +statusBadge
+    +'</div>';
+  div.onclick = function(){ window.location.href = '/session/'+s.id; };
   return div;
 }
 
 function buildTeamCard(t){
-  var card=document.createElement('div');card.className='team-card';
-  var hdr=document.createElement('div');hdr.className='team-hdr';
-  hdr.innerHTML='<div><div class="team-name">'+t.name+'</div><div class="team-meta">'+(t.members||[]).length+' member'+((t.members||[]).length!==1?'s':'')+'</div></div>';
-  var code=document.createElement('span');code.className='invite-code';code.title='Click to copy';code.textContent=t.invite_code;
-  code.onclick=function(){navigator.clipboard.writeText(t.invite_code).then(function(){toast('Team code copied!','green');});};
-  hdr.appendChild(code);card.appendChild(hdr);
+  var card = document.createElement('div'); card.className = 'team-card';
+  var hdr = document.createElement('div'); hdr.className = 'team-hdr';
+  hdr.innerHTML = '<div><div class="team-name">'+t.name+'</div>'
+    +'<div class="team-meta">'+(t.members||[]).length+' member'+(((t.members||[]).length)!==1?'s':'')+'</div></div>';
+  var code = document.createElement('span'); code.className = 'invite-code'; code.title = 'Click to copy';
+  code.textContent = t.invite_code;
+  code.onclick = function(){ navigator.clipboard.writeText(t.invite_code).then(function(){ toast('Team code copied!','green'); }); };
+  hdr.appendChild(code); card.appendChild(hdr);
   (t.members||[]).forEach(function(m){
-    var row=document.createElement('div');row.className='member-row';
-    row.innerHTML='<div class="avatar">'+m.name.slice(0,2).toUpperCase()+'</div>'
+    var row = document.createElement('div'); row.className = 'member-row';
+    row.innerHTML = '<div class="avatar">'+m.name.slice(0,2).toUpperCase()+'</div>'
       +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+m.name+'</div>'
       +'<div style="font-size:11px;color:var(--text2)">'+m.email+'</div></div>'
       +'<span class="badge badge-default">'+m.role+'</span>';
@@ -146,74 +157,97 @@ function buildTeamCard(t){
   return card;
 }
 
-async function init(){
-  var me=await requireLogin('/');if(!me)return;
-  $('user-chip').textContent=me.name+' ('+me.orgCode+')';
-  $('welcome-msg').textContent='Welcome back, '+me.name.split(' ')[0];
-  $('org-name').textContent=me.orgName;
-  await Promise.all([loadSessions(),loadTeams()]);
-}
-
 async function loadSessions(){
-  var sessions=await get('/api/sessions');
-  var el=$('sessions-list');el.innerHTML='';
-  if(!sessions||!sessions.length){
-    el.innerHTML='<div class="empty"><div class="empty-icon">&#127908;</div><h3>No sessions yet</h3><p>Create your first session and share the invite link with a candidate.</p></div>';
+  var sessions = await get('/api/sessions');
+  var el = $('sessions-list'); el.innerHTML = '';
+  if(!sessions || !sessions.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">S</div><h3>No sessions yet</h3><p>Create your first session and share the invite link with a candidate.</p></div>';
     return;
   }
-  var active=sessions.filter(function(s){return s.status==='active';}).length;
-  // Only include ended sessions in avg trust score (waiting sessions haven't been scored yet)
-  var scoredSessions=sessions.filter(function(s){return s.status==='ended'&&s.trust_score!=null;});
-  var avgScore=scoredSessions.length>0?Math.round(scoredSessions.reduce(function(a,s){return a+(s.trust_score||100);},0)/scoredSessions.length):null;
-  $('stat-total').textContent=sessions.length;
-  $('stat-active').textContent=active;
-  $('stat-avg').textContent=avgScore!=null?(avgScore+'%'):'N/A';
-  $('stats-row').style.display='grid';
-  sessions.forEach(function(s){el.appendChild(buildSessionRow(s));});
+
+  // Stats calculation
+  var active = sessions.filter(function(s){ return s.status === 'active'; }).length;
+
+  // FIXED: only average ENDED sessions, use real trust_score value (never substitute 100)
+  var endedSessions = sessions.filter(function(s){ return s.status === 'ended'; });
+  var avgScore = null;
+  if(endedSessions.length > 0){
+    var total = endedSessions.reduce(function(acc, s){
+      // trust_score is an integer from DB — use it as-is, only default if genuinely null/undefined
+      var score = (s.trust_score !== null && s.trust_score !== undefined) ? s.trust_score : 100;
+      return acc + score;
+    }, 0);
+    avgScore = Math.round(total / endedSessions.length);
+  }
+
+  $('stat-total').textContent = sessions.length;
+  $('stat-active').textContent = active;
+
+  var avgEl = $('stat-avg');
+  if(avgScore !== null){
+    avgEl.textContent = avgScore + '%';
+    avgEl.className = 'stat-val ' + (avgScore >= 80 ? 'trust-hi' : avgScore >= 60 ? 'trust-mid' : 'trust-lo');
+  } else {
+    avgEl.textContent = 'N/A';
+    avgEl.className = 'stat-val';
+  }
+
+  $('stats-row').style.display = 'grid';
+  sessions.forEach(function(s){ el.appendChild(buildSessionRow(s)); });
 }
 
 async function loadTeams(){
-  var teams=await get('/api/teams');
-  var el=$('teams-list');el.innerHTML='';
-  if(!teams||!teams.length){
-    el.innerHTML='<div class="empty"><div class="empty-icon">&#128101;</div><h3>No teams yet</h3><p>Create a team and invite your colleagues with the team code.</p></div>';
+  var teams = await get('/api/teams');
+  var el = $('teams-list'); el.innerHTML = '';
+  if(!teams || !teams.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">T</div><h3>No teams yet</h3><p>Create a team and invite your colleagues with the team code.</p></div>';
     return;
   }
-  teams.forEach(function(t){el.appendChild(buildTeamCard(t));});
+  teams.forEach(function(t){ el.appendChild(buildTeamCard(t)); });
 }
 
 async function createSession(){
-  var title=$('ns-title').value.trim();
-  var candidate=$('ns-candidate').value.trim();
-  var qText=$('ns-questions').value.trim();
-  var questions=qText?qText.split('\n').map(function(q){return q.trim();}).filter(Boolean):[];
-  var err=$('ns-err');err.style.display='none';
-  if(!title){err.textContent='Session title is required';err.style.display='block';return;}
-  var btn=$('ns-btn');btn.disabled=true;btn.textContent='Creating...';
-  var res=await post('/api/sessions',{title:title,candidateName:candidate||'Candidate',questions:questions});
-  if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create & Open Session';return;}
-  window.location.href='/session/'+res.id;
+  var title = $('ns-title').value.trim();
+  var candidate = $('ns-candidate').value.trim();
+  var qText = $('ns-questions').value.trim();
+  var questions = qText ? qText.split('\n').map(function(q){ return q.trim(); }).filter(Boolean) : [];
+  var err = $('ns-err'); err.style.display = 'none';
+  if(!title){ err.textContent = 'Session title is required'; err.style.display = 'block'; return; }
+  var btn = $('ns-btn'); btn.disabled = true; btn.textContent = 'Creating...';
+  var res = await post('/api/sessions', {title:title, candidateName:candidate||'Candidate', questions:questions});
+  if(res.error){ err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Create and Open Session'; return; }
+  window.location.href = '/session/'+res.id;
 }
 
 async function createTeam(){
-  var name=$('ct-name').value.trim(),err=$('ct-err');err.style.display='none';
-  if(!name){err.textContent='Team name required';err.style.display='block';return;}
-  var res=await post('/api/teams',{name:name});
-  if(res.error){err.textContent=res.error;err.style.display='block';return;}
-  toast('Team created! Code: '+res.inviteCode,'green',5000);
-  hideModal('ov-create-team');$('ct-name').value='';await loadTeams();
+  var name = $('ct-name').value.trim(), err = $('ct-err'); err.style.display = 'none';
+  if(!name){ err.textContent = 'Team name required'; err.style.display = 'block'; return; }
+  var res = await post('/api/teams', {name:name});
+  if(res.error){ err.textContent = res.error; err.style.display = 'block'; return; }
+  toast('Team created! Code: '+res.inviteCode, 'green', 5000);
+  hideModal('ov-create-team'); $('ct-name').value = '';
+  await loadTeams();
 }
 
 async function joinTeam(){
-  var code=$('jt-code').value.trim().toUpperCase(),err=$('jt-err');err.style.display='none';
-  if(!code){err.textContent='Enter an invite code';err.style.display='block';return;}
-  var res=await post('/api/teams/join',{inviteCode:code});
-  if(res.error){err.textContent=res.error;err.style.display='block';return;}
-  toast('Joined '+res.teamName+'!','green');
-  hideModal('ov-join-team');$('jt-code').value='';await loadTeams();
+  var code = $('jt-code').value.trim().toUpperCase(), err = $('jt-err'); err.style.display = 'none';
+  if(!code){ err.textContent = 'Enter an invite code'; err.style.display = 'block'; return; }
+  var res = await post('/api/teams/join', {inviteCode:code});
+  if(res.error){ err.textContent = res.error; err.style.display = 'block'; return; }
+  toast('Joined '+res.teamName+'!', 'green');
+  hideModal('ov-join-team'); $('jt-code').value = '';
+  await loadTeams();
 }
 
-async function doLogout(){await post('/api/auth/logout');window.location.href='/';}
+async function doLogout(){ await post('/api/auth/logout'); window.location.href = '/'; }
+
+async function init(){
+  var me = await requireLogin('/'); if(!me) return;
+  $('user-chip').textContent = me.name + ' (' + (me.orgCode||'') + ')';
+  $('welcome-msg').textContent = 'Welcome back, ' + me.name.split(' ')[0];
+  $('org-name').textContent = me.orgName || '';
+  await Promise.all([loadSessions(), loadTeams()]);
+}
 init();
 </script>
 </body>
