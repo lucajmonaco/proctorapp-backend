@@ -104,7 +104,7 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
       <div class="lockout-ov-timer" id="lockout-ov-timer">0:30</div>
       <div class="lockout-ov-bar"><div class="lockout-ov-bar-fill" id="lockout-ov-bar-fill" style="width:100%"></div></div>
       <div class="lockout-ov-note" id="lockout-ov-violation"></div>
-      <div class="lockout-ov-audio">&#128266; Audio still active — you can speak to the candidate</div>
+      <div class="lockout-ov-audio">&#128266; Audio still active â you can speak to the candidate</div>
     </div>
 
     <div id="screenshare-bar" class="screen-share-bar" style="display:none">
@@ -153,27 +153,23 @@ var mediaRecorder = null, recChunks = [], isRec = false, recStart = null;
 var isScreenSharing = false, timerInterval = null;
 var remoteStream = null, audioCtxRec = null;
 
-// ── PRE-FILLED FLAG REGISTRY ──
+// ââ PRE-FILLED FLAG REGISTRY ââ
 // All detection types shown from session start with count 0
 // When a flag comes in matching a key, the card updates live
 var FLAG_TYPES = [
-  {key:'tab-switch',      text:'Tab Switch',              detail:'Candidate switched to another browser tab',   severity:'high'},
-  {key:'window-switch',   text:'Window Switch',            detail:'Candidate switched to another app or window', severity:'medium'},
-  {key:'extended-absence',text:'Extended Absence',         detail:'Candidate away for 10+ seconds',             severity:'high'},
-  {key:'face-not-visible',text:'Face Not Visible',         detail:'Camera not detecting candidate face',         severity:'high'},
-  {key:'gaze-away',       text:'Suspicious Eye Movement',  detail:'Candidate looking away from screen',          severity:'medium'},
-  {key:'bg-voice',        text:'Background Voice',         detail:'Second voice detected - possible coaching',   severity:'high'},
-  {key:'multi-display',   text:'Multiple Displays',        detail:'Candidate has multiple monitors connected',   severity:'high'},
-  {key:'copy-paste',      text:'Copy / Paste Attempt',     detail:'Candidate tried to copy or paste content',    severity:'medium'},
-  {key:'shortcut',        text:'Keyboard Shortcut',        detail:'Blocked keyboard shortcut detected',          severity:'low'},
-  {key:'devtools',        text:'DevTools Attempt',         detail:'Candidate tried to open browser DevTools',    severity:'high'},
-  {key:'new-tab',         text:'New Tab Attempt',          detail:'Candidate tried to open a new tab',           severity:'high'},
-  {key:'right-click',     text:'Right Click',              detail:'Candidate right-clicked during interview',    severity:'low'},
-  {key:'window-resize',   text:'Window Resize',            detail:'Interview window was significantly resized',  severity:'low'},
-  {key:'screen-change',   text:'Screen Config Changed',    detail:'Display configuration changed mid-session',   severity:'high'},
+  // Consolidated into 9 logical groups
+  {key:'tab-switch',    text:'Tab / Window Switch',      detail:'Candidate switched tabs or windows during interview',         severity:'high'},
+  {key:'absence',       text:'Extended Absence',          detail:'Candidate was away for 10+ seconds',                         severity:'high'},
+  {key:'face-gaze',     text:'Face / Gaze Issues',        detail:'Face not visible or looking away from screen',               severity:'medium'},
+  {key:'bg-voice',      text:'Background Voice',          detail:'Second voice detected - possible coaching',                  severity:'high'},
+  {key:'multi-display', text:'Multiple Displays',         detail:'Multiple monitors or secondary display detected',             severity:'high'},
+  {key:'input-attempt', text:'Copy / Paste / Shortcuts',  detail:'Blocked clipboard or keyboard shortcut usage',               severity:'medium'},
+  {key:'devtools',      text:'DevTools / Refresh',        detail:'Candidate tried to open DevTools or refresh the page',       severity:'high'},
+  {key:'new-tab',       text:'New Tab / Window Attempt',  detail:'Candidate tried to open a new tab or browser window',        severity:'high'},
+  {key:'misc',          text:'Other Activity',            detail:'Right-click, window resize, or other minor activity',        severity:'low'},
 ];
 
-var flagRegistry = {};  // key → {count, cardEl, lastTime}
+var flagRegistry = {};  // key â {count, cardEl, lastTime}
 var totalFlagCount = 0;
 
 function initFlagPanel(){
@@ -208,22 +204,19 @@ function buildFlagCard(key, text, detail, severity, count){
   return card;
 }
 
-// Map incoming flag text → registry key
+// Map incoming flag text â registry key
 function resolveKey(flagText){
   var t = (flagText||'').toLowerCase();
-  if(t.includes('tab switch')||t.includes('tab switch')) return 'tab-switch';
-  if(t.includes('window switch')||t.includes('window blur')) return 'window-switch';
-  if(t.includes('extended absence')) return 'extended-absence';
-  if(t.includes('face not')) return 'face-not-visible';
-  if(t.includes('eye')||t.includes('gaze')) return 'gaze-away';
-  if(t.includes('background voice')||t.includes('audio')) return 'bg-voice';
-  if(t.includes('display')||t.includes('secondary display')||t.includes('screen config')) return t.includes('config')?'screen-change':'multi-display';
-  if(t.includes('copy')||t.includes('paste')||t.includes('cut')) return 'copy-paste';
-  if(t.includes('shortcut')||t.includes('shortcut blocked')) return 'shortcut';
-  if(t.includes('devtools')||t.includes('f12')) return 'devtools';
+  // Consolidated groups
+  if(t.includes('tab switch')||t.includes('window switch')||t.includes('window blur')||t.includes('window switch')) return 'tab-switch';
+  if(t.includes('extended absence')) return 'absence';
+  if(t.includes('face not')||t.includes('gaze')||t.includes('eye movement')) return 'face-gaze';
+  if(t.includes('background voice')||t.includes('coaching')) return 'bg-voice';
+  if(t.includes('display')||t.includes('monitor')||t.includes('screen config')||t.includes('secondary display')) return 'multi-display';
+  if(t.includes('copy')||t.includes('paste')||t.includes('cut')||t.includes('shortcut')) return 'input-attempt';
+  if(t.includes('devtools')||t.includes('f12')||t.includes('refresh')) return 'devtools';
   if(t.includes('new tab')||t.includes('new window')) return 'new-tab';
-  if(t.includes('right-click')||t.includes('right click')) return 'right-click';
-  if(t.includes('resize')) return 'window-resize';
+  if(t.includes('right-click')||t.includes('right click')||t.includes('resize')) return 'misc';
   return null;
 }
 
@@ -309,7 +302,7 @@ function startRec(){
   var remVid = $('remote-vid');
   if(!remVid.srcObject && !remoteStream){ toast('No candidate video yet','red'); return; }
 
-  // Canvas: side by side — left=candidate (remote), right=interviewer (local)
+  // Canvas: side by side â left=candidate (remote), right=interviewer (local)
   var W = 1280, H = 360; // 720p split into two 640x360 halves
   var canvas = document.createElement('canvas'); canvas.width=W; canvas.height=H;
   var ctx = canvas.getContext('2d');
@@ -489,7 +482,7 @@ function connectSocket(){
     $('s-status').textContent='Locked Out'; $('s-status').className='badge badge-red';
     // NOTE: We do NOT pause or stop the remote-vid element.
     // The overlay sits ON TOP of it (z-index:50, position:absolute).
-    // Audio continues through WebRTC unaffected — the interviewer can speak to candidate.
+    // Audio continues through WebRTC unaffected â the interviewer can speak to candidate.
   });
   socket.on('candidate-lockout-end',function(){
     $('candidate-lockout-overlay').classList.remove('active');
