@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard â Secure Interview</title>
+<title>Dashboard Ã¢ÂÂ Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
@@ -52,7 +52,7 @@
     <button class="modal-x" onclick="hideModal('ov-new-session')">&#10005;</button>
     <h3>New Interview Session</h3>
     <p class="modal-sub">Create a session and share the invite link with your candidate.</p>
-    <div class="field"><label class="label">Session Title *</label><input class="input" id="ns-title" placeholder="e.g. Senior Engineer â Round 2"></div>
+    <div class="field"><label class="label">Session Title *</label><input class="input" id="ns-title" placeholder="e.g. Senior Engineer Ã¢ÂÂ Round 2"></div>
     <div class="field"><label class="label">Candidate Name</label><input class="input" id="ns-candidate" placeholder="e.g. Jane Smith"></div>
     <div class="field">
       <label class="label">Interview Questions <span style="color:var(--text3);font-weight:400">(one per line)</span></label>
@@ -115,7 +115,7 @@ function switchTab(name,btn){
 
 function buildSessionRow(s){
   var score=s.trust_score!=null?s.trust_score:100;
-  var scoreColor=score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)';
+  var scoreColor=score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)'; if(s.status!=='ended'&&score===100) scoreColor='var(--text3)';
   var statusBadge=s.status==='active'?'<span class="badge badge-green">&#9679; Live</span>':s.status==='ended'?'<span class="badge badge-default">Ended</span>':'<span class="badge badge-amber">Waiting</span>';
   var flagCount=(s.flags||[]).length;
   var div=document.createElement('div');
