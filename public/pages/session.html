@@ -1,1 +1,162 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Session — Secure Interview</title><link rel="stylesheet" href="/css/main.css"><style>.session-layout{display:flex;height:calc(100vh - 48px);overflow:hidden}.video-panel{flex:1;background:#000;display:flex;align-items:center;justify-content:center;position:relative}.sidebar{width:320px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg)}.sidebar-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}.trust-display{text-align:center;padding:16px;border-bottom:1px solid var(--border)}.trust-number{font-size:42px;font-weight:700;line-height:1}.flags-list{flex:1;overflow-y:auto;padding:8px}.flag-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;font-size:12px}.flag-item.high{border-left:3px solid var(--red)}.flag-item.medium{border-left:3px solid var(--amber)}.flag-item.low{border-left:3px solid var(--blue)}.video-el{width:100%;height:100%;object-fit:cover}.overlay-video{position:absolute;bottom:12px;right:12px;width:160px;height:90px;border-radius:8px;overflow:hidden;border:2px solid var(--border)}.controls{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px}.question-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin:8px;font-size:13px}</style></head><body><div class="topbar"><div class="topbar-logo"><div class="topbar-logo-icon">🛡️</div>Secure Interview</div><div class="topbar-right" id="session-info"></div></div><div class="session-layout"><div class="video-panel"><video id="remote-video" class="video-el" autoplay playsinline></video><div class="overlay-video"><video id="local-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video></div></div><div class="sidebar"><div class="sidebar-header"><div><div style="font-size:13px;font-weight:600" id="sid-title">Session</div><div style="font-size:11px;color:var(--text2)" id="sid-candidate"></div></div><span class="badge" id="status-badge">Waiting</span></div><div class="trust-display"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">TRUST SCORE</div><div class="trust-number" id="trust-num">100</div><div style="font-size:10px;color:var(--text3);margin-top:2px" id="trust-label">Excellent</div></div><div id="questions-section" style="padding:8px;border-bottom:1px solid var(--border)"></div><div class="flags-list" id="flags-list"><div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px">No flags yet</div></div><div class="controls"><button class="btn btn-danger" id="btn-end" onclick="endSession()">End session</button><button class="btn" id="btn-share" onclick="shareLink()">Copy invite</button></div></div></div><div id="toast-container"></div><script src="/js/utils.js"></script><script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script><script>const sessionId=location.pathname.split('/').pop();let socket,pc,localStream,sessionData,qIdx=0;async function init(){const me=await requireLogin('/');if(!me)return;const s=await get('/api/sessions/'+sessionId);if(s.error){toast(s.error,'red');return;}sessionData=s;$('sid-title').textContent=s.title;$('sid-candidate').textContent=s.candidate_name||'Candidate';$('session-info').innerHTML=`<span style="font-size:12px;color:var(--text2)">Code: <b>${s.code}</b></span>`;updateTrust(s.trust_score??100);renderFlags(s.flags||[]);renderQuestions(s.questions||[]);await startMedia();connectSocket();}function updateTrust(v){const el=$('trust-num');el.textContent=v;el.className='trust-number '+trustClass(v);$('trust-label').textContent=v>=80?'Excellent':v>=60?'Good':v>=40?'Caution':'High Risk';}function renderFlags(flags){const list=$('flags-list');if(!flags.length){list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px">No flags yet</div>';return;}list.innerHTML=flags.map(f=>`<div class="flag-item ${f.severity}"><div style="font-weight:600">${f.text}</div>${f.detail?'<div style="color:var(--text2);margin-top:2px">'+f.detail+'</div>':''}<div style="font-size:10px;color:var(--text3);margin-top:4px">${f.severity.toUpperCase()} · ${f.time_offset}</div></div>`).join('');}function renderQuestions(qs){if(!qs.length)return;$('questions-section').innerHTML='<div style="font-size:11px;color:var(--text2);font-weight:600;margin-bottom:6px">QUESTIONS</div>'+qs.map((q,i)=>`<div class="question-card" id="q${i}" style="${i===qIdx?'border-color:var(--blue)':''}">${q}</div>`).join('')+'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn" style="font-size:11px;padding:4px 8px" onclick="prevQ()">← Prev</button><button class="btn btn-primary" style="font-size:11px;padding:4px 8px" onclick="nextQ()">Next →</button></div>';}function nextQ(){if(sessionData&&qIdx<(sessionData.questions||[]).length-1){qIdx++;renderQuestions(sessionData.questions);socket&&socket.emit('next-question',{sessionId,qIdx});}}function prevQ(){if(qIdx>0){qIdx--;renderQuestions(sessionData.questions||[]);}}async function startMedia(){try{localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});$('local-video').srcObject=localStream;}catch(e){toast('Camera access denied','red');}}function connectSocket(){socket=io();socket.emit('join-room',{sessionId,role:'interviewer'});socket.on('peer-joined',async({role})=>{if(role==='candidate'){$('status-badge').textContent='Live';$('status-badge').className='badge badge-green';await startWebRTC(true);}});socket.on('peer-already-present',async()=>{await startWebRTC(true);});socket.on('webrtc-offer',async({offer})=>{if(!pc)await startWebRTC(false);await pc.setRemoteDescription(offer);const answer=await pc.createAnswer();await pc.setLocalDescription(answer);socket.emit('webrtc-answer',{sessionId,answer});});socket.on('webrtc-answer',async({answer})=>{await pc?.setRemoteDescription(answer);});socket.on('webrtc-ice',async({candidate})=>{await pc?.addIceCandidate(candidate);});socket.on('candidate-flag',async(flag)=>{toast(flag.text,'amber');const s=await get('/api/sessions/'+sessionId);updateTrust(s.trust_score??100);renderFlags(s.flags||[]);});socket.on('peer-left',()=>{$('status-badge').textContent='Disconnected';$('status-badge').className='badge badge-red';});}async function startWebRTC(isInitiator){pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});localStream?.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.ontrack=e=>{$('remote-video').srcObject=e.streams[0];};pc.onicecandidate=e=>{if(e.candidate)socket.emit('webrtc-ice',{sessionId,candidate:e.candidate});};if(isInitiator){const offer=await pc.createOffer();await pc.setLocalDescription(offer);socket.emit('webrtc-offer',{sessionId,offer});}}async function endSession(){if(!confirm('End this session?'))return;await patch('/api/sessions/'+sessionId,{status:'ended'});window.location.href='/dashboard';}function shareLink(){const url=window.location.origin+'/join/'+sessionData?.code;navigator.clipboard.writeText(url).then(()=>toast('Invite link copied!','green'));}init();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session - Secure Interview</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.session-layout{display:flex;flex:1;overflow:hidden}
+.video-area{flex:1;background:#000;position:relative}
+video{width:100%;height:100%;object-fit:cover}
+.self-video{position:absolute;bottom:12px;right:12px;width:180px;height:100px;border-radius:8px;overflow:hidden;border:2px solid #333}
+.sidebar{width:300px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg)}
+.sidebar-top{padding:12px 14px;border-bottom:1px solid var(--border)}
+.session-title{font-size:13px;font-weight:600}
+.session-candidate{font-size:11px;color:var(--text2);margin-top:2px}
+.trust-box{text-align:center;padding:12px;border-bottom:1px solid var(--border)}
+.trust-label{font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:4px}
+.trust-num{font-size:38px;font-weight:700;line-height:1}
+.trust-sub{font-size:11px;margin-top:2px}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border)}
+.stab{flex:1;padding:8px;border:none;background:none;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent}
+.stab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.stab-content{display:none;flex:1;overflow-y:auto;padding:8px;flex-direction:column;gap:6px}
+.stab-content.active{display:flex}
+.flag-item{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px}
+.flag-item.high{border-left:3px solid var(--red)}
+.flag-item.medium{border-left:3px solid var(--amber)}
+.flag-item.low{border-left:3px solid var(--blue)}
+.flag-title{font-weight:600;margin-bottom:2px}
+.flag-detail{color:var(--text2);margin-top:2px;font-size:11px}
+.flag-time{font-size:10px;color:var(--text3);margin-top:3px}
+.q-item{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;cursor:pointer}
+.q-item.active{border-color:var(--blue);background:var(--blue3)}
+.q-nav{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border)}
+.sidebar-bottom{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px}
+.no-flags{text-align:center;padding:20px;color:var(--text3);font-size:12px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">Secure Interview</div>
+  <div class="topbar-right">
+    <span id="session-code" style="font-size:12px;color:var(--text2)"></span>
+    <span id="conn-status" class="badge">Waiting...</span>
+  </div>
+</div>
+<div class="session-layout">
+  <div class="video-area">
+    <video id="remote-video" autoplay playsinline></video>
+    <div class="self-video"><video id="local-video" autoplay playsinline muted></video></div>
+  </div>
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="session-title" id="s-title">Loading...</div>
+      <div class="session-candidate" id="s-candidate"></div>
+    </div>
+    <div class="trust-box">
+      <div class="trust-label">TRUST SCORE</div>
+      <div class="trust-num trust-hi" id="trust-num">100</div>
+      <div class="trust-sub trust-hi" id="trust-sub">Excellent</div>
+    </div>
+    <div class="sidebar-tabs">
+      <button class="stab active" onclick="showTab('flags')">Flags</button>
+      <button class="stab" onclick="showTab('questions')">Questions</button>
+    </div>
+    <div class="stab-content active" id="tab-flags">
+      <div class="no-flags">No flags yet</div>
+    </div>
+    <div class="stab-content" id="tab-questions"></div>
+    <div class="q-nav" id="q-nav" style="display:none">
+      <button class="btn" onclick="prevQ()" style="flex:1">Prev</button>
+      <button class="btn btn-primary" onclick="nextQ()" style="flex:1">Next</button>
+    </div>
+    <div class="sidebar-bottom">
+      <button class="btn btn-danger" onclick="endSession()" style="flex:1">End session</button>
+      <button class="btn" onclick="copyInvite()">Copy invite</button>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/utils.js"></script>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<script>
+const sessionId=location.pathname.split('/').pop();
+let socket,pc,localStream,sessionData,qIdx=0;
+
+function showTab(name){
+  document.querySelectorAll('.stab').forEach((t,i)=>t.classList.toggle('active',['flags','questions'][i]===name));
+  $('tab-flags').classList.toggle('active',name==='flags');
+  $('tab-questions').classList.toggle('active',name==='questions');
+}
+function updateTrust(v){
+  const n=$('trust-num'),s=$('trust-sub'),cls=trustClass(v);
+  n.textContent=v; n.className='trust-num '+cls; s.className='trust-sub '+cls;
+  s.textContent=v>=80?'Excellent':v>=60?'Good':v>=40?'Caution':'High Risk';
+}
+function renderFlags(fs){
+  const list=$('tab-flags');
+  list.innerHTML=!fs.length?'<div class="no-flags">No flags yet</div>':fs.map(f=>
+    '<div class="flag-item '+f.severity+'"><div class="flag-title">'+f.text+'</div>'+(f.detail?'<div class="flag-detail">'+f.detail+'</div>':'')+'<div class="flag-time">'+f.severity.toUpperCase()+' - '+f.time_offset+'</div></div>'
+  ).join('');
+}
+function renderQuestions(qs){
+  if(!qs||!qs.length)return;
+  $('q-nav').style.display='flex';
+  $('tab-questions').innerHTML=qs.map((q,i)=>'<div class="q-item'+(i===qIdx?' active':'')+'" onclick="goQ('+i+')">'+q+'</div>').join('');
+}
+function goQ(i){qIdx=i;renderQuestions(sessionData?.questions||[]);socket?.emit('next-question',{sessionId,qIdx});}
+function nextQ(){if(sessionData?.questions&&qIdx<sessionData.questions.length-1)goQ(qIdx+1);}
+function prevQ(){if(qIdx>0)goQ(qIdx-1);}
+
+async function init(){
+  const me=await requireLogin('/');if(!me)return;
+  const s=await get('/api/sessions/'+sessionId);
+  if(s.error){toast(s.error,'red');return;}
+  sessionData=s;
+  $('s-title').textContent=s.title;
+  $('s-candidate').textContent=s.candidate_name||'Candidate';
+  $('session-code').textContent='Code: '+s.code;
+  updateTrust(s.trust_score??100);
+  renderFlags(s.flags||[]);
+  renderQuestions(s.questions||[]);
+  await startMedia();
+  connectSocket();
+}
+async function startMedia(){
+  try{localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});$('local-video').srcObject=localStream;}
+  catch(e){toast('Camera/mic: '+e.message,'amber');}
+}
+function connectSocket(){
+  socket=io();
+  socket.emit('join-room',{sessionId,role:'interviewer'});
+  socket.on('peer-joined',async({role})=>{
+    if(role==='candidate'){$('conn-status').textContent='Live';$('conn-status').className='badge badge-green';await startWebRTC(true);}
+  });
+  socket.on('peer-already-present',async()=>{$('conn-status').textContent='Live';$('conn-status').className='badge badge-green';await startWebRTC(true);});
+  socket.on('webrtc-offer',async({offer})=>{if(!pc)await startWebRTC(false);await pc.setRemoteDescription(offer);const a=await pc.createAnswer();await pc.setLocalDescription(a);socket.emit('webrtc-answer',{sessionId,answer:a});});
+  socket.on('webrtc-answer',async({answer})=>{await pc?.setRemoteDescription(answer);});
+  socket.on('webrtc-ice',async({candidate})=>{await pc?.addIceCandidate(candidate);});
+  socket.on('candidate-flag',async(flag)=>{
+    toast(flag.text,'amber');
+    const s=await get('/api/sessions/'+sessionId);
+    updateTrust(s.trust_score??100);
+    renderFlags(s.flags||[]);
+    showTab('flags');
+  });
+  socket.on('peer-left',()=>{$('conn-status').textContent='Disconnected';$('conn-status').className='badge badge-red';toast('Candidate disconnected','amber');});
+}
+async function startWebRTC(isInit){
+  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  localStream?.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  pc.ontrack=e=>{$('remote-video').srcObject=e.streams[0];};
+  pc.onicecandidate=e=>{if(e.candidate)socket.emit('webrtc-ice',{sessionId,candidate:e.candidate});};
+  if(isInit){const o=await pc.createOffer();await pc.setLocalDescription(o);socket.emit('webrtc-offer',{sessionId,offer:o});}
+}
+async function endSession(){if(!confirm('End session?'))return;await patch('/api/sessions/'+sessionId,{status:'ended'});location.href='/dashboard';}
+function copyInvite(){navigator.clipboard.writeText(location.origin+'/join/'+(sessionData?.code||'')).then(()=>toast('Invite copied!','green'));}
+init();
+</script>
+</body>
+</html>
