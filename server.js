@@ -112,7 +112,7 @@ function generateSessionCode() {
   return generateCode(3) + '-' + generateCode(3);
 }
 
-// ── ORG AUTH ──
+// ââ ORG AUTH ââ
 // Create a new organization (company signup)
 app.post('/api/auth/org/create', async (req, res) => {
   const { orgName, email, password, name } = req.body;
@@ -184,7 +184,7 @@ app.get('/api/auth/me', (req, res) => {
   res.json({ loggedIn: true, ...user, orgName: org?.name, orgCode: org?.code });
 });
 
-// ── SESSIONS ──
+// ââ SESSIONS ââ
 app.post('/api/sessions', requireAuth, (req, res) => {
   const { title, candidateName, questions } = req.body;
   const id = uuidv4();
@@ -229,19 +229,34 @@ app.post('/api/sessions/:id/flags', (req, res) => {
   res.json({ ok: true, id });
 });
 
-// ── RECORDINGS ──
+// ââ RECORDINGS ââ
 app.post('/api/recordings/upload', requireAuth, upload.single('recording'), async (req, res) => {
   try {
     const { sessionId, durationSecs } = req.body;
     if (!req.file) return res.json({ error: 'No file uploaded' });
     const sess = db.prepare('SELECT * FROM sessions WHERE id=?').get(sessionId);
     if (!sess) return res.json({ error: 'Session not found' });
+    // Always use LIVE values from DB — trust_score is updated in real-time as flags come in
+    const freshSess = db.prepare('SELECT trust_score FROM sessions WHERE id=?').get(sessionId);
     const flagCount = db.prepare('SELECT COUNT(*) as cnt FROM flags WHERE session_id=?').get(sessionId);
     const shareToken = uuidv4().replace(/-/g, '');
     const id = uuidv4();
     db.prepare('INSERT INTO recordings (id,session_id,interviewer_id,org_id,session_title,candidate_name,file_path,file_size,duration_secs,trust_score,flag_count,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(id, sessionId, req.session.userId, req.session.orgId, sess.title, sess.candidate_name, req.file.path, req.file.size, parseInt(durationSecs) || 0, sess.trust_score || 100, flagCount.cnt || 0, shareToken);
+      .run(id, sessionId, req.session.userId, req.session.orgId, sess.title, sess.candidate_name, req.file.path, req.file.size, parseInt(durationSecs) || 0, freshSess.trust_score || 100, flagCount.cnt || 0, shareToken);
     res.json({ ok: true, id, shareToken });
+  } catch(e) { res.json({ error: e.message }); }
+});
+
+// Update recording trust score + flag count after session ends (call this from session end)
+app.patch('/api/recordings/session/:sessionId/sync', requireAuth, (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const sess = db.prepare('SELECT trust_score FROM sessions WHERE id=?').get(sessionId);
+    const flags = db.prepare('SELECT COUNT(*) as cnt FROM flags WHERE session_id=?').get(sessionId);
+    if (!sess) return res.json({ error: 'Session not found' });
+    db.prepare('UPDATE recordings SET trust_score=?, flag_count=? WHERE session_id=? AND interviewer_id=?')
+      .run(sess.trust_score || 100, flags.cnt || 0, sessionId, req.session.userId);
+    res.json({ ok: true, trust_score: sess.trust_score, flag_count: flags.cnt });
   } catch(e) { res.json({ error: e.message }); }
 });
 
@@ -293,7 +308,7 @@ function streamVideo(req, res, filePath) {
   }
 }
 
-// ── TEAMS ──
+// ââ TEAMS ââ
 app.post('/api/teams', requireAuth, (req, res) => {
   const { name } = req.body;
   if (!name) return res.json({ error: 'Team name required' });
@@ -319,7 +334,7 @@ app.post('/api/teams/join', requireAuth, (req, res) => {
   res.json({ ok: true, teamName: team.name });
 });
 
-// ── PAGE ROUTES ──
+// ââ PAGE ROUTES ââ
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html')));
 app.get('/session/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'session.html')));
@@ -327,7 +342,7 @@ app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public',
 app.get('/recordings', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'recordings.html')));
 app.get('/share/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'share.html')));
 
-// ── SOCKET.IO ──
+// ââ SOCKET.IO ââ
 const rooms = {};
 io.on('connection', (socket) => {
   socket.on('join-room', ({ sessionId, role }) => {
