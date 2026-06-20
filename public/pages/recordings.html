@@ -2,8 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Recordings â Secure Interview</title>
+<title>Recordings - Secure Interview</title>
 <link rel="stylesheet" href="/css/main.css">
+<style>
+.view-toggle{display:flex;gap:2px;background:var(--bg2);padding:4px;border-radius:var(--rs);border:1px solid var(--border);}
+.view-btn{padding:6px 16px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;border-radius:5px;font-family:inherit;transition:all .15s;}
+.view-btn.active{background:var(--bg4);color:var(--text);}
+
+/* Position / Job folder cards */
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px;}
+.pos-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;cursor:pointer;transition:all .15s;position:relative;}
+.pos-card:hover{border-color:var(--border2);background:var(--bg3);transform:translateY(-2px);box-shadow:var(--shadow);}
+.pos-card-icon{font-size:28px;margin-bottom:10px;}
+.pos-card-title{font-size:15px;font-weight:700;margin-bottom:4px;letter-spacing:-.2px;}
+.pos-card-meta{font-size:12px;color:var(--text2);}
+.pos-card-count{position:absolute;top:14px;right:14px;background:var(--blue3);color:var(--blue2);border:1px solid var(--blue);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;}
+.pos-card-del{position:absolute;bottom:14px;right:14px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity .15s;}
+.pos-card:hover .pos-card-del{opacity:1;}
+.pos-card-del:hover{color:var(--red);background:var(--red3);}
+
+.pos-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.pos-back{background:none;border:1px solid var(--border2);border-radius:var(--rs);color:var(--text2);padding:6px 12px;cursor:pointer;font-size:13px;font-family:inherit;}
+.pos-back:hover{color:var(--text);border-color:var(--border2);background:var(--bg3);}
+.pos-header-title{font-size:18px;font-weight:700;letter-spacing:-.3px;flex:1;}
+.pos-header-sub{font-size:13px;color:var(--text2);}
+
+/* Recording cards */
+.rec-grid{display:flex;flex-direction:column;gap:12px;}
+.rec-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .15s;}
+.rec-card:hover{border-color:var(--border2);}
+.rec-card-body{padding:16px 18px;}
+.rec-title{font-size:14px;font-weight:700;margin-bottom:6px;}
+.rec-meta-row{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text2);margin-bottom:12px;align-items:center;}
+.rec-meta-sep{width:3px;height:3px;border-radius:50%;background:var(--border2);}
+.rec-actions{display:flex;gap:7px;flex-wrap:wrap;}
+.rec-video{width:100%;max-height:360px;background:#000;display:none;border-top:1px solid var(--border);}
+.prog-wrap{margin-top:10px;display:none;}
+.prog-bar{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:3px;transition:width .3s;}
+.prog-label{font-size:11px;color:var(--text2);margin-top:5px;}
+
+/* Position assign dropdown */
+.assign-select{padding:5px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit;outline:none;}
+</style>
 </head>
 <body>
 <div class="topbar">
@@ -15,58 +56,243 @@
     <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign out</button>
   </div>
 </div>
+
 <div class="page-wrap">
   <div class="page-hdr">
     <div class="page-hdr-left">
-      <h1>&#127902; Recordings Library</h1>
-      <p>All recorded interview sessions for your account</p>
+      <h1 id="page-title">Recordings Library</h1>
+      <p id="page-sub">Recordings organized by job opening — shared across your company</p>
     </div>
-    <button class="btn btn-outline btn-sm" onclick="loadRecordings()">&#8635; Refresh</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="view-toggle">
+        <button class="view-btn active" id="view-positions-btn" onclick="switchView('positions',this)">Job Openings</button>
+        <button class="view-btn" id="view-all-btn" onclick="switchView('all',this)">All Recordings</button>
+      </div>
+      <button id="new-pos-btn" class="btn btn-primary btn-sm" onclick="showModal('ov-new-position')" style="display:none">+ New Job Opening</button>
+      <button class="btn btn-outline btn-sm" onclick="reload()">Refresh</button>
+    </div>
   </div>
-  <div id="container"><div class="empty"><div class="empty-icon">&#8987;</div><p>Loading...</p></div></div>
+
+  <div id="container"><div class="empty"><div class="empty-icon">...</div><p>Loading...</p></div></div>
 </div>
+
+<!-- NEW POSITION MODAL -->
+<div id="ov-new-position" style="display:none">
+  <div class="modal-inner">
+    <button class="modal-x" onclick="hideModal('ov-new-position')">X</button>
+    <h3>Create Job Opening</h3>
+    <p class="modal-sub">Create a folder for a specific role. All interviewers in your company can add recordings to it and view each other's interviews for this role.</p>
+    <div class="field"><label class="label">Job Title *</label><input class="input" id="pos-title" placeholder="e.g. Senior Software Engineer"></div>
+    <div class="field"><label class="label">Description <span style="color:var(--text3);font-weight:400">(optional)</span></label><textarea class="input" id="pos-desc" rows="2" placeholder="e.g. Backend team - Q3 hiring"></textarea></div>
+    <div id="pos-err" class="err" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="hideModal('ov-new-position')">Cancel</button>
+      <button class="btn btn-primary" onclick="createPosition()">Create</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="/js/utils.js"></script>
 <script>
+var currentView = 'positions'; // 'positions' | 'all' | 'position-detail'
+var currentPositionId = null;
+var allPositions = [];
+var me = null;
+
 function fmtSize(b){if(!b)return'';if(b<1048576)return(b/1024).toFixed(0)+' KB';return(b/1048576).toFixed(1)+' MB';}
 function fmtDur(s){if(!s)return'0:00';return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function fmtDate(ts){if(!ts)return'-';return new Date(ts*1000).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
-function buildCard(rec){
+function switchView(view, btn){
+  currentView = view;
+  currentPositionId = null;
+  document.querySelectorAll('.view-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  $('page-title').textContent = view === 'positions' ? 'Recordings Library' : 'All Recordings';
+  $('page-sub').textContent = view === 'positions' ? 'Recordings organized by job opening - shared across your company' : 'All recordings from your account';
+  $('new-pos-btn').style.display = view === 'positions' ? '' : 'none';
+  reload();
+}
+
+function reload(){
+  if(currentView === 'positions') loadPositions();
+  else if(currentView === 'position-detail') loadPositionDetail(currentPositionId);
+  else loadAllRecordings();
+}
+
+// ── POSITIONS VIEW ──
+async function loadPositions(){
+  $('new-pos-btn').style.display='';
+  var positions = await get('/api/positions');
+  allPositions = positions || [];
+  var c = $('container'); c.innerHTML='';
+
+  if(!allPositions.length){
+    c.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:52px;opacity:.3">folder</div>'
+      +'<h3 style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px">No job openings yet</h3>'
+      +'<p style="color:var(--text3);font-size:13px">Create a job opening folder to organize interview recordings by role.<br>All company members can see and contribute to each folder.</p>'
+      +'<button class="btn btn-primary" onclick="showModal('ov-new-position')" style="margin-top:20px">+ Create First Job Opening</button>'
+      +'</div>';
+    return;
+  }
+
+  var grid = document.createElement('div'); grid.className='pos-grid';
+  allPositions.forEach(function(pos){
+    var card = document.createElement('div'); card.className='pos-card';
+    card.onclick=function(){openPosition(pos.id,pos.title,pos.description);};
+
+    var icon=document.createElement('div');icon.className='pos-card-icon';icon.textContent='Folder';
+    var count=document.createElement('div');count.className='pos-card-count';
+    count.textContent=(pos.recording_count||0)+' interview'+(pos.recording_count!==1?'s':'');
+    var title=document.createElement('div');title.className='pos-card-title';title.textContent=pos.title;
+    var meta=document.createElement('div');meta.className='pos-card-meta';
+    meta.textContent=(pos.description||'No description')+' - Created by '+(pos.created_by_name||'unknown');
+
+    var del=document.createElement('button');del.className='pos-card-del';del.title='Delete folder';del.textContent='X';
+    del.onclick=function(e){e.stopPropagation();deletePosition(pos.id,pos.title);};
+
+    card.appendChild(icon);card.appendChild(count);card.appendChild(title);card.appendChild(meta);card.appendChild(del);
+    grid.appendChild(card);
+  });
+  c.appendChild(grid);
+}
+
+function openPosition(id, title, desc){
+  currentView='position-detail';
+  currentPositionId=id;
+  $('page-title').textContent=title;
+  $('page-sub').textContent=desc||'All interviews for this role across your company';
+  $('new-pos-btn').style.display='none';
+  document.querySelectorAll('.view-btn').forEach(function(b){b.classList.remove('active');});
+  loadPositionDetail(id);
+}
+
+async function loadPositionDetail(id){
+  var data = await get('/api/positions/'+id+'/recordings');
+  var c=$('container'); c.innerHTML='';
+
+  // Back button header
+  var hdr=document.createElement('div');hdr.className='pos-header';
+  var back=document.createElement('button');back.className='pos-back';back.textContent='Back to Job Openings';
+  back.onclick=function(){currentView='positions';$('page-title').textContent='Recordings Library';$('page-sub').textContent='Recordings organized by job opening - shared across your company';$('new-pos-btn').style.display='';document.getElementById('view-positions-btn').classList.add('active');document.getElementById('view-all-btn').classList.remove('active');loadPositions();};
+  hdr.appendChild(back);
+  var info=document.createElement('div');
+  info.innerHTML='<div class="pos-header-title">'+(data.position.title||'')+'</div><div class="pos-header-sub">'+(data.position.recording_count||data.recordings.length)+' recording'+(data.recordings.length!==1?'s':'')+' - '+(data.position.description||'')+'</div>';
+  hdr.appendChild(info);
+  c.appendChild(hdr);
+
+  if(!data.recordings||!data.recordings.length){
+    var emp=document.createElement('div');emp.className='empty';
+    emp.innerHTML='<div class="empty-icon" style="font-size:42px;opacity:.3">Rec</div><h3 style="font-size:15px;font-weight:700;color:var(--text2);margin-bottom:6px">No recordings in this folder yet</h3><p style="color:var(--text3);font-size:13px">Assign recordings from "All Recordings" to this job opening.</p>';
+    c.appendChild(emp);
+    return;
+  }
+  var grid=document.createElement('div');grid.className='rec-grid';
+  data.recordings.forEach(function(rec){grid.appendChild(buildRecCard(rec,true));});
+  c.appendChild(grid);
+}
+
+async function createPosition(){
+  var title=$('pos-title').value.trim(),desc=$('pos-desc').value.trim();
+  var err=$('pos-err');err.style.display='none';
+  if(!title){err.textContent='Job title required';err.style.display='block';return;}
+  var res=await post('/api/positions',{title,description:desc});
+  if(res.error){err.textContent=res.error;err.style.display='block';return;}
+  toast('Job opening created: '+title,'green');
+  hideModal('ov-new-position');
+  $('pos-title').value='';$('pos-desc').value='';
+  await loadPositions();
+}
+
+async function deletePosition(id, title){
+  if(!confirm('Delete "'+title+'"? Recordings will not be deleted, just removed from this folder.'))return;
+  var res=await fetch('/api/positions/'+id,{method:'DELETE'});
+  if(res.ok){toast('Deleted: '+title,'amber');await loadPositions();}
+  else toast('Failed to delete','red');
+}
+
+// ── ALL RECORDINGS VIEW ──
+async function loadAllRecordings(){
+  $('new-pos-btn').style.display='none';
+  // Also fetch positions for the assign dropdown
+  if(!allPositions.length) allPositions=await get('/api/positions')||[];
+  var recs=await get('/api/recordings');
+  var c=$('container');c.innerHTML='';
+  if(!recs||!recs.length){
+    c.innerHTML='<div class="empty"><div style="font-size:42px;opacity:.3;margin-bottom:16px">Rec</div>'
+      +'<h3 style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px">No recordings yet</h3>'
+      +'<p style="color:var(--text3);font-size:13px">Go to a session and click Record. Recordings auto-save here.</p>'
+      +'<a href="/dashboard" class="btn btn-primary" style="display:inline-flex;margin-top:20px">Go to Dashboard</a></div>';
+    return;
+  }
+  var grid=document.createElement('div');grid.className='rec-grid';
+  recs.forEach(function(rec){grid.appendChild(buildRecCard(rec,false));});
+  c.appendChild(grid);
+}
+
+// ── RECORDING CARD ──
+function buildRecCard(rec, inPositionView){
   var score=(rec.trust_score!==null&&rec.trust_score!==undefined)?rec.trust_score:100;
-  var scoreClass=score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo'; // score is now correctly 0 if candidate got 0
-  var date=rec.created_at?new Date(rec.created_at*1000).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+  var scoreClass=score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo';
   var card=document.createElement('div');card.className='rec-card';card.id='card-'+rec.id;
   var body=document.createElement('div');body.className='rec-card-body';
 
-  var title=document.createElement('div');title.className='rec-title';title.textContent=rec.session_title||'Interview';
-  body.appendChild(title);
+  var header=document.createElement('div');header.style.cssText='display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px';
+  var title=document.createElement('div');title.className='rec-title';title.style.margin='0';
+  title.textContent=(rec.session_title||'Interview')+(rec.interviewer_name?' - by '+rec.interviewer_name:'');
+  header.appendChild(title);
+
+  // Position assign dropdown (only in "All Recordings" view)
+  if(!inPositionView && allPositions.length>0){
+    var sel=document.createElement('select');sel.className='assign-select';sel.title='Assign to job opening';
+    var defOpt=document.createElement('option');defOpt.value='';defOpt.textContent='+ Add to folder';
+    sel.appendChild(defOpt);
+    allPositions.forEach(function(p){
+      var o=document.createElement('option');o.value=p.id;o.textContent=p.title;
+      if(rec.job_position_id===p.id)o.selected=true;
+      sel.appendChild(o);
+    });
+    if(rec.job_position_id){sel.options[0].textContent='In folder';sel.style.color='var(--green)';}
+    sel.onchange=async function(){
+      var posId=sel.value;
+      var res=await fetch('/api/recordings/'+rec.id+'/position',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({positionId:posId||null})});
+      var data=await res.json();
+      if(data.ok){
+        var posName=posId?allPositions.find(function(p){return p.id===posId;})?.title:'removed from folder';
+        toast(posId?'Added to "'+posName+'"':'Removed from folder','green');
+        sel.options[0].textContent=posId?'In folder':'+ Add to folder';
+        sel.style.color=posId?'var(--green)':'';
+      }else toast(data.error||'Failed','red');
+    };
+    header.appendChild(sel);
+  }
+  body.appendChild(header);
 
   var meta=document.createElement('div');meta.className='rec-meta-row';
-  meta.innerHTML='<span class="rec-meta-item">&#128100; <strong>'+(rec.candidate_name||'N/A')+'</strong></span>'
-    +'<span class="rec-meta-sep"></span><span class="rec-meta-item">&#128197; '+date+'</span>'
-    +'<span class="rec-meta-sep"></span><span class="rec-meta-item">&#9201; '+fmtDur(rec.duration_secs)+'</span>'
-    +'<span class="rec-meta-sep"></span><span class="rec-meta-item '+scoreClass+'">&#127919; <strong>'+score+'%</strong> trust</span>'
-    +'<span class="rec-meta-sep"></span><span class="rec-meta-item" style="color:'+(rec.flag_count>0?'var(--amber)':'var(--text3)')+'">&#9873; '+(rec.flag_count||0)+' flags</span>'
+  meta.innerHTML='<span>Candidate: <strong>'+(rec.candidate_name||'N/A')+'</strong></span>'
+    +'<span class="rec-meta-sep"></span><span>'+fmtDate(rec.created_at)+'</span>'
+    +'<span class="rec-meta-sep"></span><span>'+fmtDur(rec.duration_secs)+'</span>'
+    +'<span class="rec-meta-sep"></span><span class="'+scoreClass+'"><strong>'+score+'%</strong> trust</span>'
+    +'<span class="rec-meta-sep"></span><span style="color:'+(rec.flag_count>0?'var(--amber)':'var(--text3)')+'">'+( rec.flag_count||0)+' flags</span>'
     +(rec.file_size?'<span class="pill" style="margin-left:auto">'+fmtSize(rec.file_size)+'</span>':'');
   body.appendChild(meta);
 
   var actions=document.createElement('div');actions.className='rec-actions';
   function btn(cls,html,cb){var b=document.createElement('button');b.className='btn btn-sm '+cls;b.innerHTML=html;b.onclick=cb;actions.appendChild(b);return b;}
-
-  btn('btn-outline','&#9654; Preview',function(){togglePreview(rec.id);});
-  btn('btn-primary','&#8595; Download',function(){dlRec(rec.id,rec.session_title,rec.candidate_name);});
-  var cb=btn('btn-purple','&#8481; Compress for Email',function(){compressRec(rec.id,rec.session_title,cb);});
+  btn('btn-outline','Preview',function(){togglePreview(rec.id);});
+  btn('btn-primary','Download',function(){dlRec(rec.id,rec.session_title,rec.candidate_name);});
+  var cb=btn('btn-purple','Compress for Email',function(){compressRec(rec.id,rec.session_title,cb);});
   if(rec.share_token){
-    btn('btn-outline','&#128279; Copy Link',function(){copyLink(rec.share_token);});
-    btn('btn-outline','&#128065; Share Page',function(){window.open('/share/'+rec.share_token,'_blank');});
+    btn('btn-outline','Copy Share Link',function(){navigator.clipboard.writeText(location.origin+'/share/'+rec.share_token).then(function(){toast('Share link copied!','green',5000);});});
+    btn('btn-outline','Open Share Page',function(){window.open('/share/'+rec.share_token,'_blank');});
   }
-  btn('btn-danger','&#128465; Delete',function(){deleteRec(rec.id);});
+  btn('btn-danger','Delete',function(){deleteRec(rec.id);});
   body.appendChild(actions);
 
   var pw=document.createElement('div');pw.className='prog-wrap';pw.id='pw-'+rec.id;
   pw.innerHTML='<div class="prog-bar"><div class="prog-fill" id="pf-'+rec.id+'" style="width:0%"></div></div><div class="prog-label" id="pl-'+rec.id+'"></div>';
-  body.appendChild(pw);
-  card.appendChild(body);
+  body.appendChild(pw);card.appendChild(body);
 
   var vid=document.createElement('video');vid.id='vid-'+rec.id;vid.controls=true;vid.preload='none';
   vid.className='rec-video';vid.src='/api/recordings/'+rec.id+'/stream';
@@ -74,187 +300,64 @@ function buildCard(rec){
   return card;
 }
 
-function togglePreview(id){
-  var vid=document.getElementById('vid-'+id);
-  if(vid.style.display==='block'){vid.style.display='none';vid.pause();}
-  else{vid.style.display='block';vid.play();}
-}
+function togglePreview(id){var v=document.getElementById('vid-'+id);if(v.style.display==='block'){v.style.display='none';v.pause();}else{v.style.display='block';v.play();}}
 
 function dlRec(id,title,cand){
-  var a=document.createElement('a');
-  a.href='/api/recordings/'+id+'/stream';
+  var a=document.createElement('a');a.href='/api/recordings/'+id+'/stream';
   a.download='interview-'+(title||'session').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.webm';
   a.click();toast('Download started','green');
-}
-
-function copyLink(token){
-  navigator.clipboard.writeText(location.origin+'/share/'+token)
-    .then(function(){toast('Share link copied!','green',5000);});
 }
 
 async function deleteRec(id){
   if(!confirm('Permanently delete this recording?'))return;
   var res=await fetch('/api/recordings/'+id,{method:'DELETE'});
-  if(res.ok){var c=document.getElementById('card-'+id);if(c)c.remove();toast('Recording deleted','amber');}
+  if(res.ok){var c=document.getElementById('card-'+id);if(c)c.remove();toast('Deleted','amber');}
   else toast('Failed to delete','red');
 }
 
-// ââ COMPRESSION FIX ââ
-// Problem: playbackRate=16 captures ~16x faster than real-time, so a 10min video
-// becomes a ~37 second compressed file. The video content is correct but sped up.
-//
-// REAL FIX: Use MediaRecorder on the VIDEO element's stream directly,
-// but at a lower bitrate. This captures the FULL duration at real speed.
-// For email size: target ~15MB for a 30min interview (8kbps video = ~3.6MB/min at 720pâ480p)
-//
-// Approach: Fetch â create object URL â play video at 1x â record canvas at lower quality
-// This is slow (real-time) but produces the FULL interview at email-able size.
-// We show a "real-time recording" progress bar.
-
-async function compressRec(id, title, btn){
-  var pw=document.getElementById('pw-'+id);
-  var pf=document.getElementById('pf-'+id);
-  var pl=document.getElementById('pl-'+id);
-  btn.disabled=true; btn.textContent='Starting...';
-  pw.style.display='block'; pf.style.width='2%';
-  pl.textContent='Fetching recording (this may take a moment for large files)...';
-
-  try {
-    // Fetch original
+async function compressRec(id,title,btn){
+  var pw=document.getElementById('pw-'+id),pf=document.getElementById('pf-'+id),pl=document.getElementById('pl-'+id);
+  btn.disabled=true;btn.textContent='Compressing...';pw.style.display='block';pf.style.width='3%';pl.textContent='Fetching recording...';
+  try{
     var resp=await fetch('/api/recordings/'+id+'/stream');
-    if(!resp.ok) throw new Error('Could not fetch recording');
-    var origBlob=await resp.blob();
-    var origSize=origBlob.size;
-    pf.style.width='8%';
-    pl.textContent='Loaded '+fmtSize(origSize)+'. Setting up compression at email-friendly quality...';
-
+    if(!resp.ok)throw new Error('Could not fetch recording');
+    var origBlob=await resp.blob();var origSize=origBlob.size;
+    pf.style.width='12%';pl.textContent='Loaded '+fmtSize(origSize)+'. Setting up...';
     var srcUrl=URL.createObjectURL(origBlob);
-    var src=document.createElement('video');
-    src.src=srcUrl; src.muted=true; src.playsInline=true;
+    var src=document.createElement('video');src.src=srcUrl;src.muted=true;src.playsInline=true;
     src.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
     document.body.appendChild(src);
-
-    // Wait for enough metadata to start
-    await new Promise(function(res,rej){
-      src.onloadeddata=res;
-      src.onerror=function(){rej(new Error('Could not load video for compression'));};
-      src.load();
-    });
-
-    // Dimensions: reduce to 640x360 (360p) for email â ~5-8MB per 30 min at low bitrate
-    var W=640, H=360;
-    // Use actual video dimensions if smaller
-    if(src.videoWidth && src.videoWidth < W){ W=src.videoWidth; H=src.videoHeight; }
-
-    pf.style.width='12%';
-
-    // Know the duration?
-    var knownDuration=src.duration&&isFinite(src.duration)?src.duration:null;
-    if(knownDuration) pl.textContent='Duration: '+fmtDur(Math.round(knownDuration))+'. Compressing at real speed for full interview...';
-    else pl.textContent='Compressing at real-time speed (full interview will be captured)...';
-
-    var canvas=document.createElement('canvas');
-    canvas.width=W; canvas.height=H;
+    await new Promise(function(res,rej){src.onloadeddata=res;src.onerror=function(){rej(new Error('Video load error'));};src.load();});
+    var W=640,H=360;if(src.videoWidth&&src.videoWidth<W){W=src.videoWidth;H=src.videoHeight;}
+    var canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
     var ctx=canvas.getContext('2d');
-
-    // Use VP8 at low bitrate â targets ~4Mbps â ~30MB/hr â ~15MB per 30min interview
-    // For 20min interview that's ~10MB â easily emailable
-    var mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8')?'video/webm;codecs=vp8':'video/webm';
-    var targetBitrate=400000; // 400kbps â good quality at 360p, ~3MB/min
-
-    var csStream=canvas.captureStream(24); // 24fps output
-    var recorder=new MediaRecorder(csStream,{mimeType:mime,videoBitsPerSecond:targetBitrate});
-    var chunks=[];
-    recorder.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data);};
-    recorder.start(500);
-
-    // Draw frames in rAF loop while video plays at NORMAL speed (1x)
-    src.playbackRate=1;
-    var drawing=true;
-    var t0=Date.now();
-
-    function rafDraw(){
-      if(!drawing)return;
-      if(!src.paused&&!src.ended) ctx.drawImage(src,0,0,W,H);
-      if(knownDuration){
-        var elapsed=(Date.now()-t0)/1000;
-        var pct=Math.min(12+Math.round((elapsed/knownDuration)*83),95);
-        pf.style.width=pct+'%';
-        var remaining=Math.round(knownDuration-elapsed);
-        pl.textContent='Compressing: '+fmtDur(Math.round(elapsed))+' / '+fmtDur(Math.round(knownDuration))+(remaining>0?' â '+fmtDur(remaining)+' remaining':'');
-      } else {
-        var elapsed=(Date.now()-t0)/1000;
-        pl.textContent='Compressing: '+fmtDur(Math.round(elapsed))+' processed...';
-      }
-      requestAnimationFrame(rafDraw);
-    }
-    requestAnimationFrame(rafDraw);
-    src.play();
-
-    // Wait for video to finish
-    await new Promise(function(resolve,reject){
-      src.onended=resolve;
-      src.onerror=reject;
-      // Timeout: 3x the expected duration (real-time + buffer)
-      var maxWait=knownDuration?(knownDuration*1000*1.5)+5000:3600000;
-      setTimeout(resolve, maxWait);
-    });
-
-    drawing=false;
-    // Draw final frame
-    ctx.drawImage(src,0,0,W,H);
-    await new Promise(function(resolve){setTimeout(resolve,500);});
-
-    await new Promise(function(resolve){recorder.onstop=resolve;recorder.stop();});
-
-    var compBlob=new Blob(chunks,{type:'video/webm'});
-    var saved=Math.round((1-compBlob.size/origSize)*100);
-    pf.style.width='100%';
-    pl.innerHTML='<strong>Done!</strong> '+fmtSize(origSize)+' â <strong>'+fmtSize(compBlob.size)+'</strong>'+(saved>0?' ('+saved+'% smaller)':'')+' â Full interview captured at 360p';
-
-    var url=URL.createObjectURL(compBlob);
-    var a=document.createElement('a');
-    a.href=url;
+    var csStream=canvas.captureStream(15);
+    var recorder=new MediaRecorder(csStream,{mimeType:'video/webm;codecs=vp8',videoBitsPerSecond:400000});
+    var chunks=[];recorder.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data);};
+    recorder.start(200);pf.style.width='18%';pl.textContent='Compressing at real speed...';
+    var knownDur=src.duration&&isFinite(src.duration)?src.duration:null;
+    src.playbackRate=1;var drawing=true;var t0=Date.now();
+    function raf(){if(!drawing)return;if(!src.paused&&!src.ended)ctx.drawImage(src,0,0,W,H);if(knownDur){var el=(Date.now()-t0)/1000;var pct=Math.min(18+Math.round((el/knownDur)*77),95);pf.style.width=pct+'%';var rem=Math.round(knownDur-el);pl.textContent='Compressing: '+fmtDur(Math.round(el))+' / '+fmtDur(Math.round(knownDur))+(rem>0?' - '+fmtDur(rem)+' left':'');}else{pl.textContent='Compressing: '+fmtDur(Math.round((Date.now()-t0)/1000))+'...';}requestAnimationFrame(raf);}
+    requestAnimationFrame(raf);src.play();
+    await new Promise(function(resolve,reject){src.onended=resolve;src.onerror=reject;setTimeout(resolve,knownDur?(knownDur*1500+5000):3600000);});
+    drawing=false;ctx.drawImage(src,0,0,W,H);await new Promise(function(r){setTimeout(r,400);});
+    await new Promise(function(r){recorder.onstop=r;recorder.stop();});
+    var compBlob=new Blob(chunks,{type:'video/webm'});var saved=Math.round((1-compBlob.size/origSize)*100);
+    pf.style.width='100%';pl.innerHTML='Done! '+fmtSize(origSize)+' to '+fmtSize(compBlob.size)+(saved>0?' ('+saved+'% smaller)':'');
+    var url=URL.createObjectURL(compBlob);var a=document.createElement('a');a.href=url;
     a.download='email-'+(title||'interview').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'-360p.webm';
-    a.click();
-    URL.revokeObjectURL(url);
-    URL.revokeObjectURL(srcUrl);
-    document.body.removeChild(src);
-
-    var msg='Compressed download started!';
-    if(compBlob.size<20*1024*1024) msg+=' '+fmtSize(compBlob.size)+' â should be emailable.';
-    else msg+=' '+fmtSize(compBlob.size)+' â may need a file share service (Google Drive, Dropbox).';
-    toast(msg,'green',6000);
-
-  } catch(e) {
-    pl.textContent='Error: '+e.message;
-    toast('Compression failed: '+e.message,'red');
-  }
-  btn.disabled=false; btn.innerHTML='&#8481; Compress for Email';
-}
-
-async function loadRecordings(){
-  var recs=await get('/api/recordings');
-  var c=document.getElementById('container');c.innerHTML='';
-  if(!recs||!recs.length){
-    c.innerHTML='<div style="text-align:center;padding:80px 24px"><div style="font-size:52px;margin-bottom:16px;opacity:.3">&#127902;</div>'
-      +'<h3 style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px">No recordings yet</h3>'
-      +'<p style="color:var(--text3);font-size:13px">Go to a session and click Record. Recordings auto-save here.</p>'
-      +'<a href="/dashboard" class="btn btn-primary" style="display:inline-flex;margin-top:20px">Go to Dashboard</a>'
-      +'</div>';
-    return;
-  }
-  var grid=document.createElement('div');grid.className='rec-grid';
-  recs.forEach(function(rec){grid.appendChild(buildCard(rec));});
-  c.appendChild(grid);
+    a.click();URL.revokeObjectURL(url);URL.revokeObjectURL(srcUrl);document.body.removeChild(src);
+    toast('Compressed download started!'+(saved>0?' '+saved+'% smaller':''),'green',5000);
+  }catch(e){pl.textContent='Error: '+e.message;toast('Compression failed: '+e.message,'red');}
+  btn.disabled=false;btn.innerHTML='Compress for Email';
 }
 
 async function doLogout(){await post('/api/auth/logout');window.location.href='/';}
 
 async function init(){
-  var me=await requireLogin('/');if(!me)return;
+  me=await requireLogin('/');if(!me)return;
   $('user-chip').textContent=me.name+' ('+(me.orgCode||'')+')';
-  await loadRecordings();
+  await loadPositions();
 }
 init();
 </script>
