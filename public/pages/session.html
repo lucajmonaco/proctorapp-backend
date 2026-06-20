@@ -310,7 +310,7 @@ function stopScreenShare(){
   toast('Screen sharing stopped','amber');
 }
 
-// ── DEVICE SETTINGS ──
+// ââ DEVICE SETTINGS ââ
 var devicePanelOpen=false;
 async function toggleDevicePanel(){
   devicePanelOpen=!devicePanelOpen;
@@ -390,8 +390,10 @@ function connectSocket(){
   socket.on('webrtc-ice',async function(data){if(pc)await pc.addIceCandidate(data.candidate);});
   socket.on('candidate-flag',async function(flag){
     toast('Flag: '+flag.text,'amber');
+    // Re-fetch session to get updated trust_score from DB
     var s=await get('/api/sessions/'+sessionId);
-    setTrust(s.trust_score!=null?s.trust_score:100);
+    var score = s.trust_score!=null ? s.trust_score : 100;
+    setTrust(score);
     renderFlags(s.flags||[]); switchTab('flags',$('tab-f-btn'));
   });
   socket.on('peer-left',function(){$('s-status').textContent='Disconnected';$('s-status').className='badge badge-red';toast('Candidate disconnected','amber');});
@@ -415,8 +417,13 @@ async function endSession(){
   if(timerInterval) clearInterval(timerInterval);
   if(socket) socket.emit('session-ended',{sessionId:sessionId});
   await patch('/api/sessions/'+sessionId,{status:'ended'});
-  // FIX B3: sync final trust score to recording
-  try{ await fetch('/api/recordings/session/'+sessionId+'/sync',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}); }catch(e){}
+  // Sync final trust score to recording library (use POST for reliability)
+  try{
+    var syncRes = await post('/api/recordings/session/'+sessionId+'/sync', {});
+    if(syncRes && syncRes.trust_score != null){
+      console.log('Trust score synced to recording:', syncRes.trust_score, 'flags:', syncRes.flag_count);
+    }
+  }catch(e){ console.warn('Sync failed:', e.message); }
   setTimeout(function(){location.href='/dashboard';},600);
 }
 
