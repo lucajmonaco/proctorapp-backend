@@ -28,6 +28,9 @@
     <div class="nav-drawer-user" id="drawer-user">
       <div class="nav-drawer-user-name" id="drawer-user-name"></div>
       <div class="nav-drawer-user-org" id="drawer-user-org"></div>
+      <a href="#" class="nav-drawer-link" id="drawer-settings-link" style="border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:12px">
+        <span class="nav-drawer-link-icon">&#9881;&#65039;</span>Account Settings
+      </a>
       <button class="nav-drawer-signout" id="drawer-signout-btn">Sign Out</button>
     </div>
   </div>
@@ -346,6 +349,8 @@ async function init(){
   if(burgerBtn) burgerBtn.onclick = function(){ drawerOpen ? closeDrawer() : openDrawer(); };
   if(drawerBg) drawerBg.onclick = closeDrawer;
   if(drawerClose) drawerClose.onclick = closeDrawer;
+  var settingsLink = document.getElementById('drawer-settings-link');
+  if(settingsLink) settingsLink.addEventListener('click', function(e){ e.preventDefault(); closeDrawer(); window.location.href='/?settings=1'; });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&drawerOpen) closeDrawer(); });
 
   // Tab switching
