@@ -61,7 +61,7 @@
   <div class="page-hdr">
     <div class="page-hdr-left">
       <h1 id="page-title">Recordings Library</h1>
-      <p id="page-sub">Recordings organized by job opening — shared across your company</p>
+      <p id="page-sub">Recordings organized by job opening â shared across your company</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <div class="view-toggle">
@@ -121,7 +121,7 @@ function reload(){
   else loadAllRecordings();
 }
 
-// ── POSITIONS VIEW ──
+// ââ POSITIONS VIEW ââ
 async function loadPositions(){
   $('new-pos-btn').style.display='';
   var positions = await get('/api/positions');
@@ -197,7 +197,7 @@ async function createPosition(){
   var title=$('pos-title').value.trim(),desc=$('pos-desc').value.trim();
   var err=$('pos-err');err.style.display='none';
   if(!title){err.textContent='Job title required';err.style.display='block';return;}
-  var res=await post('/api/positions',{title,description:desc});
+  var res=await post('/api/positions',{title:title,description:desc});
   if(res.error){err.textContent=res.error;err.style.display='block';return;}
   toast('Job opening created: '+title,'green');
   hideModal('ov-new-position');
@@ -212,7 +212,7 @@ async function deletePosition(id, title){
   else toast('Failed to delete','red');
 }
 
-// ── ALL RECORDINGS VIEW ──
+// ââ ALL RECORDINGS VIEW ââ
 async function loadAllRecordings(){
   $('new-pos-btn').style.display='none';
   // Also fetch positions for the assign dropdown
@@ -231,7 +231,7 @@ async function loadAllRecordings(){
   c.appendChild(grid);
 }
 
-// ── RECORDING CARD ──
+// ââ RECORDING CARD ââ
 function buildRecCard(rec, inPositionView){
   var score=(rec.trust_score!==null&&rec.trust_score!==undefined)?rec.trust_score:100;
   var scoreClass=score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo';
@@ -259,7 +259,7 @@ function buildRecCard(rec, inPositionView){
       var res=await fetch('/api/recordings/'+rec.id+'/position',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({positionId:posId||null})});
       var data=await res.json();
       if(data.ok){
-        var posName=posId?allPositions.find(function(p){return p.id===posId;})?.title:'removed from folder';
+        var posName=posId?(allPositions.find(function(p){return p.id===posId;})||{}).title:'removed from folder';
         toast(posId?'Added to "'+posName+'"':'Removed from folder','green');
         sel.options[0].textContent=posId?'In folder':'+ Add to folder';
         sel.style.color=posId?'var(--green)':'';
