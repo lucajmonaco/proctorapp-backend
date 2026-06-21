@@ -263,7 +263,7 @@ async function createSession(){
   var err = $('ns-err'); err.style.display = 'none';
   if(!title){ err.textContent = 'Session title is required'; err.style.display = 'block'; return; }
   var btn = $('ns-btn'); btn.disabled = true; btn.textContent = 'Creating...';
-  var res = await post('/api/sessions', {title:title, candidateName:candidate||'Candidate', questions:questions});
+  var res = await post('/api/sessions', {title:title, candidateName:candidate||'Candidate', questions:questions, scheduledAt:(document.getElementById('ns-scheduled')||{}).value||null});
   if(res.error){ err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Create and Open Session'; return; }
   window.location.href = '/session/'+res.id;
 }
