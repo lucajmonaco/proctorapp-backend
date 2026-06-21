@@ -318,7 +318,7 @@ async function joinTeam(){
 
 
 
-// ââ COMPANY / TEAM TAB ââ
+//  COMPANY / TEAM TAB 
 var currentMe = null;
 
 async function loadCompanyPanel() {
@@ -339,7 +339,7 @@ async function loadCompanyPanel() {
 
   var html = '';
 
-  // â Company code card â
+  //  Company code card 
   html += '<div class="company-code-card">';
   html += '<div>';
   html += '<div class="company-code-label">Company Invite Code</div>';
@@ -352,7 +352,7 @@ async function loadCompanyPanel() {
   html += '</div>';
   html += '</div>';
 
-  // â Invite box (admin only) â
+  //  Invite box (admin only) 
   if(isAdmin) {
     html += '<div class="invite-box">';
     html += '<div class="invite-box-title">&#128231; Invite New Members</div>';
@@ -364,7 +364,7 @@ async function loadCompanyPanel() {
     html += '</div>';
   }
 
-  // â Members list â
+  //  Members list 
   html += '<div class="company-section-title">Team Members <span style="color:var(--blue);font-size:12px;font-weight:700;background:var(--sky);padding:1px 8px;border-radius:99px;text-transform:none;letter-spacing:0">' + members.length + '</span></div>';
   html += '<div class="member-list">';
 
@@ -401,7 +401,7 @@ async function loadCompanyPanel() {
   }
   html += '</div>';
 
-  // â Sessions by member (admin view) â
+  //  Sessions by member (admin view) 
   if(isAdmin) {
     html += '<div class="company-section-title">Sessions by Member</div>';
     html += '<div style="font-size:13px;color:var(--text4);padding:16px;background:var(--off);border-radius:var(--r);border:1.5px solid var(--border);text-align:center;">&#128203; Click any session on the Sessions tab to view details. All sessions from all team members are visible to admins.</div>';
