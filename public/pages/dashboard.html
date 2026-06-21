@@ -26,9 +26,9 @@
       <button class="nav-drawer-close" id="drawer-close">X</button>
     </div>
     <nav class="nav-drawer-links">
-      <a href="/" class="nav-drawer-link"><span class="nav-drawer-link-icon">Home</span>Home</a>
-      <a href="/dashboard" class="nav-drawer-link active"><span class="nav-drawer-link-icon">Dash</span>Dashboard</a>
-      <a href="/recordings" class="nav-drawer-link"><span class="nav-drawer-link-icon">Rec</span>Recordings Library</a>
+      <a href="/" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#127968;</span>Home</a>
+      <a href="/dashboard" class="nav-drawer-link active"><span class="nav-drawer-link-icon">&#128203;</span>Dashboard</a>
+      <a href="/recordings" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#127902;</span>Recordings Library</a>
     </nav>
     <div class="nav-drawer-user" id="drawer-user">
       <div class="nav-drawer-user-name" id="drawer-user-name"></div>
@@ -164,7 +164,11 @@ function buildSessionRow(s){
     var schedD = new Date(s.scheduled_at*1000);
     var schedStr = schedD.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     statusBadge = '<span class="badge" style="background:rgba(139,92,246,.15);color:#a78bfa;border-color:#7c3aed">Scheduled: '+schedStr+'</span>';
-  } else statusBadge = '<span class="badge badge-amber">Waiting</span>';
+  } else if(s.scheduled_at){
+    var sd=new Date(s.scheduled_at*1000);
+    var sds=sd.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    statusBadge='<span class="badge badge-scheduled">Scheduled: '+sds+'</span>';
+  }else statusBadge='<span class="badge badge-amber">Waiting</span>';
   var div = document.createElement('div');
   div.className = 'session-row';
   div.innerHTML = '<div class="session-avatar">S</div>'
