@@ -104,7 +104,7 @@ Where do you see yourself in 5 years?"></textarea>
 var currentMe = null;
 var drawerOpen = false;
 
-// ââ BURGER ââ
+//  BURGER 
 function openDrawer(){
   drawerOpen = true;
   document.getElementById('nav-drawer').classList.add('open');
@@ -116,7 +116,7 @@ function closeDrawer(){
   document.getElementById('burger-btn').classList.remove('open');
 }
 
-// ââ TABS ââ
+//  TABS 
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
@@ -127,7 +127,7 @@ function switchTab(name){
   if(name === 'team') loadCompanyPanel();
 }
 
-// ââ MODALS ââ
+//  MODALS 
 function showNSModal(){
   var nsEl = document.getElementById('ns-scheduled');
   if(nsEl){
@@ -145,7 +145,7 @@ function hideNSModal(){
   hideModal('ov-new-session');
 }
 
-// ââ SESSION CREATION ââ
+//  SESSION CREATION 
 async function doCreateSession(){
   var title = document.getElementById('ns-title').value.trim();
   var candidate = document.getElementById('ns-candidate').value.trim();
@@ -166,7 +166,7 @@ async function doCreateSession(){
   window.location.href = '/session/' + res.id;
 }
 
-// ââ SESSIONS LIST ââ
+//  SESSIONS LIST 
 function fmtDate(ts){ return ts ? new Date(ts*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : ''; }
 function fmtScore(s){ if(s===null||s===undefined) return null; return Math.round(s); }
 function scoreColor(s){ return s>=80?'var(--green)':s>=60?'var(--amber)':'var(--red)'; }
@@ -218,12 +218,12 @@ async function loadSessions(){
   });
 }
 
-// ââ COPY INVITE ââ
+//  COPY INVITE 
 function copyInviteCode(code){
   navigator.clipboard.writeText(location.origin+'/join/'+code).then(function(){ toast('Invite link copied!','green'); });
 }
 
-// ââ COMPANY PANEL ââ
+//  COMPANY PANEL 
 async function loadCompanyPanel(){
   var panel = document.getElementById('company-panel');
   if(!panel) return;
@@ -335,7 +335,7 @@ async function doLogout(){
   window.location.href = '/';
 }
 
-// ââ INIT ââ
+//  INIT 
 async function init(){
   // Burger
   var burgerBtn = document.getElementById('burger-btn');
