@@ -1,4 +1,4 @@
-/* InterviewMyCandidate — Modern Design System */
+/* InterviewMyCandidate â Modern Design System */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --navy:#0f2241;--navy-mid:#1a3560;--navy-light:#243f6e;
@@ -54,9 +54,9 @@ textarea.input{resize:vertical;min-height:80px}
 .badge-red{background:var(--red2);color:var(--red);border-color:rgba(220,38,38,.3)}
 .pill{background:var(--sky);color:var(--blue);border:1px solid var(--sky-deep);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600}
 
-/* ═══════════════════════════════════
-   NAVIGATION — with burger menu
-═══════════════════════════════════ */
+/* âââââââââââââââââââââââââââââââââââ
+   NAVIGATION â with burger menu
+âââââââââââââââââââââââââââââââââââ */
 .nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;padding:0 28px;height:62px;background:rgba(15,34,65,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.08)}
 .nav-logo{display:flex;align-items:center;gap:3px;text-decoration:none;font-size:18px;font-weight:800;letter-spacing:-.5px;color:var(--white);flex-shrink:0;transition:opacity var(--transition)}
 .nav-logo:hover{opacity:.85}
@@ -344,3 +344,47 @@ main{background:var(--white)}
   .page-wrap{padding:22px 18px}.nav{padding:0 18px}.join-section{padding:24px 22px}
   .join-section-wrap{padding:36px 18px}
 }
+/* Feature card icon - ensure emoji shows properly */
+.fcard-icon{font-size:32px;margin-bottom:14px;display:block;line-height:1}
+.fcard-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:7px}
+
+/* Nav drawer link icon - hide the text label fallback */
+.nav-drawer-link-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+/* Schedule field styling */
+.schedule-hint{font-size:11px;color:var(--text4);margin-top:5px;line-height:1.5;padding:6px 10px;background:var(--sky);border-radius:6px;border-left:3px solid var(--blue-light)}
+input[type="datetime-local"].input{color-scheme:light}
+
+/* Session page layout fix - ensure full height */
+.session-page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.session-topbar{flex-shrink:0}
+
+/* Copy link button on session rows */
+.sr-copy-btn{font-size:11px!important;padding:4px 10px!important}
+
+/* Goodbye screen - ensure visible */
+.goodbye-screen{z-index:9999}
+
+/* Live badge */
+.badge-live{background:rgba(5,150,105,.15);color:var(--green);border-color:rgba(5,150,105,.4);animation:livePulse 2s infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Scheduled badge */
+.badge-scheduled{background:rgba(124,58,237,.12);color:var(--purple);border-color:rgba(124,58,237,.3)}
+
+/* No sessions empty state */
+.sessions-empty{text-align:center;padding:40px 20px;color:var(--text4)}
+.sessions-empty-icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.sessions-empty h3{font-size:16px;font-weight:700;color:var(--text3);margin-bottom:6px}
+.sessions-empty p{font-size:13px;line-height:1.7}
+
+/* Q card improved */
+.q-card{padding:12px 14px;background:var(--off);border:1.5px solid var(--border);border-radius:var(--rs);cursor:pointer;font-size:13px;color:var(--text);transition:all var(--transition);user-select:none}
+.q-card.active{border-color:var(--blue);background:linear-gradient(135deg,var(--sky),var(--sky-mid));color:var(--navy);font-weight:600;box-shadow:var(--shadow-sm)}
+.q-card:hover:not(.active){background:var(--sky);border-color:var(--sky-deep)}
+
+/* Rec card actions row */
+.rec-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* Org code input */
+.org-code-input{font-family:monospace;font-size:18px;letter-spacing:4px;text-align:center;text-transform:uppercase}
