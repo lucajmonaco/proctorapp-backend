@@ -138,10 +138,10 @@ document.getElementById('new-sess-btn').onclick = function(){
     var now = new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
     var nsEl = document.getElementById('ns-scheduled'); 
     if(nsEl) nsEl.min = now.toISOString().slice(0,16);
-    showModal(&quot;ov-new-session&quot;); 
+    showModal("ov-new-session"); 
   };
-document.getElementById('create-team-btn').onclick = function(){ showModal(&quot;ov-create-team&quot;); };
-document.getElementById('join-team-btn').onclick = function(){ showModal(&quot;ov-join-team&quot;); };
+document.getElementById('create-team-btn').onclick = function(){ showModal("ov-create-team"); };
+document.getElementById('join-team-btn').onclick = function(){ showModal("ov-join-team"); };
 ['ov-new-session','ov-create-team','ov-join-team'].forEach(function(id){
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)hideModal(id);});
 });
