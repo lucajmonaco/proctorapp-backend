@@ -389,7 +389,7 @@ async function init(){
 
   // Sign out
   var signoutBtn = document.getElementById('drawer-signout-btn');
-  if(signoutBtn) signoutBtn.onclick = doLogout;
+  if(signoutBtn) signoutBtn.onclick = function(){ doLogout(); };
 
   // Load user
   var me = await get('/api/auth/me');
