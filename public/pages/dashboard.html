@@ -399,14 +399,7 @@ async function init(){
   if(chip) chip.textContent = me.name + ' (' + (me.orgCode||'') + ')';
   var titleEl = document.getElementById('welcome-title');
   if(titleEl) titleEl.textContent = 'Welcome back, ' + me.name.split(' ')[0];
-  // Show role badge
-  var roleEl = document.getElementById('org-name');
-  if(roleEl){
-    // badgeSpan_removed
-      ? 'background:rgba(124,58,237,.15);color:#7c3aed;border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;vertical-align:middle;margin-left:6px'
-      : 'background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;vertical-align:middle;margin-left:6px';
-    roleEl.appendChild(badgeSpan);
-  }
+
   var orgEl = document.getElementById('org-name');
   if(orgEl) orgEl.textContent = me.orgName || '';
   var drawerName = document.getElementById('drawer-user-name');
