@@ -104,7 +104,7 @@ Where do you see yourself in 5 years?"></textarea>
 var currentMe = null;
 var drawerOpen = false;
 
-// ── BURGER ──
+// ââ BURGER ââ
 function openDrawer(){
   drawerOpen = true;
   document.getElementById('nav-drawer').classList.add('open');
@@ -116,7 +116,7 @@ function closeDrawer(){
   document.getElementById('burger-btn').classList.remove('open');
 }
 
-// ── TABS ──
+// ââ TABS ââ
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
@@ -127,7 +127,7 @@ function switchTab(name){
   if(name === 'team') loadCompanyPanel();
 }
 
-// ── MODALS ──
+// ââ MODALS ââ
 function showNSModal(){
   var nsEl = document.getElementById('ns-scheduled');
   if(nsEl){
@@ -145,7 +145,7 @@ function hideNSModal(){
   hideModal('ov-new-session');
 }
 
-// ── SESSION CREATION ──
+// ââ SESSION CREATION ââ
 async function doCreateSession(){
   var title = document.getElementById('ns-title').value.trim();
   var candidate = document.getElementById('ns-candidate').value.trim();
@@ -166,7 +166,7 @@ async function doCreateSession(){
   window.location.href = '/session/' + res.id;
 }
 
-// ── SESSIONS LIST ──
+// ââ SESSIONS LIST ââ
 function fmtDate(ts){ return ts ? new Date(ts*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : ''; }
 function fmtScore(s){ if(s===null||s===undefined) return null; return Math.round(s); }
 function scoreColor(s){ return s>=80?'var(--green)':s>=60?'var(--amber)':'var(--red)'; }
@@ -218,69 +218,103 @@ async function loadSessions(){
   });
 }
 
-// ── COPY INVITE ──
+// ââ COPY INVITE ââ
 function copyInviteCode(code){
   navigator.clipboard.writeText(location.origin+'/join/'+code).then(function(){ toast('Invite link copied!','green'); });
 }
 
-// ── COMPANY PANEL ──
+// ââ COMPANY PANEL ââ
 async function loadCompanyPanel(){
   var panel = document.getElementById('company-panel');
   if(!panel) return;
   var me = currentMe;
-  if(!me){ panel.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text4)">Not logged in.</div>'; return; }
+  if(!me){ panel.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text4)">Please sign in to view company info.</div>'; return; }
   var orgInfo = await get('/api/org/info');
   var members = await get('/api/org/members');
-  if(!orgInfo||!Array.isArray(members)){ panel.innerHTML = '<div style="text-align:center;padding:24px;color:var(--red)">Could not load company info.</div>'; return; }
+  if(!orgInfo || !Array.isArray(members)){
+    panel.innerHTML = '<div style="text-align:center;padding:24px;color:var(--red)">Could not load company info.</div>';
+    return;
+  }
   var isAdmin = me.role === 'admin';
   var code = orgInfo.code || me.orgCode || '';
   var orgName = orgInfo.name || me.orgName || '';
   var inviteUrl = location.origin + '/join-company/' + code;
   var html = '';
-  // Code card
+
+  // Code card - use data-copy attribute, no inline onclick
   html += '<div style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:var(--r);padding:22px 26px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">';
-  html += '<div><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Company Invite Code</div>';
-  html += '<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:6px;font-family:monospace">'+code+'</div>';
-  html += '<div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:4px">'+orgName+'</div></div>';
+  html += '<div>';
+  html += '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Company Invite Code</div>';
+  html += '<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:6px;font-family:monospace">' + code + '</div>';
+  html += '<div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:4px">' + orgName + '</div>';
+  html += '</div>';
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-  html += '<button class="btn btn-blue btn-sm" onclick="navigator.clipboard.writeText(''+code+'').then(function(){toast('Code copied!','green');})">&#128203; Copy Code</button>';
-  html += '<button class="btn btn-outline btn-sm" style="background:transparent;color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.25)" onclick="navigator.clipboard.writeText(''+inviteUrl+'').then(function(){toast('Invite link copied!','green');})">&#128279; Copy Invite</button>';
+  html += '<button class="btn btn-blue btn-sm" data-copy-code="' + code + '">&#128203; Copy Code</button>';
+  html += '<button class="btn btn-outline btn-sm" style="background:transparent;color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.25)" data-copy-invite="' + inviteUrl + '">&#128279; Copy Invite</button>';
   html += '</div></div>';
-  // Invite box (admin)
+
+  // Invite box (admin only)
   if(isAdmin){
     html += '<div style="background:var(--sky);border:1.5px solid var(--sky-deep);border-radius:var(--r);padding:16px 18px;margin-bottom:20px">';
     html += '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">&#128231; Share Invite Link</div>';
     html += '<div style="font-size:12px;color:var(--text4);margin-bottom:10px;line-height:1.5">Send this link to new team members. They can create an account and join instantly.</div>';
-    html += '<div style="display:flex;gap:8px;align-items:center"><input style="flex:1;padding:7px 11px;background:#fff;border:1.5px solid var(--border2);border-radius:var(--rs);font-size:12px;color:var(--navy);font-family:monospace;outline:none" readonly value="'+inviteUrl+'">';
-    html += '<button class="btn btn-blue btn-sm" onclick="navigator.clipboard.writeText(''+inviteUrl+'').then(function(){toast('Copied!','green');})">Copy</button></div></div>';
+    html += '<div style="display:flex;gap:8px;align-items:center">';
+    html += '<input style="flex:1;padding:7px 11px;background:#fff;border:1.5px solid var(--border2);border-radius:var(--rs);font-size:12px;color:var(--navy);font-family:monospace;outline:none" readonly value="' + inviteUrl + '">';
+    html += '<button class="btn btn-blue btn-sm" data-copy-invite="' + inviteUrl + '">Copy</button>';
+    html += '</div></div>';
   }
-  // Members
-  html += '<div style="font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px">Team Members <span style="color:var(--blue);font-size:12px;font-weight:700;background:var(--sky);padding:1px 8px;border-radius:99px;text-transform:none;letter-spacing:0">'+members.length+'</span></div>';
+
+  // Members heading
+  html += '<div style="font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px">Team Members <span style="color:var(--blue);font-size:12px;font-weight:700;background:var(--sky);padding:1px 8px;border-radius:99px;text-transform:none;letter-spacing:0">' + members.length + '</span></div>';
+
+  // Member cards - use data attributes for all actions
   members.forEach(function(m){
     var isYou = me && m.id === me.userId;
-    var initials = (m.name||'?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+    var initials = (m.name||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
     var isAdm = m.role === 'admin';
-    var badgeStyle = isAdm ? 'background:rgba(124,58,237,.12);color:var(--purple);border:1px solid rgba(124,58,237,.3)' : 'background:var(--sky);color:var(--blue);border:1px solid var(--sky-deep)';
+    var badgeStyle = isAdm
+      ? 'background:rgba(124,58,237,.12);color:var(--purple);border:1px solid rgba(124,58,237,.3)'
+      : 'background:var(--sky);color:var(--blue);border:1px solid var(--sky-deep)';
     var badgeText = isAdm ? '&#128081; Admin' : '&#128203; Recruiter';
-    var avatarBg = isAdm ? 'background:linear-gradient(135deg,var(--navy),var(--navy-mid))' : 'background:linear-gradient(135deg,var(--blue-mid),var(--blue))';
+    var avatarBg = isAdm
+      ? 'background:linear-gradient(135deg,var(--navy),var(--navy-mid))'
+      : 'background:linear-gradient(135deg,var(--blue-mid),var(--blue))';
     var joined = m.created_at ? new Date(m.created_at*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    html += '<div class="member-card" id="mcard-'+m.id+'" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:8px">';
-    html += '<div style="width:40px;height:40px;border-radius:10px;'+avatarBg+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">'+initials+'</div>';
-    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--navy)">'+(m.name||'Unknown')+(isYou?'<span style="font-size:10px;color:var(--text4);font-style:italic;margin-left:6px">(you)</span>':'')+'</div>';
-    html += '<div style="font-size:12px;color:var(--text4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(m.email||'')+'</div>';
-    html += '<div style="font-size:11px;color:var(--text4);margin-top:1px">Joined '+joined+'</div></div>';
-    html += '<span style="'+badgeStyle+';border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">'+badgeText+'</span>';
+    var safeName = (m.name||'Member').replace(/"/g,'').replace(/'/g,'');
+
+    html += '<div class="member-card" id="mcard-' + m.id + '" style="background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:8px">';
+    html += '<div style="width:40px;height:40px;border-radius:10px;' + avatarBg + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">' + initials + '</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:14px;font-weight:700;color:var(--navy)">' + (m.name||'Unknown') + (isYou ? ' <span style="font-size:10px;color:var(--text4);font-style:italic">(you)</span>' : '') + '</div>';
+    html += '<div style="font-size:12px;color:var(--text4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (m.email||'') + '</div>';
+    html += '<div style="font-size:11px;color:var(--text4);margin-top:1px">Joined ' + joined + '</div>';
+    html += '</div>';
+    html += '<span style="' + badgeStyle + ';border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;flex-shrink:0">' + badgeText + '</span>';
+
     if(isAdmin && !isYou){
       var newRole = isAdm ? 'recruiter' : 'admin';
       var roleLabel = isAdm ? 'Make Recruiter' : 'Make Admin';
       html += '<div style="display:flex;gap:6px;flex-shrink:0">';
-      html += '<button class="btn btn-outline btn-sm" style="font-size:11px" data-member-id="'+m.id+'" data-new-role="'+newRole+'">'+roleLabel+'</button>';
-      html += '<button class="btn btn-danger btn-sm" style="font-size:11px" data-remove-id="'+m.id+'" data-member-name="'+(m.name||'').replace(/"/g,'').replace(/'/g,'')+'">&#128465;</button>';
+      html += '<button class="btn btn-outline btn-sm" style="font-size:11px" data-member-id="' + m.id + '" data-new-role="' + newRole + '">' + roleLabel + '</button>';
+      html += '<button class="btn btn-danger btn-sm" style="font-size:11px" data-remove-id="' + m.id + '" data-member-name="' + safeName + '">&#128465;</button>';
       html += '</div>';
     }
     html += '</div>';
   });
+
   panel.innerHTML = html;
+
+  // Wire copy buttons via delegation on panel (no inline onclick)
+  panel.addEventListener('click', function panelClick(e){
+    var copyCode = e.target.closest('[data-copy-code]');
+    if(copyCode){ navigator.clipboard.writeText(copyCode.getAttribute('data-copy-code')).then(function(){ toast('Code copied!','green'); }); return; }
+    var copyInv = e.target.closest('[data-copy-invite]');
+    if(copyInv){ navigator.clipboard.writeText(copyInv.getAttribute('data-copy-invite')).then(function(){ toast('Invite link copied!','green'); }); return; }
+    var roleBtn = e.target.closest('[data-new-role]');
+    if(roleBtn){ changeMemberRole(roleBtn.getAttribute('data-member-id'), roleBtn.getAttribute('data-new-role')); return; }
+    var removeBtn = e.target.closest('[data-remove-id]');
+    if(removeBtn){ removeMember(removeBtn.getAttribute('data-remove-id'), removeBtn.getAttribute('data-member-name')); }
+  }, {once: false});
 }
 
 async function changeMemberRole(userId, newRole){
@@ -301,7 +335,7 @@ async function doLogout(){
   window.location.href = '/';
 }
 
-// ── INIT ──
+// ââ INIT ââ
 async function init(){
   // Burger
   var burgerBtn = document.getElementById('burger-btn');
