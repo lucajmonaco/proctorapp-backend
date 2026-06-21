@@ -103,9 +103,56 @@ const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Custom SQLite session store for persistent sessions across restarts
+const session = require('express-session');
+const SqliteStore = function(options) {
+  const Store = session.Store;
+  function SQLiteSessionStore(opts) {
+    Store.call(this, opts);
+    this.db = opts.db;
+    // Create sessions table
+    this.db.prepare(`CREATE TABLE IF NOT EXISTS http_sessions (
+      sid TEXT PRIMARY KEY,
+      sess TEXT NOT NULL,
+      expired INTEGER NOT NULL
+    )`).run();
+    // Clean expired sessions every 15 minutes
+    setInterval(() => {
+      try { this.db.prepare('DELETE FROM http_sessions WHERE expired < ?').run(Date.now()); } catch(e) {}
+    }, 15 * 60 * 1000);
+  }
+  SQLiteSessionStore.prototype = Object.create(Store.prototype);
+  SQLiteSessionStore.prototype.constructor = SQLiteSessionStore;
+  SQLiteSessionStore.prototype.get = function(sid, cb) {
+    try {
+      const row = this.db.prepare('SELECT sess, expired FROM http_sessions WHERE sid=?').get(sid);
+      if (!row) return cb(null, null);
+      if (row.expired < Date.now()) { this.destroy(sid, function(){}); return cb(null, null); }
+      cb(null, JSON.parse(row.sess));
+    } catch(e) { cb(e); }
+  };
+  SQLiteSessionStore.prototype.set = function(sid, sess, cb) {
+    try {
+      const maxAge = sess.cookie && sess.cookie.maxAge ? sess.cookie.maxAge : 86400000;
+      const expired = Date.now() + maxAge;
+      this.db.prepare('INSERT OR REPLACE INTO http_sessions (sid, sess, expired) VALUES (?,?,?)').run(sid, JSON.stringify(sess), expired);
+      if (cb) cb(null);
+    } catch(e) { if (cb) cb(e); }
+  };
+  SQLiteSessionStore.prototype.destroy = function(sid, cb) {
+    try { this.db.prepare('DELETE FROM http_sessions WHERE sid=?').run(sid); if (cb) cb(null); } catch(e) { if (cb) cb(e); }
+  };
+  SQLiteSessionStore.prototype.touch = function(sid, sess, cb) { this.set(sid, sess, cb); };
+  return SQLiteSessionStore;
+}(require('express-session'));
+
+const SessionStore = new SqliteStore(require('express-session'));
 app.use(session({
   secret: 'secure-interview-secret-key-2026',
-  resave: false, saveUninitialized: false,
+  resave: false,
+  saveUninitialized: false,
+  store: new SessionStore({ db: db }),
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
 }));
 
@@ -382,7 +429,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ORG MEMBER MANAGEMENT ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ
+// ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ORG MEMBER MANAGEMENT ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ
 // List all members in the org
 app.get('/api/org/members', requireAuth, (req, res) => {
   const members = db.prepare('SELECT id, name, email, role, created_at FROM users WHERE org_id=? ORDER BY role DESC, created_at ASC').all(req.session.orgId);
