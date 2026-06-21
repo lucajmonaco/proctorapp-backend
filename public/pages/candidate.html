@@ -454,6 +454,13 @@ async function startPreview(){
   try{previewStream=await navigator.mediaDevices.getUserMedia({video:cId?{deviceId:{exact:cId}}:{facingMode:'user'},audio:mId?{deviceId:{exact:mId}}:true});document.getElementById('preview-vid').srcObject=previewStream;localStream=previewStream;}catch(e){}
 }
 
+function setVolume(v){
+  var remAudio = document.getElementById('remote-audio');
+  if(remAudio) remAudio.volume = parseFloat(v);
+  // Also adjust any interviewer video element volume
+  var ivid = document.getElementById('interviewer-video');
+  if(ivid) ivid.volume = parseFloat(v);
+}
 function stopAllMedia(){
   interviewActive=false;
   if(localStream){localStream.getTracks().forEach(function(t){t.stop();});}
