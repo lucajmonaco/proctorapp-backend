@@ -40,9 +40,9 @@
       <a href="/dashboard" class="nav-drawer-link" id="dl-dashboard" style="display:none"><span class="nav-drawer-link-icon">Dash</span>Dashboard</a>
       <a href="/recordings" class="nav-drawer-link" id="dl-recordings" style="display:none"><span class="nav-drawer-link-icon">Rec</span>Recordings Library</a>
       <div class="nav-drawer-sep"></div>
-      <a href="#" class="nav-drawer-link" id="dl-signin" onclick="showModal(&quot;ov-signin&quot;);closeDrawer();return false"><span class="nav-drawer-link-icon">In</span>Sign In</a>
-      <a href="#" class="nav-drawer-link" id="dl-signup" onclick="showModal(&quot;ov-create&quot;);closeDrawer();return false"><span class="nav-drawer-link-icon">+</span>Create Account</a>
-      <a href="#" class="nav-drawer-link" id="dl-join-org" onclick="showModal(&quot;ov-join&quot;);closeDrawer();return false"><span class="nav-drawer-link-icon">Team</span>Join Company</a>
+      <a href="#" class="nav-drawer-link" id="dl-signin" data-modal="ov-signin" onclick="openAuthModal(this);return false"><span class="nav-drawer-link-icon">In</span>Sign In</a>
+      <a href="#" class="nav-drawer-link" id="dl-signup" data-modal="ov-create" onclick="openAuthModal(this);return false"><span class="nav-drawer-link-icon">+</span>Create Account</a>
+      <a href="#" class="nav-drawer-link" id="dl-join-org" data-modal="ov-join" onclick="openAuthModal(this);return false"><span class="nav-drawer-link-icon">Team</span>Join Company</a>
     </nav>
     <div class="nav-drawer-user" id="drawer-user" style="display:none">
       <div class="nav-drawer-user-name" id="drawer-user-name"></div>
@@ -157,7 +157,7 @@
 <div id="toast-container"></div>
 <script src="/js/utils.js"></script>
 <script>
-// ââ BURGER MENU ââ
+//  BURGER MENU 
 var drawerOpen = false;
 function openDrawer(){drawerOpen=true;var d=$('nav-drawer'),b=$('burger-btn');d.classList.add('open');b.classList.add('open');b.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';}
 function closeDrawer(){drawerOpen=false;var d=$('nav-drawer'),b=$('burger-btn');d.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');document.body.style.overflow='';}
@@ -166,7 +166,7 @@ $('drawer-close').onclick=closeDrawer;
 $('drawer-bg').onclick=closeDrawer;
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&drawerOpen)closeDrawer();});
 
-// ââ NAV BUTTONS ââ
+//  NAV BUTTONS 
 document.getElementById('n-in').onclick=function(){showModal(&quot;ov-signin&quot;);};
 document.getElementById('n-up').onclick=function(){showModal(&quot;ov-create&quot;);};
 document.getElementById('h-start').onclick=function(){showModal(&quot;ov-create&quot;);};
@@ -174,7 +174,7 @@ document.getElementById('h-in').onclick=function(){showModal(&quot;ov-signin&quo
 ['ov-signin','ov-create','ov-join'].forEach(function(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===this)hideModal(id);});});
 function switchTo(id){['ov-signin','ov-create','ov-join'].forEach(function(x){hideModal(x);});showModal(id);}
 
-// ââ CANDIDATE JOIN ââ
+//  CANDIDATE JOIN 
 function formatCode(input){var v=input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(v.length>3&&v.indexOf('-')===-1)v=v.slice(0,3)+'-'+v.slice(3);input.value=v.slice(0,7);}
 async function joinSession(){
   var code=document.getElementById('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -191,7 +191,7 @@ async function joinSession(){
   }catch(e){err.textContent='Could not connect. Please try again.';err.style.display='block';}
 }
 
-// ââ DEVICE SETTINGS ââ
+//  DEVICE SETTINGS 
 var joinPreviewStream=null,joinDevicesLoaded=false;
 async function toggleJoinDevices(){var p=document.getElementById('join-device-panel');if(p.style.display==='block'){p.style.display='none';return;}p.style.display='block';if(!joinDevicesLoaded){await loadJoinDevices();joinDevicesLoaded=true;}}
 async function loadJoinDevices(){
@@ -212,7 +212,7 @@ async function startJoinPreview(){
   try{joinPreviewStream=await navigator.mediaDevices.getUserMedia({video:cId?{deviceId:{exact:cId}}:{facingMode:'user'},audio:mId?{deviceId:{exact:mId}}:true});document.getElementById('join-preview-vid').srcObject=joinPreviewStream;document.getElementById('join-preview-box').style.display='block';}catch(e){document.getElementById('join-device-status').textContent='Preview failed: '+e.message;}
 }
 
-// ââ AUTH ââ
+//  AUTH 
 async function doSignIn(){var btn=$('si-btn'),err=$('si-err');btn.disabled=true;btn.textContent='Signing in...';err.style.display='none';var res=await post('/api/auth/login',{orgCode:$('si-code').value.trim(),email:$('si-email').value.trim(),password:$('si-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Sign In';return;}window.location.href='/dashboard';}
 async function doCreate(){var btn=$('cr-btn'),err=$('cr-err');btn.disabled=true;btn.textContent='Creating...';err.style.display='none';var res=await post('/api/auth/org/create',{orgName:$('cr-org').value.trim(),name:$('cr-name').value.trim(),email:$('cr-email').value.trim(),password:$('cr-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account';return;}$('cr-code-val').textContent=res.orgCode;$('cr-code-display').style.display='block';$('cr-form').style.display='none';$('cr-switch').innerHTML='<a href="/dashboard">Go to Dashboard</a>';}
 async function doJoin(){var btn=$('jo-btn'),err=$('jo-err');btn.disabled=true;btn.textContent='Joining...';err.style.display='none';var res=await post('/api/auth/org/join',{orgCode:$('jo-code').value.trim(),name:$('jo-name').value.trim(),email:$('jo-email').value.trim(),password:$('jo-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account and Join';return;}window.location.href='/dashboard';}
