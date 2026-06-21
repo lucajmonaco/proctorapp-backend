@@ -3,110 +3,101 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>InterviewMyCandidate - AI-Powered Interview Proctoring</title>
+<meta name="description" content="Real-time video proctoring, trust scoring, and flag detection for your hiring team.">
 <link rel="stylesheet" href="/css/main.css">
-<style>
-.join-section{
-  background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08));
-  border:1px solid rgba(59,130,246,.25);border-radius:16px;
-  padding:36px 40px;max-width:480px;margin:0 auto 60px;text-align:center;
-}
-.join-section h2{font-size:20px;font-weight:700;margin-bottom:6px;letter-spacing:-.3px;}
-.join-section p{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
-.join-code-row{display:flex;gap:10px;align-items:center;}
-.join-code-input{
-  flex:1;padding:12px 16px;background:var(--bg);border:1.5px solid var(--border2);
-  border-radius:var(--rs);color:var(--text);font-size:18px;font-family:monospace;
-  letter-spacing:4px;text-transform:uppercase;text-align:center;outline:none;
-  transition:border-color .15s,box-shadow .15s;
-}
-.join-code-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue3);}
-.join-code-input::placeholder{font-size:14px;letter-spacing:1px;text-transform:none;color:var(--text3);font-family:inherit;}
-
-/* Device settings panel in join section */
-.join-device-panel{
-  margin-top:18px;background:var(--bg);border:1px solid var(--border);
-  border-radius:var(--rs);padding:14px 16px;text-align:left;display:none;
-}
-.join-device-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
-.join-device-row{margin-bottom:10px;}
-.join-device-row:last-child{margin-bottom:0;}
-.join-device-name{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;}
-.join-device-select{width:100%;padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:13px;outline:none;cursor:pointer;font-family:inherit;}
-.preview-box{border-radius:var(--rs);overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:12px;max-height:130px;}
-.preview-box video{width:100%;height:100%;object-fit:cover;display:block;}
-.toggle-device-btn{font-size:12px;color:var(--text2);cursor:pointer;background:none;border:none;text-decoration:underline;font-family:inherit;margin-top:10px;}
-.toggle-device-btn:hover{color:var(--text);}
-</style>
 </head>
 <body>
+
+<!-- NAV with logo home link + burger -->
 <nav class="nav">
-  <div class="nav-logo">Interview<span style="color:var(--blue-light);font-weight:600">MyCandidate</span></div>
+  <a href="/" class="nav-logo" aria-label="InterviewMyCandidate home">
+    <span class="logo-interview">Interview</span><span class="logo-my">My</span><span class="logo-candidate">Candidate</span>
+  </a>
   <div class="nav-right">
-    <span id="n-name" style="font-size:12px;color:var(--text2);display:none"></span>
+    <span id="n-name" style="font-size:12px;color:rgba(255,255,255,.5);display:none"></span>
     <a href="/dashboard" class="btn btn-outline btn-sm" id="n-dash" style="display:none">Dashboard</a>
-    <button class="btn btn-outline" id="n-in">Sign In</button>
-    <button class="btn btn-primary" id="n-up">Get Started Free</button>
-    <button class="btn btn-outline btn-sm" id="n-out" style="display:none" onclick="doLogout()">Sign Out</button>
+    <button class="btn btn-outline btn-sm" id="n-in">Sign In</button>
+    <button class="btn btn-blue btn-sm" id="n-up">Get Started Free</button>
+    <!-- Burger menu button -->
+    <button class="burger-btn" id="burger-btn" aria-label="Open menu" aria-expanded="false">
+      <span class="burger-line"></span>
+      <span class="burger-line"></span>
+      <span class="burger-line"></span>
+    </button>
   </div>
 </nav>
 
+<!-- Burger drawer -->
+<div class="nav-drawer" id="nav-drawer" role="dialog" aria-label="Navigation menu">
+  <div class="nav-drawer-bg" id="drawer-bg"></div>
+  <div class="nav-drawer-panel">
+    <div class="nav-drawer-header">
+      <span class="nav-drawer-title">Menu</span>
+      <button class="nav-drawer-close" id="drawer-close" aria-label="Close menu">X</button>
+    </div>
+    <nav class="nav-drawer-links" id="drawer-links">
+      <a href="/" class="nav-drawer-link active"><span class="nav-drawer-link-icon">Home</span>Home</a>
+      <a href="/dashboard" class="nav-drawer-link" id="dl-dashboard" style="display:none"><span class="nav-drawer-link-icon">Dash</span>Dashboard</a>
+      <a href="/recordings" class="nav-drawer-link" id="dl-recordings" style="display:none"><span class="nav-drawer-link-icon">Rec</span>Recordings Library</a>
+      <div class="nav-drawer-sep"></div>
+      <a href="#" class="nav-drawer-link" id="dl-signin" onclick="showModal('ov-signin');closeDrawer();return false"><span class="nav-drawer-link-icon">In</span>Sign In</a>
+      <a href="#" class="nav-drawer-link" id="dl-signup" onclick="showModal('ov-create');closeDrawer();return false"><span class="nav-drawer-link-icon">+</span>Create Account</a>
+      <a href="#" class="nav-drawer-link" id="dl-join-org" onclick="showModal('ov-join');closeDrawer();return false"><span class="nav-drawer-link-icon">Team</span>Join Company</a>
+    </nav>
+    <div class="nav-drawer-user" id="drawer-user" style="display:none">
+      <div class="nav-drawer-user-name" id="drawer-user-name"></div>
+      <div class="nav-drawer-user-org" id="drawer-user-org"></div>
+      <button class="nav-drawer-signout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
 <main>
+  <!-- HERO -->
   <div class="hero-section">
     <div class="hero-tag">AI-Powered Interview Proctoring</div>
-    <h1 class="hero-title">Hire with <span class="grad">confidence</span>.</h1>
-    <p class="hero-sub">Real-time video proctoring, trust scoring, flag detection, and session recording for your entire team.</p>
+    <h1 class="hero-title">Hire with <span class="grad">confidence.</span></h1>
+    <p class="hero-sub">Real-time video proctoring, trust scoring, flag detection, and session recording - built for serious hiring teams.</p>
     <div class="hero-btns">
-      <button class="btn btn-primary btn-lg" id="h-start">Start Free Trial</button>
+      <button class="btn btn-blue btn-lg" id="h-start">Start Free Trial</button>
       <button class="btn btn-outline btn-lg" id="h-in">Sign In</button>
     </div>
   </div>
 
-  <!-- CANDIDATE JOIN SECTION -->
-  <div style="padding:0 28px;">
+  <!-- CANDIDATE JOIN -->
+  <div class="join-section-wrap">
     <div class="join-section">
       <h2>Joining an Interview?</h2>
       <p>Enter the session code your interviewer sent you to join your interview session.</p>
       <div class="join-code-row">
         <input type="text" id="join-code" class="join-code-input" placeholder="e.g. ABC-123" maxlength="7"
           oninput="formatCode(this)" onkeydown="if(event.key==='Enter')joinSession()">
-        <button class="btn btn-primary" onclick="joinSession()" style="padding:12px 20px;font-size:14px;font-weight:600;">Join</button>
+        <button class="btn btn-blue" onclick="joinSession()" style="padding:13px 22px;font-size:14px;font-weight:700;border-radius:var(--rs)">Join</button>
       </div>
       <div id="join-err" style="font-size:12px;color:var(--red);margin-top:8px;display:none"></div>
-
       <button class="toggle-device-btn" onclick="toggleJoinDevices()">Settings (camera / mic / speaker)</button>
-
       <div class="join-device-panel" id="join-device-panel">
         <div class="join-device-label">Device Settings</div>
-        <div class="join-device-row">
-          <div class="join-device-name">Camera</div>
-          <select id="jd-camera" class="join-device-select" onchange="startJoinPreview()"></select>
-        </div>
-        <div class="join-device-row">
-          <div class="join-device-name">Microphone</div>
-          <select id="jd-mic" class="join-device-select" onchange="startJoinPreview()"></select>
-        </div>
-        <div class="join-device-row">
-          <div class="join-device-name">Speaker</div>
-          <select id="jd-speaker" class="join-device-select"></select>
-        </div>
-        <div class="preview-box" id="join-preview-box" style="display:none">
-          <video id="join-preview-vid" autoplay playsinline muted></video>
-        </div>
-        <div id="join-device-status" style="font-size:11px;color:var(--text3);margin-top:8px;"></div>
+        <div class="join-device-row"><div class="join-device-name">Camera</div><select id="jd-camera" class="join-device-select" onchange="startJoinPreview()"></select></div>
+        <div class="join-device-row"><div class="join-device-name">Microphone</div><select id="jd-mic" class="join-device-select" onchange="startJoinPreview()"></select></div>
+        <div class="join-device-row"><div class="join-device-name">Speaker</div><select id="jd-speaker" class="join-device-select"></select></div>
+        <div class="preview-box" id="join-preview-box" style="display:none"><video id="join-preview-vid" autoplay playsinline muted></video></div>
+        <div id="join-device-status" style="font-size:11px;color:var(--text4);margin-top:8px"></div>
       </div>
     </div>
   </div>
 
+  <!-- FEATURES -->
   <div class="features-section">
     <div class="section-label">Everything you need</div>
     <h2 class="section-title">Built for serious hiring teams</h2>
     <div class="features-grid">
-      <div class="fcard"><div class="fcard-icon">&#128249;</div><h3>Live Video Proctoring</h3><p>WebRTC video - no plugins, no downloads. Works in any browser.</p></div>
-      <div class="fcard"><div class="fcard-icon">&#127919;</div><h3>Real-Time Trust Score</h3><p>AI scoring flags suspicious behavior the moment it happens.</p></div>
-      <div class="fcard"><div class="fcard-icon">&#128250;</div><h3>Screen Share Detection</h3><p>Detect multiple monitors and unauthorized screen sharing instantly.</p></div>
-      <div class="fcard"><div class="fcard-icon">&#127970;</div><h3>Team Management</h3><p>Company codes let your whole team access shared sessions.</p></div>
-      <div class="fcard"><div class="fcard-icon">&#128190;</div><h3>Session Recording</h3><p>Record, compress, and share interviews with a single link.</p></div>
-      <div class="fcard"><div class="fcard-icon">&#9889;</div><h3>Instant Flags</h3><p>Tab switches, copy-paste, DevTools - all caught and logged.</p></div>
+      <div class="fcard"><div class="fcard-icon">Video</div><h3>Live Video Proctoring</h3><p>WebRTC video - no plugins, no downloads. Works in any browser on any device.</p></div>
+      <div class="fcard"><div class="fcard-icon">Trust</div><h3>Real-Time Trust Score</h3><p>AI scoring flags suspicious behavior the moment it happens, with calibrated penalties.</p></div>
+      <div class="fcard"><div class="fcard-icon">Screen</div><h3>Tab & Screen Detection</h3><p>30-second lockouts for tab switches. Multiple display detection. Full enforcement.</p></div>
+      <div class="fcard"><div class="fcard-icon">Team</div><h3>Team Management</h3><p>Company codes let your whole team share sessions, recordings, and job opening folders.</p></div>
+      <div class="fcard"><div class="fcard-icon">Rec</div><h3>Session Recording</h3><p>Dual-participant recording with audio mixing. Share or download with a single link.</p></div>
+      <div class="fcard"><div class="fcard-icon">Flag</div><h3>Instant Flags</h3><p>Tab switches, copy-paste, DevTools, gaze tracking - all caught and logged in real time.</p></div>
     </div>
   </div>
 </main>
@@ -115,17 +106,14 @@
 <div id="ov-signin" style="display:none">
   <div class="modal-inner">
     <button class="modal-x" onclick="hideModal('ov-signin')">X</button>
-    <h2>Welcome back</h2>
-    <p class="modal-sub">Sign in to your company account.</p>
+    <h2>Welcome back</h2><p class="modal-sub">Sign in to your company account.</p>
     <label class="label">Company Code</label>
     <input type="text" id="si-code" class="input" placeholder="e.g. ACME42" style="font-family:monospace;font-size:16px;letter-spacing:3px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)">
-    <label class="label">Work Email</label>
-    <input type="email" id="si-email" class="input" placeholder="you@company.com">
-    <label class="label">Password</label>
-    <input type="password" id="si-pass" class="input" placeholder="Password" onkeydown="if(event.key==='Enter')doSignIn()">
+    <label class="label">Work Email</label><input type="email" id="si-email" class="input" placeholder="you@company.com">
+    <label class="label">Password</label><input type="password" id="si-pass" class="input" placeholder="Password" onkeydown="if(event.key==='Enter')doSignIn()">
     <div id="si-err" class="err" style="display:none"></div>
-    <button class="btn btn-primary btn-block" id="si-btn" onclick="doSignIn()">Sign In</button>
-    <p class="auth-switch">New? <a href="#" onclick="switchTo('ov-create');return false">Create company account</a> &bull; <a href="#" onclick="switchTo('ov-join');return false">Join your company</a></p>
+    <button class="btn btn-primary btn-block" id="si-btn" onclick="doSignIn()" style="margin-top:18px">Sign In</button>
+    <p class="auth-switch">New? <a href="#" onclick="switchTo('ov-create');return false">Create account</a> &bull; <a href="#" onclick="switchTo('ov-join');return false">Join company</a></p>
   </div>
 </div>
 
@@ -133,25 +121,20 @@
 <div id="ov-create" style="display:none">
   <div class="modal-inner">
     <button class="modal-x" onclick="hideModal('ov-create')">X</button>
-    <h2>Create Company Account</h2>
-    <p class="modal-sub">You will get a unique 6-character code to share with your team.</p>
+    <h2>Create Company Account</h2><p class="modal-sub">You will get a unique 6-character company code to share with your team.</p>
     <div id="cr-code-display" style="display:none" class="org-code-display">
       Your company code: <span class="org-code-val" id="cr-code-val"></span>
-      <div style="font-size:11px;color:var(--text2);margin-top:6px">Share this with your team so they can join.</div>
+      <div style="font-size:11px;color:var(--text4);margin-top:6px">Share this with your team so they can join.</div>
     </div>
     <div id="cr-form">
-      <label class="label">Company Name</label>
-      <input type="text" id="cr-org" class="input" placeholder="e.g. Acme Corp">
-      <label class="label">Your Full Name</label>
-      <input type="text" id="cr-name" class="input" placeholder="Your Name">
-      <label class="label">Work Email</label>
-      <input type="email" id="cr-email" class="input" placeholder="you@company.com">
-      <label class="label">Password</label>
-      <input type="password" id="cr-pass" class="input" placeholder="Min 6 characters">
+      <label class="label">Company Name</label><input type="text" id="cr-org" class="input" placeholder="e.g. Acme Corp">
+      <label class="label">Your Full Name</label><input type="text" id="cr-name" class="input" placeholder="Your Name">
+      <label class="label">Work Email</label><input type="email" id="cr-email" class="input" placeholder="you@company.com">
+      <label class="label">Password</label><input type="password" id="cr-pass" class="input" placeholder="Min 6 characters">
       <div id="cr-err" class="err" style="display:none"></div>
-      <button class="btn btn-primary btn-block" id="cr-btn" onclick="doCreate()">Create Account</button>
+      <button class="btn btn-primary btn-block" id="cr-btn" onclick="doCreate()" style="margin-top:18px">Create Account</button>
     </div>
-    <p class="auth-switch" id="cr-switch">Already have a code? <a href="#" onclick="switchTo('ov-join');return false">Join your company</a></p>
+    <p class="auth-switch" id="cr-switch">Already have a code? <a href="#" onclick="switchTo('ov-join');return false">Join company</a></p>
   </div>
 </div>
 
@@ -159,18 +142,14 @@
 <div id="ov-join" style="display:none">
   <div class="modal-inner">
     <button class="modal-x" onclick="hideModal('ov-join')">X</button>
-    <h2>Join Your Company</h2>
-    <p class="modal-sub">Ask your admin for your 6-character company code, then create your personal account.</p>
+    <h2>Join Your Company</h2><p class="modal-sub">Ask your admin for your 6-character company code.</p>
     <label class="label">Company Code</label>
     <input type="text" id="jo-code" class="input" placeholder="e.g. ACME42" style="font-family:monospace;font-size:16px;letter-spacing:3px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)">
-    <label class="label">Your Full Name</label>
-    <input type="text" id="jo-name" class="input" placeholder="Your Name">
-    <label class="label">Work Email</label>
-    <input type="email" id="jo-email" class="input" placeholder="you@company.com">
-    <label class="label">Password</label>
-    <input type="password" id="jo-pass" class="input" placeholder="Min 6 characters">
+    <label class="label">Your Full Name</label><input type="text" id="jo-name" class="input" placeholder="Your Name">
+    <label class="label">Work Email</label><input type="email" id="jo-email" class="input" placeholder="you@company.com">
+    <label class="label">Password</label><input type="password" id="jo-pass" class="input" placeholder="Min 6 characters">
     <div id="jo-err" class="err" style="display:none"></div>
-    <button class="btn btn-primary btn-block" id="jo-btn" onclick="doJoin()">Create Account and Join</button>
+    <button class="btn btn-primary btn-block" id="jo-btn" onclick="doJoin()" style="margin-top:18px">Create Account and Join</button>
     <p class="auth-switch">Already have an account? <a href="#" onclick="switchTo('ov-signin');return false">Sign in</a></p>
   </div>
 </div>
@@ -178,131 +157,82 @@
 <div id="toast-container"></div>
 <script src="/js/utils.js"></script>
 <script>
-// Ã¢Ã¢ NAV BUTTONS Ã¢Ã¢
-document.getElementById('n-in').onclick = function(){ showModal('ov-signin'); };
-document.getElementById('n-up').onclick = function(){ showModal('ov-create'); };
-document.getElementById('h-start').onclick = function(){ showModal('ov-create'); };
-document.getElementById('h-in').onclick = function(){ showModal('ov-signin'); };
-['ov-signin','ov-create','ov-join'].forEach(function(id){
-  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)hideModal(id);});
-});
+// ── BURGER MENU ──
+var drawerOpen = false;
+function openDrawer(){drawerOpen=true;var d=$('nav-drawer'),b=$('burger-btn');d.classList.add('open');b.classList.add('open');b.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';}
+function closeDrawer(){drawerOpen=false;var d=$('nav-drawer'),b=$('burger-btn');d.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');document.body.style.overflow='';}
+$('burger-btn').onclick=function(){drawerOpen?closeDrawer():openDrawer();};
+$('drawer-close').onclick=closeDrawer;
+$('drawer-bg').onclick=closeDrawer;
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&drawerOpen)closeDrawer();});
+
+// ── NAV BUTTONS ──
+document.getElementById('n-in').onclick=function(){showModal('ov-signin');};
+document.getElementById('n-up').onclick=function(){showModal('ov-create');};
+document.getElementById('h-start').onclick=function(){showModal('ov-create');};
+document.getElementById('h-in').onclick=function(){showModal('ov-signin');};
+['ov-signin','ov-create','ov-join'].forEach(function(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===this)hideModal(id);});});
 function switchTo(id){['ov-signin','ov-create','ov-join'].forEach(function(x){hideModal(x);});showModal(id);}
 
-// Ã¢Ã¢ CANDIDATE JOIN Ã¢Ã¢
-function formatCode(input){
-  var v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(v.length>3 && v.indexOf('-')===-1) v = v.slice(0,3)+'-'+v.slice(3);
-  input.value = v.slice(0,7);
-}
-
+// ── CANDIDATE JOIN ──
+function formatCode(input){var v=input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(v.length>3&&v.indexOf('-')===-1)v=v.slice(0,3)+'-'+v.slice(3);input.value=v.slice(0,7);}
 async function joinSession(){
-  var code = document.getElementById('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-  var err = document.getElementById('join-err');
-  err.style.display='none';
-  if(code.length < 6){ err.textContent='Enter a valid 6-character session code'; err.style.display='block'; return; }
-
-  // Store device preferences in sessionStorage for candidate page
-  var cam = document.getElementById('jd-camera').value;
-  var mic = document.getElementById('jd-mic').value;
-  var spk = document.getElementById('jd-speaker').value;
-  if(cam) sessionStorage.setItem('prefCamId', cam);
-  if(mic) sessionStorage.setItem('prefMicId', mic);
-  if(spk) sessionStorage.setItem('prefSpkId', spk);
-
-  // Validate session code exists
+  var code=document.getElementById('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var err=document.getElementById('join-err');err.style.display='none';
+  if(code.length<6){err.textContent='Enter a valid 6-character session code';err.style.display='block';return;}
+  var cam=document.getElementById('jd-camera').value,mic=document.getElementById('jd-mic').value,spk=document.getElementById('jd-speaker').value;
+  if(cam)sessionStorage.setItem('prefCamId',cam);if(mic)sessionStorage.setItem('prefMicId',mic);if(spk)sessionStorage.setItem('prefSpkId',spk);
   try{
-    var res = await fetch('/api/join/'+code.slice(0,3)+'-'+code.slice(3));
-    var data = await res.json();
-    if(data.error==='SESSION_ENDED'){ err.textContent='This session has already ended.'; err.style.display='block'; return; }
-    if(data.error){ err.textContent='Session not found. Check your code and try again.'; err.style.display='block'; return; }
-    window.location.href = '/join/'+code.slice(0,3)+'-'+code.slice(3);
-  }catch(e){
-    err.textContent='Could not connect. Please try again.'; err.style.display='block';
-  }
+    var res=await fetch('/api/join/'+code.slice(0,3)+'-'+code.slice(3));
+    var data=await res.json();
+    if(data.error==='SESSION_ENDED'){err.textContent='This session has already ended.';err.style.display='block';return;}
+    if(data.error){err.textContent='Session not found. Check your code and try again.';err.style.display='block';return;}
+    window.location.href='/join/'+code.slice(0,3)+'-'+code.slice(3);
+  }catch(e){err.textContent='Could not connect. Please try again.';err.style.display='block';}
 }
 
-// Ã¢Ã¢ DEVICE SETTINGS ON JOIN SECTION Ã¢Ã¢
-var joinPreviewStream = null;
-var joinDevicesLoaded = false;
-
-async function toggleJoinDevices(){
-  var panel = document.getElementById('join-device-panel');
-  if(panel.style.display==='block'){ panel.style.display='none'; return; }
-  panel.style.display='block';
-  if(!joinDevicesLoaded){ await loadJoinDevices(); joinDevicesLoaded=true; }
-}
-
+// ── DEVICE SETTINGS ──
+var joinPreviewStream=null,joinDevicesLoaded=false;
+async function toggleJoinDevices(){var p=document.getElementById('join-device-panel');if(p.style.display==='block'){p.style.display='none';return;}p.style.display='block';if(!joinDevicesLoaded){await loadJoinDevices();joinDevicesLoaded=true;}}
 async function loadJoinDevices(){
-  var status = document.getElementById('join-device-status');
-  status.textContent = 'Requesting camera/mic permission...';
+  var status=document.getElementById('join-device-status');status.textContent='Requesting camera/mic permission...';
   try{
-    var tmp = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-    tmp.getTracks().forEach(function(t){t.stop();});
-    var devs = await navigator.mediaDevices.enumerateDevices();
-    function fill(selId,list,label){
-      var sel=document.getElementById(selId); sel.innerHTML='';
-      // Try to restore saved preference
-      var pref = sessionStorage.getItem(selId==='jd-camera'?'prefCamId':selId==='jd-mic'?'prefMicId':'prefSpkId');
-      list.forEach(function(d,i){
-        var o=document.createElement('option'); o.value=d.deviceId;
-        o.textContent=d.label||(label+' '+(i+1));
-        if(pref&&d.deviceId===pref) o.selected=true;
-        sel.appendChild(o);
-      });
-      if(!list.length){var o=document.createElement('option');o.textContent='No '+label+' found';sel.appendChild(o);}
-    }
+    var tmp=await navigator.mediaDevices.getUserMedia({video:true,audio:true});tmp.getTracks().forEach(function(t){t.stop();});
+    var devs=await navigator.mediaDevices.enumerateDevices();
+    function fill(selId,list,label){var sel=document.getElementById(selId);sel.innerHTML='';var pref=sessionStorage.getItem(selId==='jd-camera'?'prefCamId':selId==='jd-mic'?'prefMicId':'prefSpkId');list.forEach(function(d,i){var o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||(label+' '+(i+1));if(pref&&d.deviceId===pref)o.selected=true;sel.appendChild(o);});if(!list.length){var o=document.createElement('option');o.textContent='No '+label+' found';sel.appendChild(o);}}
     fill('jd-camera',devs.filter(function(d){return d.kind==='videoinput';}),'Camera');
     fill('jd-mic',devs.filter(function(d){return d.kind==='audioinput';}),'Microphone');
     fill('jd-speaker',devs.filter(function(d){return d.kind==='audiooutput';}),'Speaker');
-    status.textContent='';
-    await startJoinPreview();
-  }catch(e){
-    status.textContent='Could not access camera/mic: '+e.message;
-  }
+    status.textContent='';await startJoinPreview();
+  }catch(e){status.textContent='Could not access devices: '+e.message;}
 }
-
 async function startJoinPreview(){
-  if(joinPreviewStream){ joinPreviewStream.getTracks().forEach(function(t){t.stop();}); joinPreviewStream=null; }
-  var cId=document.getElementById('jd-camera').value;
-  var mId=document.getElementById('jd-mic').value;
-  try{
-    joinPreviewStream=await navigator.mediaDevices.getUserMedia({
-      video:cId?{deviceId:{exact:cId}}:{facingMode:'user'},
-      audio:mId?{deviceId:{exact:mId}}:true
-    });
-    document.getElementById('join-preview-vid').srcObject=joinPreviewStream;
-    document.getElementById('join-preview-box').style.display='block';
-  }catch(e){ document.getElementById('join-device-status').textContent='Preview failed: '+e.message; }
+  if(joinPreviewStream){joinPreviewStream.getTracks().forEach(function(t){t.stop();});joinPreviewStream=null;}
+  var cId=document.getElementById('jd-camera').value,mId=document.getElementById('jd-mic').value;
+  try{joinPreviewStream=await navigator.mediaDevices.getUserMedia({video:cId?{deviceId:{exact:cId}}:{facingMode:'user'},audio:mId?{deviceId:{exact:mId}}:true});document.getElementById('join-preview-vid').srcObject=joinPreviewStream;document.getElementById('join-preview-box').style.display='block';}catch(e){document.getElementById('join-device-status').textContent='Preview failed: '+e.message;}
 }
 
-// Ã¢Ã¢ AUTH Ã¢Ã¢
-async function doSignIn(){
-  var btn=$('si-btn'),err=$('si-err'); btn.disabled=true; btn.textContent='Signing in...'; err.style.display='none';
-  var res=await post('/api/auth/login',{orgCode:$('si-code').value.trim(),email:$('si-email').value.trim(),password:$('si-pass').value});
-  if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Sign In';return;}
-  window.location.href='/dashboard';
-}
-async function doCreate(){
-  var btn=$('cr-btn'),err=$('cr-err'); btn.disabled=true; btn.textContent='Creating...'; err.style.display='none';
-  var res=await post('/api/auth/org/create',{orgName:$('cr-org').value.trim(),name:$('cr-name').value.trim(),email:$('cr-email').value.trim(),password:$('cr-pass').value});
-  if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account';return;}
-  $('cr-code-val').textContent=res.orgCode; $('cr-code-display').style.display='block';
-  $('cr-form').style.display='none'; $('cr-switch').innerHTML='<a href="/dashboard">Go to Dashboard</a>';
-}
-async function doJoin(){
-  var btn=$('jo-btn'),err=$('jo-err'); btn.disabled=true; btn.textContent='Joining...'; err.style.display='none';
-  var res=await post('/api/auth/org/join',{orgCode:$('jo-code').value.trim(),name:$('jo-name').value.trim(),email:$('jo-email').value.trim(),password:$('jo-pass').value});
-  if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account and Join';return;}
-  window.location.href='/dashboard';
-}
-async function doLogout(){ await post('/api/auth/logout'); window.location.reload(); }
+// ── AUTH ──
+async function doSignIn(){var btn=$('si-btn'),err=$('si-err');btn.disabled=true;btn.textContent='Signing in...';err.style.display='none';var res=await post('/api/auth/login',{orgCode:$('si-code').value.trim(),email:$('si-email').value.trim(),password:$('si-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Sign In';return;}window.location.href='/dashboard';}
+async function doCreate(){var btn=$('cr-btn'),err=$('cr-err');btn.disabled=true;btn.textContent='Creating...';err.style.display='none';var res=await post('/api/auth/org/create',{orgName:$('cr-org').value.trim(),name:$('cr-name').value.trim(),email:$('cr-email').value.trim(),password:$('cr-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account';return;}$('cr-code-val').textContent=res.orgCode;$('cr-code-display').style.display='block';$('cr-form').style.display='none';$('cr-switch').innerHTML='<a href="/dashboard">Go to Dashboard</a>';}
+async function doJoin(){var btn=$('jo-btn'),err=$('jo-err');btn.disabled=true;btn.textContent='Joining...';err.style.display='none';var res=await post('/api/auth/org/join',{orgCode:$('jo-code').value.trim(),name:$('jo-name').value.trim(),email:$('jo-email').value.trim(),password:$('jo-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account and Join';return;}window.location.href='/dashboard';}
+async function doLogout(){await post('/api/auth/logout');window.location.reload();}
 
 async function init(){
   var me=await get('/api/auth/me');
   if(me&&me.loggedIn){
-    $('n-name').textContent=me.name; $('n-name').style.display='';
-    $('n-dash').style.display=''; $('n-out').style.display='';
-    $('n-in').style.display='none'; $('n-up').style.display='none';
+    $('n-name').textContent=me.name;$('n-name').style.display='';
+    $('n-dash').style.display='';
+    document.getElementById('n-in').style.display='none';
+    // Show logged-in drawer state
+    document.getElementById('dl-dashboard').style.display='flex';
+    document.getElementById('dl-recordings').style.display='flex';
+    document.getElementById('dl-signin').style.display='none';
+    document.getElementById('dl-signup').style.display='none';
+    document.getElementById('dl-join-org').style.display='none';
+    var du=$('drawer-user');du.style.display='block';
+    $('drawer-user-name').textContent=me.name;
+    $('drawer-user-org').textContent=me.orgName||me.orgCode||'';
   }
 }
 init();
