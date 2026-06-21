@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard - Secure Interview</title>
+<title>Dashboard - InterviewMyCandidate</title>
 <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
 <div class="topbar">
-  <div class="topbar-logo">SecureInterview</div>
+  <div class="topbar-logo">Interview<span style="color:var(--blue-light)">MyCandidate</span></div>
   <div class="topbar-right">
     <a href="/recordings" class="btn btn-outline btn-sm">Recordings</a>
     <div class="topbar-sep"></div>
@@ -189,7 +189,7 @@ async function loadSessions(){
   var avgScore = null;
   if(endedSessions.length > 0){
     var total = endedSessions.reduce(function(acc, s){
-      // trust_score is an integer from DB ÃÃÃ use it as-is, only default if genuinely null/undefined
+      // trust_score is an integer from DB ÃÃÃ use it as-is, only default if genuinely null/undefined
       var score = (s.trust_score !== null && s.trust_score !== undefined) ? s.trust_score : 100;
       return acc + score;
     }, 0);
