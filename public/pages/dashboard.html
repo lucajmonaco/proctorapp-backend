@@ -4,7 +4,35 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard - InterviewMyCandidate</title>
 <link rel="stylesheet" href="/css/main.css">
-</head>
+
+<style>
+.company-panel{max-width:700px;margin:0 auto;}
+.company-code-card{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:var(--r);padding:22px 26px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.company-code-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.company-code-value{font-size:28px;font-weight:900;color:var(--white);letter-spacing:6px;font-family:monospace;}
+.company-code-name{font-size:13px;color:rgba(255,255,255,.6);margin-top:4px;}
+.company-code-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.member-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+.member-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px;transition:all var(--transition);}
+.member-card:hover{border-color:var(--border2);box-shadow:var(--shadow-sm);}
+.member-avatar{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--navy-mid));color:var(--white);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;}
+.member-avatar.recruiter{background:linear-gradient(135deg,var(--blue-mid),var(--blue));}
+.member-info{flex:1;min-width:0;}
+.member-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:1px;}
+.member-email{font-size:12px;color:var(--text4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.member-meta{font-size:11px;color:var(--text4);margin-top:1px;}
+.member-badge-admin{background:rgba(124,58,237,.12);color:var(--purple);border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;flex-shrink:0;}
+.member-badge-recruiter{background:var(--sky);color:var(--blue);border:1px solid var(--sky-deep);border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;flex-shrink:0;}
+.member-you{font-size:10px;color:var(--text4);font-style:italic;margin-left:4px;}
+.member-actions{display:flex;gap:6px;flex-shrink:0;}
+.company-section-title{font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.company-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.invite-box{background:var(--sky);border:1.5px solid var(--sky-deep);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;}
+.invite-box-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.invite-box-sub{font-size:12px;color:var(--text4);margin-bottom:12px;line-height:1.5;}
+.invite-link-row{display:flex;gap:8px;align-items:center;}
+.invite-link-input{flex:1;padding:8px 12px;background:var(--white);border:1.5px solid var(--border2);border-radius:var(--rs);font-size:12px;color:var(--navy);font-family:monospace;outline:none;}
+</style></head>
 <body>
 <nav class="nav">
   <a href="/" class="nav-logo" aria-label="Home">
@@ -66,11 +94,11 @@
   </div>
 
   <div id="tab-sessions" class="tab-panel active"><div id="sessions-list"></div></div>
-  <div id="tab-team" class="tab-panel">
-    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
-      <button class="btn btn-primary" id="create-team-btn">+ Create Team</button>
-      <button class="btn btn-outline" id="join-team-btn">Join with Code</button>
-    </div>
+  <div class="tab-panel" id="tab-team">
+  <div class="company-panel" id="company-panel">
+    <div style="text-align:center;padding:32px;color:var(--text4)">Loading company info...</div>
+  </div>
+</div>
     <div id="teams-list"></div>
   </div>
 </div>
@@ -286,6 +314,126 @@ async function joinTeam(){
   toast('Joined '+res.teamName+'!', 'green');
   hideModal('ov-join-team'); $('jt-code').value = '';
   await loadTeams();
+}
+
+
+
+// ── COMPANY / TEAM TAB ──
+var currentMe = null;
+
+async function loadCompanyPanel() {
+  var panel = document.getElementById('company-panel');
+  if(!panel) return;
+
+  // Fetch org info and members in parallel
+  var [orgRes, membersRes] = await Promise.all([
+    fetch('/api/org/info').then(function(r){return r.json();}).catch(function(){return {};}),
+    fetch('/api/org/members').then(function(r){return r.json();}).catch(function(){return [];})
+  ]);
+
+  var orgCode = orgRes.code || currentMe.orgCode || '';
+  var orgName = orgRes.name || currentMe.orgName || '';
+  var isAdmin = currentMe && currentMe.role === 'admin';
+  var members = Array.isArray(membersRes) ? membersRes : [];
+  var inviteUrl = window.location.origin + '/join-company/' + orgCode;
+
+  var html = '';
+
+  // ─ Company code card ─
+  html += '<div class="company-code-card">';
+  html += '<div>';
+  html += '<div class="company-code-label">Company Invite Code</div>';
+  html += '<div class="company-code-value">' + orgCode + '</div>';
+  html += '<div class="company-code-name">' + orgName + '</div>';
+  html += '</div>';
+  html += '<div class="company-code-actions">';
+  html += '<button class="btn btn-blue btn-sm" onclick="copyOrgCode('' + orgCode + '')">&#128203; Copy Code</button>';
+  html += '<button class="btn btn-outline btn-sm" onclick="copyInviteLink('' + orgCode + '')">&#128279; Copy Invite Link</button>';
+  html += '</div>';
+  html += '</div>';
+
+  // ─ Invite box (admin only) ─
+  if(isAdmin) {
+    html += '<div class="invite-box">';
+    html += '<div class="invite-box-title">&#128231; Invite New Members</div>';
+    html += '<div class="invite-box-sub">Share this invite link or company code with new team members. They can create an account and join instantly.</div>';
+    html += '<div class="invite-link-row">';
+    html += '<input class="invite-link-input" id="invite-link-val" readonly value="' + inviteUrl + '">';
+    html += '<button class="btn btn-blue btn-sm" onclick="copyInviteLink('' + orgCode + '')">Copy</button>';
+    html += '</div>';
+    html += '</div>';
+  }
+
+  // ─ Members list ─
+  html += '<div class="company-section-title">Team Members <span style="color:var(--blue);font-size:12px;font-weight:700;background:var(--sky);padding:1px 8px;border-radius:99px;text-transform:none;letter-spacing:0">' + members.length + '</span></div>';
+  html += '<div class="member-list">';
+
+  members.forEach(function(m) {
+    var isYou = currentMe && m.id === currentMe.userId;
+    var initials = (m.name||'?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+    var isAdminMember = m.role === 'admin';
+    
+    html += '<div class="member-card" id="mcard-' + m.id + '">';
+    html += '<div class="member-avatar ' + (isAdminMember?'':'recruiter') + '">' + initials + '</div>';
+    html += '<div class="member-info">';
+    html += '<div class="member-name">' + (m.name||'Unknown') + (isYou?'<span class="member-you">(you)</span>':'') + '</div>';
+    html += '<div class="member-email">' + (m.email||'') + '</div>';
+    html += '<div class="member-meta">Joined ' + new Date((m.created_at||0)*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + '</div>';
+    html += '</div>';
+    html += '<span class="' + (isAdminMember?'member-badge-admin':'member-badge-recruiter') + '">' + (isAdminMember?'&#128081; Admin':'&#128203; Recruiter') + '</span>';
+    
+    // Admin controls (don't show controls for yourself)
+    if(isAdmin && !isYou) {
+      html += '<div class="member-actions">';
+      if(isAdminMember) {
+        html += '<button class="btn btn-outline btn-sm" onclick="changeMemberRole('' + m.id + '','recruiter')" title="Demote to Recruiter" style="font-size:11px">Make Recruiter</button>';
+      } else {
+        html += '<button class="btn btn-outline btn-sm" onclick="changeMemberRole('' + m.id + '','admin')" title="Promote to Admin" style="font-size:11px">Make Admin</button>';
+      }
+      html += '<button class="btn btn-danger btn-sm" onclick="removeMember('' + m.id + '','' + (m.name||'').replace(/'/g,'') + '')" style="font-size:11px">&#128465;</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  if(members.length === 0) {
+    html += '<div style="text-align:center;padding:32px;color:var(--text4);font-size:13px;">No members found.</div>';
+  }
+  html += '</div>';
+
+  // ─ Sessions by member (admin view) ─
+  if(isAdmin) {
+    html += '<div class="company-section-title">Sessions by Member</div>';
+    html += '<div style="font-size:13px;color:var(--text4);padding:16px;background:var(--off);border-radius:var(--r);border:1.5px solid var(--border);text-align:center;">&#128203; Click any session on the Sessions tab to view details. All sessions from all team members are visible to admins.</div>';
+  }
+
+  panel.innerHTML = html;
+}
+
+function copyOrgCode(code) {
+  navigator.clipboard.writeText(code).then(function(){toast('Company code copied!','green');});
+}
+function copyInviteLink(code) {
+  var url = window.location.origin + '/join-company/' + code;
+  navigator.clipboard.writeText(url).then(function(){toast('Invite link copied!','green');});
+}
+
+async function changeMemberRole(userId, newRole) {
+  var label = newRole === 'admin' ? 'promote to Admin' : 'demote to Recruiter';
+  if(!confirm('Are you sure you want to ' + label + ' this member?')) return;
+  var res = await fetch('/api/org/members/' + userId + '/role', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({role:newRole})
+  }).then(function(r){return r.json();});
+  if(res.ok) { toast('Role updated','green'); loadCompanyPanel(); }
+  else toast(res.error||'Failed','red');
+}
+
+async function removeMember(userId, name) {
+  if(!confirm('Remove ' + name + ' from the company? They will lose access to all sessions and recordings.')) return;
+  var res = await fetch('/api/org/members/' + userId, {method:'DELETE'}).then(function(r){return r.json();});
+  if(res.ok) { toast(name + ' removed','green'); loadCompanyPanel(); }
+  else toast(res.error||'Failed','red');
 }
 
 async function doLogout(){ await post('/api/auth/logout'); window.location.href = '/'; }
