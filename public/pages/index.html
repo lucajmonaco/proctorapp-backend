@@ -40,9 +40,9 @@
       <a href="/dashboard" class="nav-drawer-link" id="dl-dashboard" style="display:none"><span class="nav-drawer-link-icon">&#128203;</span>Dashboard</a>
       <a href="/recordings" class="nav-drawer-link" id="dl-recordings" style="display:none"><span class="nav-drawer-link-icon">&#127902;</span>Recordings Library</a>
       <div class="nav-drawer-sep"></div>
-      <a href="#" class="nav-drawer-link" id="dl-signin" data-modal="ov-signin" onclick="openAuthModal(this);return false"><span class="nav-drawer-link-icon">&#128275;</span>Sign In</a>
-      <a href="#" class="nav-drawer-link" id="dl-signup" data-modal="ov-create" onclick="openAuthModal(this);return false"><span class="nav-drawer-link-icon">&#10133;</span>Create Account</a>
-      <a href="#" class="nav-drawer-link" id="dl-join-org" data-modal="ov-join" onclick="openAuthModal(this);return false"><span class="nav-drawer-link-icon">&#127970;</span>Join Company</a>
+      <a href="#" class="nav-drawer-link" id="dl-signin" data-modal="ov-signin"><span class="nav-drawer-link-icon">&#128275;</span>Sign In</a>
+      <a href="#" class="nav-drawer-link" id="dl-signup" data-modal="ov-create"><span class="nav-drawer-link-icon">&#10133;</span>Create Account</a>
+      <a href="#" class="nav-drawer-link" id="dl-join-org" data-modal="ov-join"><span class="nav-drawer-link-icon">&#127970;</span>Join Company</a>
     </nav>
     <div class="nav-drawer-user" id="drawer-user" style="display:none">
       <div class="nav-drawer-user-name" id="drawer-user-name"></div>
@@ -70,7 +70,7 @@
       <h2>Joining an Interview?</h2>
       <p>Enter the session code your interviewer sent you to join your interview session.</p>
       <div class="join-code-row">
-        <input type="text" id="join-code" class="join-code-input" placeholder="ABC-123" autocomplete="off" maxlength="7"
+        <input type="text" id="join-code" name="join_code_1782069524926" class="join-code-input" placeholder="ABC-123" autocomplete="new-password" onfocus="this.value=''" maxlength="7"
           oninput="formatCode(this)" onkeydown="if(event.key==='Enter')joinSession()">
         <button class="btn btn-blue" onclick="joinSession()" style="padding:13px 22px;font-size:14px;font-weight:700;border-radius:var(--rs)">Join</button>
       </div>
@@ -157,99 +157,265 @@
 <div id="toast-container"></div>
 <script src="/js/utils.js"></script>
 <script>
-//  BURGER MENU 
+//  INDEX.HTML CLEAN SCRIPT 
+
+// openAuthModal: called by drawer links and nav buttons
+function openAuthModal(modalId){
+  closeDrawer();
+  showModal(modalId);
+}
+
+//  BURGER MENU  (wired immediately, NOT in init)
 var drawerOpen = false;
-function openDrawer(){drawerOpen=true;var d=$('nav-drawer'),b=$('burger-btn');d.classList.add('open');b.classList.add('open');b.setAttribute('aria-expanded','true');document.body.style.overflow='hidden';}
-function closeDrawer(){drawerOpen=false;var d=$('nav-drawer'),b=$('burger-btn');d.classList.remove('open');b.classList.remove('open');b.setAttribute('aria-expanded','false');document.body.style.overflow='';}
-$('burger-btn').onclick=function(){drawerOpen?closeDrawer():openDrawer();};
-$('drawer-close').onclick=closeDrawer;
-$('drawer-bg').onclick=closeDrawer;
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&drawerOpen)closeDrawer();});
+function openDrawer(){
+  drawerOpen = true;
+  var d = document.getElementById('nav-drawer');
+  var b = document.getElementById('burger-btn');
+  if(d) d.classList.add('open');
+  if(b){ b.classList.add('open'); b.setAttribute('aria-expanded','true'); }
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer(){
+  drawerOpen = false;
+  var d = document.getElementById('nav-drawer');
+  var b = document.getElementById('burger-btn');
+  if(d) d.classList.remove('open');
+  if(b){ b.classList.remove('open'); b.setAttribute('aria-expanded','false'); }
+  document.body.style.overflow = '';
+}
+
+// Wire burger immediately (DOM is ready at this point since script is at bottom of body)
+(function(){
+  var btn = document.getElementById('burger-btn');
+  var bg = document.getElementById('drawer-bg');
+  var cl = document.getElementById('drawer-close');
+  if(btn) btn.addEventListener('click', function(){ drawerOpen ? closeDrawer() : openDrawer(); });
+  if(bg) bg.addEventListener('click', closeDrawer);
+  if(cl) cl.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && drawerOpen) closeDrawer(); });
+
+  // Wire drawer nav links via data-modal attribute (no inline onclick)
+  document.querySelectorAll('.nav-drawer-link[data-modal]').forEach(function(link){
+    link.addEventListener('click', function(e){
+      e.preventDefault();
+      openAuthModal(link.getAttribute('data-modal'));
+    });
+  });
+})();
 
 //  NAV BUTTONS 
-document.getElementById('n-in').onclick=function(){showModal("ov-signin");};
-document.getElementById('n-up').onclick=function(){showModal("ov-create");};
-document.getElementById('h-start').onclick=function(){showModal("ov-create");};
-document.getElementById('h-in').onclick=function(){showModal("ov-signin");};
-['ov-signin','ov-create','ov-join'].forEach(function(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===this)hideModal(id);});});
-function switchTo(id){['ov-signin','ov-create','ov-join'].forEach(function(x){hideModal(x);});showModal(id);}
+document.getElementById('n-in').addEventListener('click', function(){ showModal('ov-signin'); });
+document.getElementById('n-up').addEventListener('click', function(){ showModal('ov-create'); });
+document.getElementById('h-start').addEventListener('click', function(){ showModal('ov-create'); });
+document.getElementById('h-in').addEventListener('click', function(){ showModal('ov-signin'); });
 
-//  CANDIDATE JOIN 
-function formatCode(input){var v=input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(v.length>3&&v.indexOf('-')===-1)v=v.slice(0,3)+'-'+v.slice(3);input.value=v.slice(0,7);}
+// Close modals on backdrop click
+['ov-signin','ov-create','ov-join'].forEach(function(id){
+  var el = document.getElementById(id);
+  if(el) el.addEventListener('click', function(e){ if(e.target === el) hideModal(id); });
+});
+
+function switchTo(id){
+  ['ov-signin','ov-create','ov-join'].forEach(function(x){ hideModal(x); });
+  showModal(id);
+}
+
+//  JOIN CODE 
+function formatCode(input){
+  var v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(v.length > 3 && v.indexOf('-') === -1) v = v.slice(0,3) + '-' + v.slice(3);
+  input.value = v.slice(0,7);
+}
+
 async function joinSession(){
-  var code=document.getElementById('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-  var err=document.getElementById('join-err');err.style.display='none';
-  if(code.length<6){err.textContent='Enter a valid 6-character session code';err.style.display='block';return;}
-  var cam=document.getElementById('jd-camera').value,mic=document.getElementById('jd-mic').value,spk=document.getElementById('jd-speaker').value;
-  if(cam)sessionStorage.setItem('prefCamId',cam);if(mic)sessionStorage.setItem('prefMicId',mic);if(spk)sessionStorage.setItem('prefSpkId',spk);
+  var codeEl = document.getElementById('join-code');
+  var code = (codeEl ? codeEl.value : '').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var err = document.getElementById('join-err');
+  if(err) err.style.display = 'none';
+  if(code.length < 6){
+    if(err){ err.textContent = 'Enter a valid 6-character session code'; err.style.display = 'block'; }
+    return;
+  }
+  var formatted = code.slice(0,3) + '-' + code.slice(3);
+  var cam = document.getElementById('jd-camera') ? document.getElementById('jd-camera').value : '';
+  var mic = document.getElementById('jd-mic') ? document.getElementById('jd-mic').value : '';
+  var spk = document.getElementById('jd-speaker') ? document.getElementById('jd-speaker').value : '';
+  if(cam) sessionStorage.setItem('prefCamId', cam);
+  if(mic) sessionStorage.setItem('prefMicId', mic);
+  if(spk) sessionStorage.setItem('prefSpkId', spk);
   try{
-    var res=await fetch('/api/join/'+code.slice(0,3)+'-'+code.slice(3));
-    var data=await res.json();
-    if(data.error==='SESSION_ENDED'){err.textContent='This session has already ended.';err.style.display='block';return;}
-    if(data.error){err.textContent='Session not found. Check your code and try again.';err.style.display='block';return;}
-    window.location.href='/join/'+code.slice(0,3)+'-'+code.slice(3);
-  }catch(e){err.textContent='Could not connect. Please try again.';err.style.display='block';}
+    var res = await fetch('/api/join/' + formatted);
+    var data = await res.json();
+    if(data.error === 'SESSION_ENDED'){
+      if(err){ err.textContent = 'This session has already ended.'; err.style.display = 'block'; }
+      return;
+    }
+    if(data.error === 'SESSION_SCHEDULED'){
+      if(err){ err.textContent = data.message || 'Session not open yet.'; err.style.display = 'block'; }
+      return;
+    }
+    if(data.error){
+      if(err){ err.textContent = 'Session not found. Check your code and try again.'; err.style.display = 'block'; }
+      return;
+    }
+    window.location.href = '/join/' + formatted;
+  }catch(e){
+    if(err){ err.textContent = 'Could not connect. Please try again.'; err.style.display = 'block'; }
+  }
 }
 
 //  DEVICE SETTINGS 
-var joinPreviewStream=null,joinDevicesLoaded=false;
-async function toggleJoinDevices(){var p=document.getElementById('join-device-panel');if(p.style.display==='block'){p.style.display='none';return;}p.style.display='block';if(!joinDevicesLoaded){await loadJoinDevices();joinDevicesLoaded=true;}}
+var joinPreviewStream = null;
+var joinDevicesLoaded = false;
+function toggleJoinDevices(){
+  var p = document.getElementById('join-device-panel');
+  if(!p) return;
+  if(p.style.display === 'block'){ p.style.display = 'none'; return; }
+  p.style.display = 'block';
+  if(!joinDevicesLoaded){ loadJoinDevices(); joinDevicesLoaded = true; }
+}
 async function loadJoinDevices(){
-  var status=document.getElementById('join-device-status');status.textContent='Requesting camera/mic permission...';
+  var status = document.getElementById('join-device-status');
+  if(status) status.textContent = 'Requesting camera/mic permission...';
   try{
-    var tmp=await navigator.mediaDevices.getUserMedia({video:true,audio:true});tmp.getTracks().forEach(function(t){t.stop();});
-    var devs=await navigator.mediaDevices.enumerateDevices();
-    function fill(selId,list,label){var sel=document.getElementById(selId);sel.innerHTML='';var pref=sessionStorage.getItem(selId==='jd-camera'?'prefCamId':selId==='jd-mic'?'prefMicId':'prefSpkId');list.forEach(function(d,i){var o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||(label+' '+(i+1));if(pref&&d.deviceId===pref)o.selected=true;sel.appendChild(o);});if(!list.length){var o=document.createElement('option');o.textContent='No '+label+' found';sel.appendChild(o);}}
-    fill('jd-camera',devs.filter(function(d){return d.kind==='videoinput';}),'Camera');
-    fill('jd-mic',devs.filter(function(d){return d.kind==='audioinput';}),'Microphone');
-    fill('jd-speaker',devs.filter(function(d){return d.kind==='audiooutput';}),'Speaker');
-    status.textContent='';await startJoinPreview();
-  }catch(e){status.textContent='Could not access devices: '+e.message;}
+    var tmp = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    tmp.getTracks().forEach(function(t){ t.stop(); });
+    var devs = await navigator.mediaDevices.enumerateDevices();
+    function fill(selId,list,label){
+      var sel = document.getElementById(selId);
+      if(!sel) return;
+      sel.innerHTML = '';
+      var pref = sessionStorage.getItem(selId==='jd-camera'?'prefCamId':selId==='jd-mic'?'prefMicId':'prefSpkId');
+      list.forEach(function(d,i){
+        var o = document.createElement('option');
+        o.value = d.deviceId;
+        o.textContent = d.label || (label + ' ' + (i+1));
+        if(pref && d.deviceId === pref) o.selected = true;
+        sel.appendChild(o);
+      });
+      if(!list.length){
+        var o = document.createElement('option');
+        o.textContent = 'No ' + label + ' found';
+        sel.appendChild(o);
+      }
+    }
+    fill('jd-camera', devs.filter(function(d){ return d.kind === 'videoinput'; }), 'Camera');
+    fill('jd-mic', devs.filter(function(d){ return d.kind === 'audioinput'; }), 'Microphone');
+    fill('jd-speaker', devs.filter(function(d){ return d.kind === 'audiooutput'; }), 'Speaker');
+    if(status) status.textContent = '';
+    startJoinPreview();
+  }catch(e){
+    if(status) status.textContent = 'Could not access devices: ' + e.message;
+  }
 }
 async function startJoinPreview(){
-  if(joinPreviewStream){joinPreviewStream.getTracks().forEach(function(t){t.stop();});joinPreviewStream=null;}
-  var cId=document.getElementById('jd-camera').value,mId=document.getElementById('jd-mic').value;
-  try{joinPreviewStream=await navigator.mediaDevices.getUserMedia({video:cId?{deviceId:{exact:cId}}:{facingMode:'user'},audio:mId?{deviceId:{exact:mId}}:true});document.getElementById('join-preview-vid').srcObject=joinPreviewStream;document.getElementById('join-preview-box').style.display='block';}catch(e){document.getElementById('join-device-status').textContent='Preview failed: '+e.message;}
+  if(joinPreviewStream){ joinPreviewStream.getTracks().forEach(function(t){ t.stop(); }); joinPreviewStream = null; }
+  var cId = document.getElementById('jd-camera') ? document.getElementById('jd-camera').value : '';
+  var mId = document.getElementById('jd-mic') ? document.getElementById('jd-mic').value : '';
+  try{
+    joinPreviewStream = await navigator.mediaDevices.getUserMedia({
+      video: cId ? {deviceId:{exact:cId}} : {facingMode:'user'},
+      audio: mId ? {deviceId:{exact:mId}} : true
+    });
+    var vid = document.getElementById('join-preview-vid');
+    if(vid) vid.srcObject = joinPreviewStream;
+    var box = document.getElementById('join-preview-box');
+    if(box) box.style.display = 'block';
+  }catch(e){
+    var status = document.getElementById('join-device-status');
+    if(status) status.textContent = 'Preview failed: ' + e.message;
+  }
 }
 
-//  AUTH 
-async function doSignIn(){var btn=$('si-btn'),err=$('si-err');btn.disabled=true;btn.textContent='Signing in...';err.style.display='none';var res=await post('/api/auth/login',{orgCode:$('si-code').value.trim(),email:$('si-email').value.trim(),password:$('si-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Sign In';return;}window.location.href='/dashboard';}
-async function doCreate(){var btn=$('cr-btn'),err=$('cr-err');btn.disabled=true;btn.textContent='Creating...';err.style.display='none';var res=await post('/api/auth/org/create',{orgName:$('cr-org').value.trim(),name:$('cr-name').value.trim(),email:$('cr-email').value.trim(),password:$('cr-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account';return;}$('cr-code-val').textContent=res.orgCode;$('cr-code-display').style.display='block';$('cr-form').style.display='none';$('cr-switch').innerHTML='<a href="/dashboard">Go to Dashboard</a>';}
-async function doJoin(){var btn=$('jo-btn'),err=$('jo-err');btn.disabled=true;btn.textContent='Joining...';err.style.display='none';var res=await post('/api/auth/org/join',{orgCode:$('jo-code').value.trim(),name:$('jo-name').value.trim(),email:$('jo-email').value.trim(),password:$('jo-pass').value});if(res.error){err.textContent=res.error;err.style.display='block';btn.disabled=false;btn.textContent='Create Account and Join';return;}window.location.href='/dashboard';}
-async function doLogout(){await post('/api/auth/logout');window.location.reload();}
+//  AUTH HANDLERS 
+async function doSignIn(){
+  var btn = $('si-btn'), err = $('si-err');
+  btn.disabled = true; btn.textContent = 'Signing in...'; err.style.display = 'none';
+  var res = await post('/api/auth/login',{
+    orgCode: $('si-code').value.trim(),
+    email: $('si-email').value.trim(),
+    password: $('si-pass').value
+  });
+  if(res.error){ err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Sign In'; return; }
+  window.location.href = '/dashboard';
+}
+async function doCreate(){
+  var btn = $('cr-btn'), err = $('cr-err');
+  btn.disabled = true; btn.textContent = 'Creating...'; err.style.display = 'none';
+  var res = await post('/api/auth/org/create',{
+    orgName: $('cr-org').value.trim(),
+    name: $('cr-name').value.trim(),
+    email: $('cr-email').value.trim(),
+    password: $('cr-pass').value
+  });
+  if(res.error){ err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Create Account'; return; }
+  $('cr-code-val').textContent = res.orgCode;
+  $('cr-code-display').style.display = 'block';
+  $('cr-form').style.display = 'none';
+  $('cr-switch').innerHTML = '<a href="/dashboard">Go to Dashboard &rarr;</a>';
+}
+async function doJoin(){
+  var btn = $('jo-btn'), err = $('jo-err');
+  btn.disabled = true; btn.textContent = 'Joining...'; err.style.display = 'none';
+  var res = await post('/api/auth/org/join',{
+    orgCode: $('jo-code').value.trim(),
+    name: $('jo-name').value.trim(),
+    email: $('jo-email').value.trim(),
+    password: $('jo-pass').value
+  });
+  if(res.error){ err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Create Account and Join'; return; }
+  window.location.href = '/dashboard';
+}
+async function doLogout(){ await post('/api/auth/logout'); window.location.reload(); }
 
-async function init(){
-  // Always start with empty join code
-  var jcEl=document.getElementById('join-code');if(jcEl)jcEl.value='';
-  // Handle invite links: /join-company/ORGCODE -> open join modal pre-filled
-  var urlPath=window.location.pathname;
-  var joinMatch=urlPath.match(/^\/join-company\/([A-Z0-9]{4,8})$/i);
-  if(joinMatch){
-    var inviteCode=joinMatch[1].toUpperCase();
-    var joCodeEl=document.getElementById('jo-code');
-    if(joCodeEl) joCodeEl.value=inviteCode;
+//  INVITE LINK HANDLER 
+// If URL is /join-company/CODE, pre-fill the join modal and open it
+function handleInviteLink(){
+  var match = window.location.pathname.match(/^\/join-company\/([A-Z0-9]{4,8})$/i);
+  if(match){
+    var code = match[1].toUpperCase();
+    var el = document.getElementById('jo-code');
+    if(el) el.value = code;
     showModal('ov-join');
-    // Replace URL so back button works cleanly
     history.replaceState(null,'','/');
   }
-  // Clear stale join code from previous session
-  var jc=document.getElementById('join-code');
-  if(jc && jc.value && jc.value.trim()!=='') jc.value='';
+}
 
-  var me=await get('/api/auth/me');
-  if(me&&me.loggedIn){
-    $('n-name').textContent=me.name;$('n-name').style.display='';
-    $('n-dash').style.display='';
-    document.getElementById('n-in').style.display='none';
-    // Show logged-in drawer state
-    document.getElementById('dl-dashboard').style.display='flex';
-    document.getElementById('dl-recordings').style.display='flex';
-    document.getElementById('dl-signin').style.display='none';
-    document.getElementById('dl-signup').style.display='none';
-    document.getElementById('dl-join-org').style.display='none';
-    var du=$('drawer-user');du.style.display='block';
-    $('drawer-user-name').textContent=me.name;
-    $('drawer-user-org').textContent=me.orgName||me.orgCode||'';
+//  INIT 
+async function init(){
+  // Always clear the join code input (prevent browser autofill from showing)
+  var jc = document.getElementById('join-code');
+  if(jc) { jc.value = ''; jc.removeAttribute('name'); }
+
+  // Handle invite links
+  handleInviteLink();
+
+  // Check login state
+  var me = await get('/api/auth/me');
+  if(me && me.loggedIn){
+    // Show logged-in nav state
+    var nname = document.getElementById('n-name');
+    if(nname){ nname.textContent = me.name; nname.style.display = ''; }
+    var ndash = document.getElementById('n-dash');
+    if(ndash) ndash.style.display = '';
+    document.getElementById('n-in').style.display = 'none';
+    // Update drawer for logged-in user
+    var dlDash = document.getElementById('dl-dashboard');
+    var dlRec = document.getElementById('dl-recordings');
+    var dlSignin = document.getElementById('dl-signin');
+    var dlSignup = document.getElementById('dl-signup');
+    var dlJoin = document.getElementById('dl-join-org');
+    if(dlDash) dlDash.style.display = 'flex';
+    if(dlRec) dlRec.style.display = 'flex';
+    if(dlSignin) dlSignin.style.display = 'none';
+    if(dlSignup) dlSignup.style.display = 'none';
+    if(dlJoin) dlJoin.style.display = 'none';
+    var du = document.getElementById('drawer-user');
+    if(du) du.style.display = 'block';
+    var dun = document.getElementById('drawer-user-name');
+    if(dun) dun.textContent = me.name;
+    var duo = document.getElementById('drawer-user-org');
+    if(duo) duo.textContent = me.orgName || me.orgCode || '';
   }
 }
 init();
