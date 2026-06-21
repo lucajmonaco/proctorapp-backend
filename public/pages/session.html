@@ -465,7 +465,7 @@ async function startMedia(){
   catch(e){toast('Camera/mic: '+e.message,'amber');}
 }
 
-function connectSocket(){
+async function connectSocket(){
   socket=io();
   socket.emit('join-room',{sessionId:sessionId,role:'interviewer'});
   socket.on('peer-joined',function(d){if(d.role==='candidate'){$('s-status').textContent='Live';$('s-status').className='badge badge-green';startWebRTC(true);}});
@@ -533,7 +533,7 @@ function leaveSession(){
   if(localStream) localStream.getTracks().forEach(function(t){t.stop();});
   window.location.href = '/dashboard';
 }
-function endSession(){
+async function endSession(){
   if(!confirm('End this session?'))return;
   if(isRec)stopRec();
   if(timerInterval)clearInterval(timerInterval);
