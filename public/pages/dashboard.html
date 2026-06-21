@@ -228,7 +228,7 @@ async function loadSessions(){
     var row = document.createElement('div');
     row.className = 'session-row';
     row.setAttribute('data-sid', s.id);
-    row.innerHTML = '<div class="session-avatar">'+((s.candidate_name||'C').charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="sr-title">'+s.title+'</div><div class="sr-meta">'+metaLine+'</div></div><div class="sr-right">'+copyBtn+scoreHtml+statusBadge+'</div>';
+    row.innerHTML = '<div class="session-avatar">'+((s.candidate_name||'C').charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="sr-title">'+s.title+'</div><div class="sr-meta">'+metaLine+'</div></div><div class="sr-right">'+startNowBtn+copyBtn+scoreHtml+statusBadge+'</div>';
     container.appendChild(row);
   });
 }
@@ -395,6 +395,17 @@ async function init(){
   var me = await get('/api/auth/me');
   if(!me || !me.loggedIn){ window.location.href = '/'; return; }
   currentMe = me;
+  // Set org name + role badge
+  var _orgEl = document.getElementById('org-name');
+  if(_orgEl){
+    _orgEl.textContent = me.orgName || '';
+    var _bs = document.createElement('span');
+    _bs.textContent = me.role === 'admin' ? 'Admin' : 'Recruiter';
+    _bs.style.cssText = me.role === 'admin'
+      ? 'background:rgba(124,58,237,.15);color:#7c3aed;border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;vertical-align:middle;margin-left:6px;display:inline-block'
+      : 'background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;vertical-align:middle;margin-left:6px;display:inline-block';
+    _orgEl.appendChild(_bs);
+  }
   var chip = document.getElementById('user-chip');
   if(chip) chip.textContent = me.name + ' (' + (me.orgCode||'') + ')';
   var titleEl = document.getElementById('welcome-title');
