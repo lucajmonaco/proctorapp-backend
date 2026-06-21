@@ -178,7 +178,7 @@
 <div id="toast-container"></div>
 <script src="/js/utils.js"></script>
 <script>
-// ── NAV BUTTONS ──
+// ââ NAV BUTTONS ââ
 document.getElementById('n-in').onclick = function(){ showModal('ov-signin'); };
 document.getElementById('n-up').onclick = function(){ showModal('ov-create'); };
 document.getElementById('h-start').onclick = function(){ showModal('ov-create'); };
@@ -188,7 +188,7 @@ document.getElementById('h-in').onclick = function(){ showModal('ov-signin'); };
 });
 function switchTo(id){['ov-signin','ov-create','ov-join'].forEach(function(x){hideModal(x);});showModal(id);}
 
-// ── CANDIDATE JOIN ──
+// ââ CANDIDATE JOIN ââ
 function formatCode(input){
   var v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(v.length>3 && v.indexOf('-')===-1) v = v.slice(0,3)+'-'+v.slice(3);
@@ -221,7 +221,7 @@ async function joinSession(){
   }
 }
 
-// ── DEVICE SETTINGS ON JOIN SECTION ──
+// ââ DEVICE SETTINGS ON JOIN SECTION ââ
 var joinPreviewStream = null;
 var joinDevicesLoaded = false;
 
@@ -275,7 +275,7 @@ async function startJoinPreview(){
   }catch(e){ document.getElementById('join-device-status').textContent='Preview failed: '+e.message; }
 }
 
-// ── AUTH ──
+// ââ AUTH ââ
 async function doSignIn(){
   var btn=$('si-btn'),err=$('si-err'); btn.disabled=true; btn.textContent='Signing in...'; err.style.display='none';
   var res=await post('/api/auth/login',{orgCode:$('si-code').value.trim(),email:$('si-email').value.trim(),password:$('si-pass').value});
