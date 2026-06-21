@@ -107,8 +107,8 @@
   <div class="modal-inner">
     <button class="modal-x" onclick="hideModal('ov-signin')">X</button>
     <h2>Welcome back</h2><p class="modal-sub">Sign in to your company account.</p>
-    <label class="label">Company Code</label>
-    <input type="text" id="si-code" class="input" placeholder="e.g. ACME42" style="font-family:monospace;font-size:16px;letter-spacing:3px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)">
+    <label class="label">Company Code <span style="font-weight:400;color:var(--text4);font-size:11px">(optional - leave blank to sign in by email)</span></label>
+    <input type="text" id="si-code" class="input" placeholder="Leave blank to sign in by email only" style="font-family:monospace;font-size:16px;letter-spacing:3px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)">
     <label class="label">Work Email</label><input type="email" id="si-email" class="input" placeholder="you@company.com">
     <label class="label">Password</label><input type="password" id="si-pass" class="input" placeholder="Password" onkeydown="if(event.key==='Enter')doSignIn()">
     <div id="si-err" class="err" style="display:none"></div>
@@ -121,7 +121,7 @@
 <div id="ov-create" style="display:none">
   <div class="modal-inner">
     <button class="modal-x" onclick="hideModal('ov-create')">X</button>
-    <h2>Create Company Account</h2><p class="modal-sub">You will get a unique 6-character company code to share with your team.</p>
+    <h2>Create Company Account</h2><p class="modal-sub">You will be the <strong>Admin</strong> of your company. Share the generated code with your team so they can join.</p>
     <div id="cr-code-display" style="display:none" class="org-code-display">
       Your company code: <span class="org-code-val" id="cr-code-val"></span>
       <div style="font-size:11px;color:var(--text4);margin-top:6px">Share this with your team so they can join.</div>
@@ -142,7 +142,7 @@
 <div id="ov-join" style="display:none">
   <div class="modal-inner">
     <button class="modal-x" onclick="hideModal('ov-join')">X</button>
-    <h2>Join Your Company</h2><p class="modal-sub">Ask your admin for your 6-character company code.</p>
+    <h2>Join Your Company</h2><p class="modal-sub">Ask your admin for your 6-character company code. After joining, you can sign in with just your email and password.</p>
     <label class="label">Company Code</label>
     <input type="text" id="jo-code" class="input" placeholder="e.g. ACME42" style="font-family:monospace;font-size:16px;letter-spacing:3px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)">
     <label class="label">Your Full Name</label><input type="text" id="jo-name" class="input" placeholder="Your Name">
