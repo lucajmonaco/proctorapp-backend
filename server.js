@@ -28,7 +28,7 @@ db.exec(`
     password TEXT NOT NULL,
     name TEXT NOT NULL,
     org_id TEXT NOT NULL,
-    role TEXT DEFAULT 'interviewer',
+    role TEXT DEFAULT 'recruiter',
     created_at INTEGER DEFAULT (strftime('%s','now')),
     UNIQUE(email, org_id)
   );
@@ -84,6 +84,8 @@ try { db.prepare('ALTER TABLE sessions ADD COLUMN org_id TEXT').run(); } catch(e
 try { db.prepare('ALTER TABLE recordings ADD COLUMN job_position_id TEXT').run(); } catch(e){}
 try { db.prepare('ALTER TABLE recordings ADD COLUMN notes TEXT DEFAULT ""').run(); } catch(e){}
 try { db.prepare('ALTER TABLE sessions ADD COLUMN scheduled_at INTEGER DEFAULT NULL').run(); } catch(e){}
+try { db.prepare("UPDATE users SET role='recruiter' WHERE role='interviewer'").run(); } catch(e){}
+
 try { db.prepare('ALTER TABLE recordings ADD COLUMN org_id TEXT').run(); } catch(e){}
 try { db.prepare('ALTER TABLE recordings ADD COLUMN share_token TEXT').run(); } catch(e){}
 // Migrate users: add org_id column if missing (old schema had 'org' text column)
@@ -378,7 +380,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ ORG MEMBER MANAGEMENT ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ ORG MEMBER MANAGEMENT ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
 // List all members in the org
 app.get('/api/org/members', requireAuth, (req, res) => {
   const members = db.prepare('SELECT id, name, email, role, created_at FROM users WHERE org_id=? ORDER BY role DESC, created_at ASC').all(req.session.orgId);
