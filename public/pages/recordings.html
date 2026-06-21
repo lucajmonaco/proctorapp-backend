@@ -170,7 +170,7 @@ async function loadPositions(){
     c.innerHTML='<div class="empty"><div class="empty-icon" style="font-size:52px;opacity:.3">folder</div>'
       +'<h3 style="font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px">No job openings yet</h3>'
       +'<p style="color:var(--text3);font-size:13px">Create a job opening folder to organize interview recordings by role.<br>All company members can see and contribute to each folder.</p>'
-      +'<button class="btn btn-primary" onclick="showModal("ov-new-position")" style="margin-top:20px">+ Create First Job Opening</button>'
+      +'<button class="btn btn-primary" data-show-modal="ov-new-position" style="margin-top:20px">+ Create First Job Opening</button>'
       +'</div>';
     return;
   }
@@ -505,6 +505,11 @@ function initBurger(){
   if(bg) bg.onclick=closeDrawer;
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&drawerOpen)closeDrawer();});
 }
+// Handle data-show-modal delegation
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('[data-show-modal]');
+  if(btn) showModal(btn.getAttribute('data-show-modal'));
+});
 async function init(){initBurger();
   me=await requireLogin('/');if(!me)return;
   $('user-chip').textContent=me.name; var dun=document.getElementById('drawer-user-name');if(dun)dun.textContent=me.name; var duo=document.getElementById('drawer-user-org');if(duo)duo.textContent=me.orgName||me.orgCode||'';
