@@ -167,10 +167,10 @@ $('drawer-bg').onclick=closeDrawer;
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&drawerOpen)closeDrawer();});
 
 //  NAV BUTTONS 
-document.getElementById('n-in').onclick=function(){showModal(&quot;ov-signin&quot;);};
-document.getElementById('n-up').onclick=function(){showModal(&quot;ov-create&quot;);};
-document.getElementById('h-start').onclick=function(){showModal(&quot;ov-create&quot;);};
-document.getElementById('h-in').onclick=function(){showModal(&quot;ov-signin&quot;);};
+document.getElementById('n-in').onclick=function(){showModal("ov-signin");};
+document.getElementById('n-up').onclick=function(){showModal("ov-create");};
+document.getElementById('h-start').onclick=function(){showModal("ov-create");};
+document.getElementById('h-in').onclick=function(){showModal("ov-signin");};
 ['ov-signin','ov-create','ov-join'].forEach(function(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===this)hideModal(id);});});
 function switchTo(id){['ov-signin','ov-create','ov-join'].forEach(function(x){hideModal(x);});showModal(id);}
 
