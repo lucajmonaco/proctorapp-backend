@@ -93,3 +93,53 @@ scripts/preflight.js validates:
 4. Forbidden Patterns - unsafe patterns flagged
 
 Run it. Fix failures. Then deploy.
+
+
+---
+
+## PRE-LAUNCH FULL-FLOW CHECK (MANDATORY - added after the v70-v72 incident)
+
+Preflight (syntax/API/elements) is NOT enough. Before ANY deploy, manually verify every core user flow end-to-end. A change in one area can break shared infrastructure (auth/session/DB) that preflight cannot catch. Do NOT deploy if any item fails.
+
+ACCOUNT / AUTH
+- [ ] Sign up a NEW account -> lands on dashboard AND stays signed in after a refresh
+- [ ] Sign in with an existing account -> dashboard loads
+- [ ] Both sign-in paths work: with company code, and by email
+- [ ] After signup/login an authed API call (/api/recordings, /api/company) returns 200, not 401
+
+DASHBOARD
+- [ ] Company / Team tab loads (no "Could not load")
+- [ ] "New Session" opens the session creator (does not bounce to home)
+- [ ] Sessions list loads; ended -> recordings library, active -> live session
+- [ ] Recordings library loads; flag-breakdown dropdown opens
+
+INTERVIEW (needs 2 people)
+- [ ] Candidate joins; interviewer sees them connect
+- [ ] Consent: interviewer "Request to Record" -> candidate consent modal -> recording starts only on consent -> REC banner
+- [ ] Candidate "Leave Interview" works; interviewer sees "Disconnected"
+
+POST-DEPLOY
+- [ ] Open the live site, check browser console for errors on each page
+- [ ] Confirm you are still logged in after the deploy
+
+If a 2-person flow cannot be tested solo, do NOT claim it is verified - flag it as needing a live 2-person test.
+
+---
+
+## CRITICAL INFRASTRUCTURE NOTES (read before deploying)
+
+1. DATABASE IS EPHEMERAL (HIGH RISK)
+   - server.js opens SQLite at path.join(__dirname, "proctor.db") = /app/proctor.db, inside the container image.
+   - fly.toml has NO [mounts], so the "data" volume is NOT used.
+   - => Every deploy rebuilds the image and RESETS the database (accounts, sessions, recordings). Files in /app/recordings are also lost on deploy.
+   - FIX: add [mounts] source="data" destination="/data" to fly.toml; change DB path to /data/proctor.db and recordings dir to /data/recordings; run exactly ONE machine (a single Fly volume attaches to one machine only).
+
+2. MULTIPLE MACHINES + NON-SHARED STATE
+   - The app runs 2 machines, each with its own ephemeral DB and its own in-memory sessions. Requests round-robin, so a login on machine A is unknown to machine B -> intermittent "not signed in", "Could not load", "new session bounces home".
+   - SQLite + in-memory sessions ONLY work on a single instance. Keep machines = 1 unless moving to a shared DB (e.g. Postgres) for both data and sessions.
+
+3. SESSIONS USE THE DEFAULT MemoryStore
+   - Logs: "connect.session() MemoryStore is not designed for a production environment". Sessions are lost on every restart/deploy and are not shared across machines.
+   - With 1 machine + the volume mounted, a persistent store writing to /data keeps users logged in across deploys.
+
+4. AUTO-DEPLOY ON PUSH is currently OFF (Fly Settings). Pushing to GitHub does NOT deploy; deploys are manual via Fly -> Deploy app -> Start Deploy. Treat every deploy as data-affecting until item #1 is fixed.
