@@ -211,6 +211,7 @@ async function loadSessions(){
           var row = document.createElement('div');
           row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--card)';
           var left = document.createElement('div');
+          left.style.cssText = 'flex:1;min-width:0';
           var t = document.createElement('div');
           t.style.cssText = 'font-weight:700;font-size:14px;color:var(--text1)';
           t.textContent = s.title || 'Interview';
@@ -219,9 +220,12 @@ async function loadSessions(){
           sub.textContent = (s.candidate_name || 'Candidate') + (s.candidate_email ? ' \u00b7 ' + s.candidate_email : '');
           left.appendChild(t); left.appendChild(sub);
           var whenEl = document.createElement('div');
-          whenEl.style.cssText = 'font-size:12px;font-weight:600;color:var(--purple);white-space:nowrap';
+          whenEl.style.cssText = 'font-size:12px;font-weight:600;color:var(--purple);white-space:nowrap;min-width:150px;text-align:right';
           whenEl.textContent = when;
-          row.appendChild(left); row.appendChild(whenEl);
+          var rightWrap = document.createElement('div');
+          rightWrap.style.cssText = 'display:flex;align-items:center;gap:8px;flex:none';
+          rightWrap.appendChild(whenEl);
+          row.appendChild(left); row.appendChild(rightWrap);
           var upResch = document.createElement('button');
           upResch.textContent = 'Reschedule'; upResch.title = 'Change date/time';
           upResch.style.cssText = 'flex:none;background:transparent;border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;cursor:pointer';
@@ -241,7 +245,7 @@ async function loadSessions(){
               else { if(typeof toast==='function')toast('Reschedule failed: '+((dd&&dd.error)||'?'),'red'); upResch.disabled=false; upResch.textContent='Reschedule'; }
             }).catch(function(){ if(typeof toast==='function')toast('Reschedule failed','red'); upResch.disabled=false; upResch.textContent='Reschedule'; });
           };
-          row.appendChild(upResch);
+          rightWrap.appendChild(upResch);
           var upDel = document.createElement('button');
           upDel.textContent = 'Delete'; upDel.title = 'Delete upcoming interview';
           upDel.style.cssText = 'flex:none;background:transparent;border:1px solid #fecaca;color:#dc2626;font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;cursor:pointer';
@@ -254,7 +258,7 @@ async function loadSessions(){
               else { if(typeof toast==='function')toast('Delete failed: '+((dd&&dd.error)||'?'),'red'); upDel.disabled=false; upDel.textContent='Delete'; }
             }).catch(function(){ if(typeof toast==='function')toast('Delete failed','red'); upDel.disabled=false; upDel.textContent='Delete'; });
           };
-          row.appendChild(upDel);
+          rightWrap.appendChild(upDel);
           upList.appendChild(row);
         });
       }
