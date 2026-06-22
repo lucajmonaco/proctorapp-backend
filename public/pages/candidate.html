@@ -307,6 +307,7 @@ function setupProtection(){
     var now = Date.now();
     if(now - blurDebounce < 600) return;
     blurDebounce = now;
+    if(window._screenGrace && (Date.now()-window._screenGrace)<4000) return; // ignore blur caused by the candidate's own screen-share picker
     if(!document.hidden){ // blur without visibility change = other app/window, not tab switch
       startLockout('You switched to another application or window.');
     }
@@ -552,7 +553,8 @@ function connectSocket(){
     pcScreen.onicecandidate=function(e){if(e.candidate)socket.emit('screen-ice',{sessionId:sessionData&&sessionData.id,candidate:e.candidate});};
   }
   window.startScreen=async function(){
-    try{ screenStream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'monitor'},audio:false}); }
+    window._screenGrace=Date.now();
+    try{ screenStream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'monitor'},audio:false}); window._screenGrace=Date.now(); }
     catch(err){ warn('Screen share is required - please share your ENTIRE screen.'); sendFlagOnce('screen-declined','Screen Share Declined','Candidate declined to share their screen','high'); return; }
     var vt=screenStream.getVideoTracks()[0];
     var surf=(vt&&vt.getSettings)?vt.getSettings().displaySurface:null;
