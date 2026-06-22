@@ -403,6 +403,62 @@ async function loadCompanyPanel(){
     var dBtn=e.target.closest('[data-remove-id]');
     if(dBtn){ removeMember(dBtn.getAttribute('data-remove-id'),dBtn.getAttribute('data-member-name')); }
   });
+
+  // Activity Log (admin only)
+  if(me && me.role==='admin'){
+    var auditWrap=document.createElement('div');
+    auditWrap.style.cssText='margin-top:28px';
+    var auditH=document.createElement('div');
+    auditH.style.cssText='font-weight:700;font-size:15px;color:var(--text1);margin-bottom:4px';
+    auditH.textContent='Activity Log';
+    var auditSub=document.createElement('div');
+    auditSub.style.cssText='font-size:12px;color:var(--text4);margin-bottom:12px';
+    auditSub.textContent='Recent actions across your organization.';
+    var auditList=document.createElement('div');
+    auditList.style.cssText='border:1px solid var(--border);border-radius:8px;overflow:hidden';
+    var auditLoading=document.createElement('div');
+    auditLoading.style.cssText='padding:16px;text-align:center;color:var(--text4);font-size:13px';
+    auditLoading.textContent='Loading activity...';
+    auditList.appendChild(auditLoading);
+    auditWrap.appendChild(auditH); auditWrap.appendChild(auditSub); auditWrap.appendChild(auditList);
+    panel.appendChild(auditWrap);
+    get('/api/audit').then(function(rows){
+      auditList.innerHTML='';
+      if(!Array.isArray(rows) || rows.length===0){
+        var empty=document.createElement('div');
+        empty.style.cssText='padding:16px;text-align:center;color:var(--text4);font-size:13px';
+        empty.textContent='No activity recorded yet.';
+        auditList.appendChild(empty); return;
+      }
+      var labels={'interview.create':'Created interview','interview.delete':'Deleted interview','interview.reschedule':'Rescheduled interview','recording.delete':'Deleted recording'};
+      rows.forEach(function(a, idx){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:10px 14px;font-size:13px'+(idx>0?';border-top:1px solid var(--border)':'');
+        var icon=document.createElement('div');
+        icon.style.cssText='flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px;background:'+((a.action&&a.action.indexOf('delete')>=0)?'#dc2626':(a.action==='interview.create'?'#16a34a':'#7c3aed'));
+        var mid=document.createElement('div'); mid.style.cssText='flex:1;min-width:0';
+        var line1=document.createElement('div'); line1.style.cssText='color:var(--text1)';
+        var who=document.createElement('span'); who.style.fontWeight='600'; who.textContent=(a.user_name||'Someone')+' ';
+        var act=document.createElement('span'); act.style.color='var(--text2)'; act.textContent=(labels[a.action]||a.action||'did something');
+        line1.appendChild(who); line1.appendChild(act);
+        var line2=document.createElement('div'); line2.style.cssText='color:var(--text4);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+        line2.textContent=a.detail||'';
+        mid.appendChild(line1); if(a.detail) mid.appendChild(line2);
+        var when=document.createElement('div');
+        when.style.cssText='flex:none;color:var(--text4);font-size:11px;white-space:nowrap;margin-top:1px';
+        var ts=a.created_at? new Date(a.created_at*1000):null;
+        when.textContent=ts? ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+ts.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'';
+        row.appendChild(icon); row.appendChild(mid); row.appendChild(when);
+        auditList.appendChild(row);
+      });
+    }).catch(function(){
+      auditList.innerHTML='';
+      var er=document.createElement('div');
+      er.style.cssText='padding:16px;text-align:center;color:var(--text4);font-size:13px';
+      er.textContent='Could not load activity log.';
+      auditList.appendChild(er);
+    });
+  }
 }
 
 async function changeMemberRole(userId, newRole){
