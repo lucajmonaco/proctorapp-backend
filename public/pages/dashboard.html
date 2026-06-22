@@ -53,11 +53,12 @@
 
   <div class="tabs-bar">
     <button class="tab-btn active" id="tab-sessions-btn" data-tab="sessions">Sessions</button>
+    <button class="tab-btn" id="tab-upcoming-btn" data-tab="upcoming">Upcoming</button>
     <button class="tab-btn" id="tab-team-btn" data-tab="team">Company</button>
   </div>
 
   <div class="tab-panel active" id="tab-sessions">
-    <div id="upcoming-section" style="display:none;margin-bottom:18px"><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:10px">Upcoming Interviews</div><div id="upcoming-list"></div></div>
+    
     <div id="sessions-list">
       <div class="sessions-empty" style="text-align:center;padding:40px 20px;color:var(--text4)">
         <div style="font-size:40px;margin-bottom:12px">&#127908;</div>
@@ -65,6 +66,10 @@
         <p style="font-size:13px;line-height:1.7">Create your first interview session by clicking<br><strong>+ New Session</strong> above.</p>
       </div>
     </div>
+  </div>
+
+  <div class="tab-panel" id="tab-upcoming">
+    <div id="upcoming-list"></div>
   </div>
 
   <div class="tab-panel" id="tab-team">
@@ -184,15 +189,13 @@ async function loadSessions(){
   if(!res || res.error) return;
   var sessions = Array.isArray(res) ? res : [];
   (function(){
-    var upWrap = document.getElementById('upcoming-section');
     var upList = document.getElementById('upcoming-list');
-    if(upWrap && upList){
+    if(upList){
       var nowMs = Date.now();
       var up = sessions.filter(function(s){ return s.scheduled_at && (s.scheduled_at*1000) > nowMs && s.status !== 'ended'; });
       up.sort(function(a,b){ return a.scheduled_at - b.scheduled_at; });
-      if(!up.length){ upWrap.style.display = 'none'; upList.innerHTML = ''; }
+      if(!up.length){ upList.innerHTML = '<div style="text-align:center;padding:36px 20px;color:var(--text4);font-size:13px">No upcoming interviews scheduled.</div>'; }
       else {
-        upWrap.style.display = 'block';
         upList.innerHTML = '';
         up.forEach(function(s){
           var d = new Date(s.scheduled_at*1000);
