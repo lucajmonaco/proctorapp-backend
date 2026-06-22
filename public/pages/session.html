@@ -400,13 +400,14 @@ function stopRec(){
   var dur=Math.floor((Date.now()-recStart)/1000);
   mediaRecorder.stop();
   if(audioCtxRec){audioCtxRec.close().catch(function(){}); audioCtxRec=null;}
+  window._recSavePromise=new Promise(function(resolve){ window._recSaveResolve=resolve; });
   mediaRecorder.onstop=function(){
     var blob=new Blob(recChunks,{type:'video/webm'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a'); a.href=url;
     a.download='interview-'+(sessionData&&sessionData.code||'session')+'-'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.webm';
     a.click(); URL.revokeObjectURL(url);
-    uploadRecording(blob,dur);
+    Promise.resolve(uploadRecording(blob,dur)).then(function(){ if(window._recSaveResolve)window._recSaveResolve(); }).catch(function(){ if(window._recSaveResolve)window._recSaveResolve(); });
   };
   $('rec-btn').textContent='Record'; $('rec-btn').className='btn btn-danger btn-sm';
   $('rec-ind').style.display='none';
@@ -525,33 +526,32 @@ async function connectSocket(){
   });
   // LOCKOUT OVERLAY: show/hide on video pane, audio keeps flowing via WebRTC
   // Separate audio context to keep audio flowing during lockout
-  var lockoutAudioCtx = null;
   socket.on('candidate-lockout',function(data){
-    var ov=$('candidate-lockout-overlay'); ov.classList.add('active');
-    var secs=data.secondsLeft||30;
-    var m=Math.floor(secs/60),s=secs%60;
-    $('lockout-ov-timer').textContent=m+':'+(s<10?'0':'')+s;
-    $('lockout-ov-bar-fill').style.width=Math.round((secs/30)*100)+'%';
-    if(data.violation) $('lockout-ov-violation').textContent='Tab switch violation #'+data.violation;
-    $('s-status').textContent='Locked Out'; $('s-status').className='badge badge-red';
-    // NULL the srcObject - this completely stops video rendering, no pixels at all
-    var rv=$('remote-vid'); if(rv) rv.srcObject=null;
-    // Route audio through AudioContext so interviewer still hears candidate
-    if(remoteStream&&remoteStream.getAudioTracks().length>0){
-      try{
-        if(lockoutAudioCtx){lockoutAudioCtx.close().catch(function(){});}
-        lockoutAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-        lockoutAudioCtx.createMediaStreamSource(remoteStream).connect(lockoutAudioCtx.destination);
-      }catch(e){console.warn('Lockout audio:',e.message);}
+    var ov=$('candidate-lockout-overlay'); if(ov)ov.classList.add('active');
+    if(data&&data.violation && $('lockout-ov-violation')) $('lockout-ov-violation').textContent='Left interview screen - violation #'+data.violation;
+    if($('s-status')){$('s-status').textContent='Locked Out'; $('s-status').className='badge badge-red';}
+    // hide the candidate video while locked out (audio keeps playing via remote-audio element)
+    var rv=$('remote-vid'); if(rv) rv.style.visibility='hidden';
+    // ensure the candidate's audio keeps playing through the dedicated audio element
+    try{ var ra=document.getElementById('remote-audio'); if(ra&&remoteStream){ ra.srcObject=remoteStream; var pp=ra.play(); if(pp&&pp.catch)pp.catch(function(){}); } }catch(e){}
+    // run a local 1s countdown so the interviewer sees it tick down in sync with the candidate
+    var total=(data&&data.secondsLeft)?data.secondsLeft:15;
+    if(window._lockTick){clearInterval(window._lockTick);window._lockTick=null;}
+    var remaining=total;
+    function paint(){
+      var mm=Math.floor(remaining/60), ss=remaining%60;
+      if($('lockout-ov-timer'))$('lockout-ov-timer').textContent=mm+':'+(ss<10?'0':'')+ss;
+      if($('lockout-ov-bar-fill'))$('lockout-ov-bar-fill').style.width=Math.round((remaining/(total||1))*100)+'%';
     }
+    paint();
+    window._lockTick=setInterval(function(){ remaining--; if(remaining<0)remaining=0; paint(); if(remaining<=0){clearInterval(window._lockTick);window._lockTick=null;} },1000);
   });
   socket.on('candidate-lockout-end',function(){
-    $('candidate-lockout-overlay').classList.remove('active');
-    // Kill audio routing (video element takes over again)
-    if(lockoutAudioCtx){lockoutAudioCtx.close().catch(function(){});lockoutAudioCtx=null;}
-    // Restore video
-    var rv=$('remote-vid'); if(rv&&remoteStream) rv.srcObject=remoteStream;
-    $('s-status').textContent='Live'; $('s-status').className='badge badge-green';
+    if(window._lockTick){clearInterval(window._lockTick);window._lockTick=null;}
+    var ov=$('candidate-lockout-overlay'); if(ov)ov.classList.remove('active');
+    var rv=$('remote-vid'); if(rv){ rv.style.visibility='visible'; if(remoteStream) rv.srcObject=remoteStream; }
+    try{ var ra=document.getElementById('remote-audio'); if(ra&&remoteStream){ ra.srcObject=remoteStream; var pp=ra.play(); if(pp&&pp.catch)pp.catch(function(){}); } }catch(e){}
+    if($('s-status')){$('s-status').textContent='Live'; $('s-status').className='badge badge-green';}
     toast('Candidate returned from lockout','amber',3000);
   });
   socket.on('peer-left',function(){$('s-status').textContent='Disconnected';$('s-status').className='badge badge-red';toast('Candidate disconnected','amber');});
@@ -582,9 +582,14 @@ function endSession(){
 function closeEndModal(){ var m=document.getElementById('end-modal'); if(m)m.style.display='none'; }
 async function confirmEndSession(){
   closeEndModal();
+  var wasRec=isRec;
   if(isRec)stopRec();
   if(timerInterval)clearInterval(timerInterval);
   if(socket)socket.emit('session-ended',{sessionId:sessionId});
+  // Wait for the recording upload to finish saving to the library before leaving (max 60s).
+  if(wasRec && window._recSavePromise){
+    try{ await Promise.race([window._recSavePromise, new Promise(function(rs){ setTimeout(rs,60000); })]); }catch(e){}
+  }
   await patch('/api/sessions/'+sessionId,{status:'ended'});
   try{await post('/api/recordings/session/'+sessionId+'/sync',{});}catch(e){}
   setTimeout(function(){location.href='/dashboard';},600);
