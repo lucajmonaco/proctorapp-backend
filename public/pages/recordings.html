@@ -351,6 +351,7 @@ function buildRecCard(rec, inPositionView){
       var ld=document.createElement('div');ld.style.cssText='padding:8px 10px;font-size:12px;color:var(--text3)';ld.textContent='Loading...';fPanel.appendChild(ld);
       get('/api/recordings/'+rec.id+'/flags').then(function(d){
         fPanel.innerHTML='';
+        if(d && typeof d.total==='number'){ fLbl.textContent=d.total+' flagged behaviors'; }
         if(!d||!d.breakdown||!d.breakdown.length){ var n=document.createElement('div');n.style.cssText='padding:8px 10px;font-size:12px;color:var(--text3)';n.textContent='No detailed flags recorded.';fPanel.appendChild(n);return; }
         d.breakdown.forEach(function(b,ix){
           var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:12px;'+(ix?'border-top:1px solid var(--border);':'');
