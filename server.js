@@ -327,6 +327,18 @@ app.get('/api/recordings', requireAuth, (req, res) => {
   res.json(recs);
 });
 
+app.get('/api/recordings/:id/flags', requireAuth, (req, res) => {
+  let rec = db.prepare('SELECT * FROM recordings WHERE id=? AND interviewer_id=?').get(req.params.id, req.session.userId);
+  if (!rec) {
+    rec = db.prepare('SELECT r.* FROM recordings r JOIN job_positions p ON r.job_position_id=p.id WHERE r.id=? AND p.org_id=?').get(req.params.id, req.session.orgId);
+  }
+  if (!rec) return res.status(404).json({ error: 'Not found' });
+  const rows = db.prepare('SELECT text, COUNT(*) as count FROM flags WHERE session_id=? GROUP BY text ORDER BY count DESC').all(rec.session_id);
+  let total = 0;
+  for (let i = 0; i < rows.length; i++) { total += rows[i].count; }
+  res.json({ total: total, breakdown: rows });
+});
+
 app.get('/api/recordings/:id/stream', requireAuth, (req, res) => {
   // Allow stream if: own recording OR recording is in a position folder within same org
   let rec = db.prepare('SELECT * FROM recordings WHERE id=? AND interviewer_id=?').get(req.params.id, req.session.userId);
