@@ -16,6 +16,19 @@
 
 <div id="warn-banner" class="warn-banner"></div>
 
+<!-- SCREEN-PERMISSION GATE OVERLAY (only shown when recruiter required it) -->
+<div id="screen-gate-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(5,7,9,.92);align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;max-width:440px;width:100%;border-radius:16px;padding:30px;box-shadow:0 24px 70px rgba(0,0,0,.4);text-align:center">
+    <div style="font-size:42px;margin-bottom:10px">&#128421;</div>
+    <h2 style="margin:0 0 10px;font-size:20px;color:#0f172a">Before you join</h2>
+    <p style="font-size:14px;color:#475569;line-height:1.5;margin:0 0 22px">This interview uses screen monitoring to help keep the process fair. To continue, please allow your browser to detect your displays when prompted.</p>
+    <button class="btn btn-primary btn-lg" onclick="requireScreenGate()" style="min-width:220px">Allow screen access</button>
+    <div id="screen-gate-error" style="display:none;margin-top:18px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:12.5px;color:#b91c1c;line-height:1.5;text-align:left">
+      Screen access was not granted, so you can't continue yet. If you clicked Block, look for a screen or camera icon in your browser's address bar, set screen access to <b>Allow</b>, then click <b>Allow screen access</b> above again. Some browsers may require you to refresh the page first.
+    </div>
+  </div>
+</div>
+
 <!-- TAB SWITCH LOCKOUT OVERLAY - cannot be dismissed, has mandatory countdown -->
 <div id="lockout-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.98);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px">
   <div style="font-size:56px;margin-bottom:16px">!</div>
@@ -366,6 +379,35 @@ async function recheckTabsPreJoin(){
   if(count>0){$('other-tab-count').textContent=count;}
   else{$('tab-block-overlay').style.display='none';doJoin();}
 }
+async // Screen-permission gate. Only enforced when the recruiter turned on 'Require screen
+// monitoring' for this interview. Otherwise it passes straight through to doJoin().
+async function requireScreenGate(){
+  var need = sessionData && (sessionData.require_screen===1 || sessionData.require_screen===true);
+  if(!need){ doJoin(); return; }
+  // Already granted earlier in this session?
+  if(window._screenDetails){ doJoin(); return; }
+  var ov = document.getElementById('screen-gate-overlay');
+  if(ov) ov.style.display='flex';
+  if(typeof window.getScreenDetails !== 'function'){
+    // Browser doesn't support the API at all - let them through rather than hard-blocking
+    // on a browser limitation outside their control.
+    if(ov) ov.style.display='none';
+    doJoin(); return;
+  }
+  try{
+    var sd = await window.getScreenDetails();
+    window._screenDetails = sd;
+    try{ sd.addEventListener('screenschange', function(){ if(!flaggedOnce['multi-display']) checkDisplays(); }); }catch(e){}
+    if(ov) ov.style.display='none';
+    doJoin();
+  }catch(err){
+    // Denied or dismissed. Show recovery guidance; do NOT proceed.
+    var msg = document.getElementById('screen-gate-error');
+    if(msg) msg.style.display='block';
+    var jb=$('join-btn'); if(jb){ jb.disabled=false; jb.textContent='Join Interview'; }
+  }
+}
+
 async function attemptJoin(){
   var btn=$('join-btn');btn.disabled=true;btn.textContent='Checking...';
   var count=await checkSameOriginTabs();
@@ -373,7 +415,7 @@ async function attemptJoin(){
     $('other-tab-count').textContent=count;
     $('tab-block-overlay').style.display='flex';
     btn.disabled=false;btn.textContent='Join Interview';
-  } else doJoin();
+  } else requireScreenGate();
 }
 
 //  DISPLAY 
