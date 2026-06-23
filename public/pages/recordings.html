@@ -377,7 +377,45 @@ function buildRecCard(rec, inPositionView){
 
 
   var actions=document.createElement('div');actions.className='rec-actions';
-  function openFullScreenPlayer(url){
+  async function viewIdentity(sessionId, candidateName){
+  if(!sessionId){ alert('No session linked to this recording.'); return; }
+  var meta=null;
+  try{
+    var resp=await fetch('/api/sessions/'+sessionId+'/identity',{credentials:'include'});
+    if(resp.ok) meta=await resp.json();
+  }catch(e){}
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.78);display:flex;align-items:center;justify-content:center;padding:18px';
+  ov.onclick=function(e){ if(e.target===ov) document.body.removeChild(ov); };
+  var card=document.createElement('div');
+  card.style.cssText='background:#fff;max-width:760px;width:100%;border-radius:14px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:94vh;overflow:auto';
+  var title=document.createElement('h3'); title.style.cssText='margin:0 0 4px;font-size:18px;color:#0f172a'; title.textContent='Identity Verification';
+  var sub=document.createElement('div'); sub.style.cssText='font-size:13px;color:#64748b;margin-bottom:16px';
+  card.appendChild(title); card.appendChild(sub);
+  var hasCapture = meta && meta.consented && (meta.hasSelfie || meta.hasId || meta.selfie || meta.id);
+  if(!meta || (!meta.consented && !meta.hasSelfie && !meta.hasId)){
+    sub.textContent = (candidateName||'The candidate') + ' did not complete identity verification for this interview.';
+  } else {
+    sub.textContent = 'Review the candidate\'s selfie against their ID photo to confirm they match. ' + (candidateName? ('Candidate: '+candidateName) : '');
+    var grid=document.createElement('div'); grid.style.cssText='display:flex;gap:14px;flex-wrap:wrap';
+    function photoBox(label, type){
+      var box=document.createElement('div'); box.style.cssText='flex:1;min-width:220px';
+      var lab=document.createElement('div'); lab.style.cssText='font-size:12px;font-weight:600;color:#0f172a;margin-bottom:6px'; lab.textContent=label;
+      var img=document.createElement('img'); img.style.cssText='width:100%;border-radius:10px;border:1px solid #e2e8f0;background:#f1f5f9;min-height:160px;object-fit:contain';
+      img.src='/api/sessions/'+sessionId+'/identity/'+type;
+      img.onerror=function(){ img.style.display='none'; var miss=document.createElement('div'); miss.style.cssText='font-size:12px;color:#94a3b8'; miss.textContent='Not provided'; box.appendChild(miss); };
+      box.appendChild(lab); box.appendChild(img); return box;
+    }
+    grid.appendChild(photoBox('Selfie','selfie'));
+    grid.appendChild(photoBox('Photo ID','idphoto'));
+    card.appendChild(grid);
+  }
+  var close=document.createElement('button'); close.className='btn btn-sm btn-outline'; close.textContent='Close'; close.style.cssText='margin-top:16px';
+  close.onclick=function(){ document.body.removeChild(ov); };
+  card.appendChild(close);
+  ov.appendChild(card); document.body.appendChild(ov);
+}
+function openFullScreenPlayer(url){
   var w=window.open('','_blank');
   if(!w){ window.open(url,'_blank'); return; }
   var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recording</title>'
@@ -396,6 +434,7 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   btn('btn-outline','Preview',function(){togglePreview(rec.id,streamUrl);});
   btn('btn-outline','Watch Full Screen',function(){ openFullScreenPlayer(streamUrl); });
   btn('btn-primary','Download',function(){dlRec(rec.id,rec.session_title,rec.candidate_name);});
+  btn('btn-outline','ID Verification',function(){ viewIdentity(rec.session_id, rec.candidate_name); });
   var cb=btn('btn-purple','Compress for Email',function(){compressRec(rec.id,rec.session_title,cb);});
   if(rec.share_token){
     btn('btn-outline','Copy Share Link',function(){navigator.clipboard.writeText(location.origin+'/share/'+rec.share_token).then(function(){toast('Share link copied!','green',5000);});});
