@@ -165,16 +165,13 @@ var remoteStream = null, audioCtxRec = null;
 // All detection types shown from session start with count 0
 // When a flag comes in matching a key, the card updates live
 var FLAG_TYPES = [
-  // Consolidated into 9 logical groups
-  {key:'tab-switch',    text:'Tab / Window Switch',      detail:'Candidate switched tabs or windows during interview',         severity:'high'},
-  {key:'absence',       text:'Extended Absence',          detail:'Candidate was away for 10+ seconds',                         severity:'high'},
-  {key:'face-gaze',     text:'Face / Gaze Issues',        detail:'Face not visible or looking away from screen',               severity:'medium'},
-  {key:'bg-voice',      text:'Background Voice',          detail:'Second voice detected - possible coaching',                  severity:'high'},
-  {key:'multi-display', text:'Multiple Displays',         detail:'Multiple monitors or secondary display detected',             severity:'high'},
-  {key:'input-attempt', text:'Copy / Paste / Shortcuts',  detail:'Blocked clipboard or keyboard shortcut usage',               severity:'medium'},
-  {key:'devtools',      text:'DevTools / Refresh',        detail:'Candidate tried to open DevTools or refresh the page',       severity:'high'},
-  {key:'new-tab',       text:'New Tab / Window Attempt',  detail:'Candidate tried to open a new tab or browser window',        severity:'high'},
-  {key:'misc',          text:'Other Activity',            detail:'Right-click, window resize, or other minor activity',        severity:'low'},
+  // 6 consolidated, professionally-named categories. Keys MUST match resolveKey().
+  {key:'focus-loss', text:'Lost Interview Focus',        detail:'Switched tabs/windows, opened a new tab, or left the interview screen', severity:'high'},
+  {key:'presence',   text:'Candidate Not Present',       detail:'Candidate absent, face not visible, or looking away from screen',       severity:'high'},
+  {key:'audio',      text:'Background Audio Detected',   detail:'Additional voice or audio detected - possible coaching',               severity:'high'},
+  {key:'displays',   text:'Multiple Displays Detected',  detail:'A secondary monitor or extended display was detected',                 severity:'high'},
+  {key:'input',      text:'Prohibited Input Activity',   detail:'Copy/paste, blocked shortcuts, developer tools, or page refresh',      severity:'medium'},
+  {key:'other',      text:'Other Suspicious Activity',   detail:'Other activity flagged during the interview',                          severity:'low'},
 ];
 
 var flagRegistry = {};  // key  {count, cardEl, lastTime}
@@ -215,18 +212,31 @@ function buildFlagCard(key, text, detail, severity, count){
 // Map incoming flag text  registry key
 function resolveKey(flagText){
   var t = (flagText||'').toLowerCase();
-  // Consolidated groups
-  if(t.includes('tab switch')||t.includes('window switch')||t.includes('window blur')||t.includes('left interview')||t.includes('left screen')||t.includes('switched to another')||t.includes('application or window')) return 'tab-switch';
-  if(t.includes('extended absence')) return 'absence';
-  if(t.includes('face not')||t.includes('gaze')||t.includes('eye movement')) return 'face-gaze';
-  if(t.includes('background voice')||t.includes('coaching')) return 'bg-voice';
-  if(t.includes('display')||t.includes('monitor')||t.includes('screen config')||t.includes('secondary display')) return 'multi-display';
-  if(t.includes('copy')||t.includes('paste')||t.includes('cut')||t.includes('shortcut')) return 'input-attempt';
-  if(t.includes('devtools')||t.includes('f12')||t.includes('refresh')) return 'devtools';
-  if(t.includes('new tab')||t.includes('new window')) return 'new-tab';
-  if(t.includes('right-click')||t.includes('right click')||t.includes('resize')) return 'misc';
-  return null;
+  // Consolidated to 6 professional categories.
+  // 1) Lost interview focus: tab/window switches, leaving, new tabs/windows, app switches.
+  if(t.includes('tab switch')||t.includes('window switch')||t.includes('window blur')||t.includes('left interview')||t.includes('left screen')||t.includes('switched to another')||t.includes('application or window')||t.includes('new tab')||t.includes('new window')) return 'focus-loss';
+  // 2) Candidate not present / not visible: extended absence, face not visible, gaze away.
+  if(t.includes('extended absence')||t.includes('absence')||t.includes('face not')||t.includes('no face')||t.includes('gaze')||t.includes('eye movement')||t.includes('looking away')) return 'presence';
+  // 3) Background audio: other voices, possible coaching.
+  if(t.includes('background voice')||t.includes('voice')||t.includes('coaching')||t.includes('audio')) return 'audio';
+  // 4) Multiple displays / external monitors.
+  if(t.includes('display')||t.includes('monitor')||t.includes('screen config')||t.includes('secondary')) return 'displays';
+  // 5) Prohibited input: copy/paste/cut, shortcuts, devtools, F12, refresh, right-click.
+  if(t.includes('copy')||t.includes('paste')||t.includes('cut')||t.includes('shortcut')||t.includes('devtools')||t.includes('f12')||t.includes('refresh')||t.includes('right-click')||t.includes('right click')||t.includes('inspect')) return 'input';
+  // 6) Everything else.
+  return 'other';
 }
+
+// Professional display names for the 6 flag categories.
+var flagLabels = {
+  'focus-loss': 'Lost Interview Focus',
+  'presence': 'Candidate Not Present',
+  'audio': 'Background Audio Detected',
+  'displays': 'Multiple Displays Detected',
+  'input': 'Prohibited Input Activity',
+  'other': 'Other Suspicious Activity'
+};
+function flagTitle(key, fallback){ return (flagLabels[key]) ? flagLabels[key] : (fallback || 'Flag'); }
 
 function hitFlag(flag){
   totalFlagCount++;
@@ -355,8 +365,9 @@ function startRec(){
   if(!remVid.srcObject && !remoteStream){ toast('No candidate video yet','red'); return; }
 
   // Canvas always 720p. Layout adapts each frame:
-  //  - No screen-share: two faces side-by-side, large.
-  //  - Screen-share active: shared screen fills the top, two faces in a bottom strip.
+  //  - No screen-share: two faces side-by-side, large (main focus).
+  //  - Screen-share active: faces stay on TOP, shared screen shown SMALLER and CENTERED below,
+  //    labeled with who is sharing so it is never confused with a participant.
   var W = 1280, H = 720;
   var canvas = document.createElement('canvas'); canvas.width=W; canvas.height=H;
   var ctx = canvas.getContext('2d');
@@ -367,6 +378,14 @@ function startRec(){
     ctx.fillStyle='#fff'; ctx.font='bold 13px Arial'; ctx.fillText(text, x+8, y-7);
   }
   function vidReady(v){ return v && v.srcObject && v.readyState>=2 && v.videoWidth>0; }
+  // Draw a video 'contain'-fitted inside a box (letterboxed, no distortion).
+  function drawContain(v, bx, by, bw, bh){
+    var vw=v.videoWidth, vh=v.videoHeight; if(!vw||!vh) return;
+    var scale=Math.min(bw/vw, bh/vh);
+    var dw=vw*scale, dh=vh*scale;
+    var dx=bx+(bw-dw)/2, dy=by+(bh-dh)/2;
+    ctx.drawImage(v, dx, dy, dw, dh);
+  }
 
   (function draw(){
     if(!isRec) return;
@@ -376,19 +395,29 @@ function startRec(){
     ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
 
     if(screenLive){
-      // Top: shared screen (most of the frame, readable). Bottom strip: the two faces.
-      var stripH = 200;
-      var screenH = H - stripH; // 520
-      // screen fills top area (contain to avoid distortion)
-      ctx.drawImage(sv, 0, 0, W, screenH);
-      drawLabel('Shared Screen', 0, screenH, W);
-      // bottom strip: candidate left, interviewer right
-      if(vidReady(remVid)) ctx.drawImage(remVid, 0, screenH, W/2, stripH);
-      if(vidReady(lv)) ctx.drawImage(lv, W/2, screenH, W/2, stripH);
-      drawLabel('Candidate', 0, H, W/2);
-      drawLabel('Interviewer', W/2, H, W/2);
+      // TOP: the two faces side-by-side (kept as the primary subjects).
+      var faceH = 400;
+      if(vidReady(remVid)) ctx.drawImage(remVid, 0, 0, W/2, faceH);
+      if(vidReady(lv)) ctx.drawImage(lv, W/2, 0, W/2, faceH);
+      drawLabel('Candidate', 0, faceH, W/2);
+      drawLabel('Interviewer', W/2, faceH, W/2);
+      // BOTTOM: shared screen, smaller and centered (not full width).
+      var areaY = faceH, areaH = H - faceH; // 320
+      var boxW = 560, boxH = areaH - 30;     // centered box, leaves room for a label
+      var boxX = (W - boxW)/2, boxY = areaY + 6;
+      ctx.fillStyle='#0b0b0b'; ctx.fillRect(boxX, boxY, boxW, boxH);
+      drawContain(sv, boxX, boxY, boxW, boxH);
+      ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.strokeRect(boxX+0.5, boxY+0.5, boxW-1, boxH-1);
+      // Label centered under the screen box, naming who is sharing.
+      var who = (window._screenSharedBy || 'Candidate');
+      var lbl = who + "'s Shared Screen";
+      ctx.font='bold 13px Arial';
+      var tw=ctx.measureText(lbl).width;
+      var lx=(W - (tw+16))/2;
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(lx, H-24, tw+16, 22);
+      ctx.fillStyle='#fff'; ctx.fillText(lbl, lx+8, H-9);
     } else {
-      // No screen-share: two faces side-by-side, full height.
+      // No screen-share: two faces side-by-side, full height (main focus restored).
       if(vidReady(remVid)) ctx.drawImage(remVid, 0, 0, W/2, H);
       if(vidReady(lv)) ctx.drawImage(lv, W/2, 0, W/2, H);
       drawLabel('Candidate', 0, H, W/2);
@@ -543,7 +572,7 @@ async function connectSocket(){
   function createScreenPC(){
     pcScreen=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
     pcScreen.onicecandidate=function(e){if(e.candidate)socket.emit('screen-ice',{sessionId:sessionId,candidate:e.candidate});};
-    pcScreen.ontrack=function(e){if(e.streams&&e.streams[0]){var sv=document.getElementById('screen-vid');if(sv)sv.srcObject=e.streams[0];var st=document.getElementById('screen-tile');if(st)st.style.display='block';
+    pcScreen.ontrack=function(e){if(e.streams&&e.streams[0]){window._screenSharedBy='Candidate';var sv=document.getElementById('screen-vid');if(sv)sv.srcObject=e.streams[0];var st=document.getElementById('screen-tile');if(st)st.style.display='block';
       // Belt-and-suspenders: hide the tile the moment the screen track ends/mutes, not only on the socket signal.
       try{ var trk=e.track||(e.streams[0].getVideoTracks&&e.streams[0].getVideoTracks()[0]); if(trk){ var _hideTile=function(){ var st2=document.getElementById('screen-tile'); if(st2)st2.style.display='none'; var sv2=document.getElementById('screen-vid'); if(sv2)sv2.srcObject=null; }; trk.addEventListener('ended',_hideTile); trk.addEventListener('mute',_hideTile); } }catch(err){}
       try{ if(e.streams[0].addEventListener){ e.streams[0].addEventListener('removetrack',function(){ var st3=document.getElementById('screen-tile'); if(st3)st3.style.display='none'; }); } }catch(err){}}};
