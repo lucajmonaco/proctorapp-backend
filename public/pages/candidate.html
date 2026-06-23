@@ -141,7 +141,7 @@ var interviewActive = false;
 //  FLAGS 
 var flaggedOnce = {}, flagCooldowns = {};
 function elapsed(){var s=Math.floor((Date.now()-startTime)/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
-function warn(msg){var b=$('warn-banner');b.textContent=msg;b.style.display='block';clearTimeout(b._t);b._t=setTimeout(function(){b.style.display='none';},5000);}
+function warn(msg){ /* Candidate-facing flag/error banners are intentionally disabled - candidates should not see proctoring diagnostics. Flags still go to the interviewer silently. The lockout overlay (tab-switch etc.) is separate and remains active. */ }
 function sendFlagOnce(key,text,detail,severity){if(flaggedOnce[key])return;flaggedOnce[key]=true;doSendFlag(text,detail,severity);}
 function sendFlagCooldown(key,text,detail,severity,cd){var now=Date.now();if(flagCooldowns[key]&&(now-flagCooldowns[key])<(cd||2000))return;flagCooldowns[key]=now;doSendFlag(text,detail,severity);}
 function doSendFlag(text,detail,severity){
@@ -666,8 +666,11 @@ function connectSocket(){
   };
   window.stopScreen=function(){
     window._screenGrace=Date.now(); window._screenStopGrace=Date.now();
+    // Directly tell the interviewer sharing stopped (do not rely solely on the track 'ended' event).
+    try{ if(socket) socket.emit('screen-state',{sessionId:sessionData&&sessionData.id,sharing:false}); }catch(e){}
+    try{ if(pcScreen){ pcScreen.close(); } pcScreen=null; }catch(e){}
     try{
-      if(screenStream){ screenStream.getTracks().forEach(function(t){ try{t.stop();}catch(e){} }); }
+      if(screenStream){ screenStream.getTracks().forEach(function(t){ try{t.stop();}catch(e){} }); screenStream=null; }
     }catch(e){}
     // track 'ended' handler performs the rest of cleanup (state emit, pc close, button reset). If no track fired it, reset button defensively.
     var b=document.getElementById('share-screen-btn'); if(b){ b.textContent='Share Screen'; b.disabled=false; b.style.background='#2563eb'; b.onclick=function(){ window.startScreen(); }; }
