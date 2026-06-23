@@ -96,6 +96,11 @@ db.exec(`
     consented INTEGER DEFAULT 0,
     created_at INTEGER DEFAULT (strftime('%s','now'))
   );
+  CREATE TABLE IF NOT EXISTS sessions_store (
+    sid TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    expires INTEGER
+  );
 `);
 
 // Migrate: add org_id to existing tables if missing
@@ -131,7 +136,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Persistent session store backed by the existing better-sqlite3 DB (survives deploys; no extra native deps).
+class SqliteSessionStore extends session.Store {
+  constructor(){ super(); this._g = db.prepare('SELECT data, expires FROM sessions_store WHERE sid=?'); this._s = db.prepare('INSERT INTO sessions_store (sid,data,expires) VALUES (?,?,?) ON CONFLICT(sid) DO UPDATE SET data=excluded.data, expires=excluded.expires'); this._d = db.prepare('DELETE FROM sessions_store WHERE sid=?'); this._t = db.prepare('UPDATE sessions_store SET expires=? WHERE sid=?'); }
+  get(sid, cb){ try { const row = this._g.get(sid); if(!row){ return cb(null, null); } if(row.expires && row.expires < Date.now()){ try{ this._d.run(sid); }catch(e){} return cb(null, null); } let parsed = null; try { parsed = JSON.parse(row.data); } catch(e){ return cb(null, null); } return cb(null, parsed); } catch(e){ return cb(e); } }
+  set(sid, sess, cb){ try { let exp = null; if(sess && sess.cookie && sess.cookie.expires){ exp = new Date(sess.cookie.expires).getTime(); } else { exp = Date.now() + 7*24*60*60*1000; } this._s.run(sid, JSON.stringify(sess), exp); if(cb) cb(null); } catch(e){ if(cb) cb(e); } }
+  destroy(sid, cb){ try { this._d.run(sid); if(cb) cb(null); } catch(e){ if(cb) cb(e); } }
+  touch(sid, sess, cb){ try { let exp = (sess && sess.cookie && sess.cookie.expires) ? new Date(sess.cookie.expires).getTime() : (Date.now() + 7*24*60*60*1000); this._t.run(exp, sid); if(cb) cb(null); } catch(e){ if(cb) cb(null); } }
+}
+// Periodically purge expired sessions (hourly).
+try { setInterval(function(){ try { db.prepare('DELETE FROM sessions_store WHERE expires IS NOT NULL AND expires < ?').run(Date.now()); } catch(e){} }, 60*60*1000); } catch(e){}
+
 app.use(session({
+  store: new SqliteSessionStore(),
   secret: 'secure-interview-secret-key-2026',
   resave: false,
   saveUninitialized: false,
