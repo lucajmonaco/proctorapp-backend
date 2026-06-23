@@ -307,7 +307,8 @@ function setupProtection(){
     var now = Date.now();
     if(now - blurDebounce < 600) return;
     blurDebounce = now;
-    if(window._screenGrace && (Date.now()-window._screenGrace)<4000) return; // ignore blur caused by the candidate's own screen-share picker
+    if(window._screenGrace && (Date.now()-window._screenGrace)<6000) return; // ignore blur caused by the candidate's own screen-share picker/start
+    if(window._screenStopGrace && (Date.now()-window._screenStopGrace)<6000) return; // ignore blur caused by the candidate stopping their own share
     if(!document.hidden){ // blur without visibility change = other app/window, not tab switch
       startLockout('You switched to another application or window.');
     }
@@ -654,14 +655,22 @@ function connectSocket(){
     var off=await pcScreen.createOffer(); await pcScreen.setLocalDescription(off);
     socket.emit('screen-offer',{sessionId:sessionData&&sessionData.id,offer:off});
     socket.emit('screen-state',{sessionId:sessionData&&sessionData.id,sharing:true});
-    var btn=document.getElementById('share-screen-btn'); if(btn){btn.textContent='Screen Shared';btn.disabled=true;btn.style.background='#16a34a';}
+    var btn=document.getElementById('share-screen-btn'); if(btn){btn.textContent='Stop Sharing';btn.disabled=false;btn.style.background='#dc2626';btn.onclick=function(){ window.stopScreen(); };}
     if(vt)vt.addEventListener('ended',function(){
-      window._screenGrace=Date.now(); // stopping one's own share shifts focus - don't treat it as leaving the interview
-      sendFlagCooldown('screen-stopped','Screen Share Stopped','Candidate stopped sharing their screen','high',3000);
-      socket.emit('screen-state',{sessionId:sessionData&&sessionData.id,sharing:false});
+      window._screenGrace=Date.now(); window._screenStopGrace=Date.now(); // stopping one's own share shifts focus - NOT a violation
+      try{ socket.emit('screen-state',{sessionId:sessionData&&sessionData.id,sharing:false}); }catch(e){}
       try{if(pcScreen)pcScreen.close();}catch(e){} pcScreen=null;
-      var b2=document.getElementById('share-screen-btn'); if(b2){b2.textContent='Share Screen';b2.disabled=false;b2.style.background='#2563eb';}
+      try{ if(screenStream){ screenStream.getTracks().forEach(function(t){try{t.stop();}catch(e){}}); screenStream=null; } }catch(e){}
+      var b2=document.getElementById('share-screen-btn'); if(b2){b2.textContent='Share Screen';b2.disabled=false;b2.style.background='#2563eb';b2.onclick=function(){ window.startScreen(); };}
     });
+  };
+  window.stopScreen=function(){
+    window._screenGrace=Date.now(); window._screenStopGrace=Date.now();
+    try{
+      if(screenStream){ screenStream.getTracks().forEach(function(t){ try{t.stop();}catch(e){} }); }
+    }catch(e){}
+    // track 'ended' handler performs the rest of cleanup (state emit, pc close, button reset). If no track fired it, reset button defensively.
+    var b=document.getElementById('share-screen-btn'); if(b){ b.textContent='Share Screen'; b.disabled=false; b.style.background='#2563eb'; b.onclick=function(){ window.startScreen(); }; }
   };
   socket.on('screen-answer',async function(d){if(pcScreen)await pcScreen.setRemoteDescription(d.answer);});
   socket.on('screen-ice',async function(d){if(pcScreen){try{await pcScreen.addIceCandidate(d.candidate);}catch(e){}}});
