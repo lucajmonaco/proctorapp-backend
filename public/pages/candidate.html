@@ -379,7 +379,7 @@ async function recheckTabsPreJoin(){
   if(count>0){$('other-tab-count').textContent=count;}
   else{$('tab-block-overlay').style.display='none';doJoin();}
 }
-async // Screen-permission gate. Only enforced when the recruiter turned on 'Require screen
+// Screen-permission gate. Only enforced when the recruiter turned on 'Require screen
 // monitoring' for this interview. Otherwise it passes straight through to doJoin().
 async function requireScreenGate(){
   var need = sessionData && (sessionData.require_screen===1 || sessionData.require_screen===true);
