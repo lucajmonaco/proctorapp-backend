@@ -427,7 +427,7 @@ app.get('/api/join/:code', (req, res) => {
       return res.json({ error: 'SESSION_SCHEDULED', scheduledAt: s.scheduled_at, title: s.title });
     }
   }
-  res.json({ id:s.id, title:s.title, candidate_name:s.candidate_name, status:s.status, code:s.code, scheduled_at:s.scheduled_at||null, questions: JSON.parse(s.questions || '[]') });
+  res.json({ id:s.id, title:s.title, candidate_name:s.candidate_name, status:s.status, code:s.code, scheduled_at:s.scheduled_at||null, require_screen:s.require_screen||0, questions: JSON.parse(s.questions || '[]') });
 });
 
 app.patch('/api/sessions/:id', requireAuth, (req, res) => {
