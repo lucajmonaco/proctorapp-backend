@@ -508,7 +508,10 @@ async function connectSocket(){
   function createScreenPC(){
     pcScreen=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
     pcScreen.onicecandidate=function(e){if(e.candidate)socket.emit('screen-ice',{sessionId:sessionId,candidate:e.candidate});};
-    pcScreen.ontrack=function(e){if(e.streams&&e.streams[0]){var sv=document.getElementById('screen-vid');if(sv)sv.srcObject=e.streams[0];var st=document.getElementById('screen-tile');if(st)st.style.display='block';}};
+    pcScreen.ontrack=function(e){if(e.streams&&e.streams[0]){var sv=document.getElementById('screen-vid');if(sv)sv.srcObject=e.streams[0];var st=document.getElementById('screen-tile');if(st)st.style.display='block';
+      // Belt-and-suspenders: hide the tile the moment the screen track ends/mutes, not only on the socket signal.
+      try{ var trk=e.track||(e.streams[0].getVideoTracks&&e.streams[0].getVideoTracks()[0]); if(trk){ var _hideTile=function(){ var st2=document.getElementById('screen-tile'); if(st2)st2.style.display='none'; var sv2=document.getElementById('screen-vid'); if(sv2)sv2.srcObject=null; }; trk.addEventListener('ended',_hideTile); trk.addEventListener('mute',_hideTile); } }catch(err){}
+      try{ if(e.streams[0].addEventListener){ e.streams[0].addEventListener('removetrack',function(){ var st3=document.getElementById('screen-tile'); if(st3)st3.style.display='none'; }); } }catch(err){}}};
   }
   socket.on('screen-offer',async function(d){if(!pcScreen)createScreenPC();await pcScreen.setRemoteDescription(d.offer);var a=await pcScreen.createAnswer();await pcScreen.setLocalDescription(a);socket.emit('screen-answer',{sessionId:sessionId,answer:a});});
   socket.on('screen-ice',async function(d){if(pcScreen){try{await pcScreen.addIceCandidate(d.candidate);}catch(e){}}});
@@ -577,9 +580,18 @@ async function connectSocket(){
     if(window._lockTick){clearInterval(window._lockTick);window._lockTick=null;}
     var co=$('candidate-lockout-overlay'); if(co)co.classList.remove('active');
   }
-  socket.on('peer-left',function(){
+  socket.on('peer-left',async function(){
     $('s-status').textContent='Ended'; $('s-status').className='badge badge-red';
-    showConcluded('The candidate has left. This interview is concluded.');
+    // Candidate left: stop + SAVE the recording before concluding (was previously missing - recordings were lost).
+    var wasRec = isRec;
+    try{ if(isRec) stopRec(); }catch(e){}
+    if(timerInterval){ try{ clearInterval(timerInterval); }catch(e){} }
+    showConcluded('The candidate has left. Saving recording...');
+    if(wasRec && window._recSavePromise){
+      try{ await Promise.race([window._recSavePromise, new Promise(function(rs){ setTimeout(rs,60000); })]); }catch(e){}
+    }
+    try{ await patch('/api/sessions/'+sessionId,{status:'ended'}); }catch(e){}
+    var sub=document.getElementById('concluded-sub'); if(sub) sub.textContent = wasRec ? 'Recording saved to your library.' : 'This interview is concluded.';
   });
 }
 
