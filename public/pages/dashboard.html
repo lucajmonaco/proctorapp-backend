@@ -314,7 +314,7 @@ async function loadSessions(){
     row.className = 'session-row';
     row.setAttribute('data-sid', s.id);
     row.setAttribute('data-status', s.status||'');
-    row.innerHTML = '<div class="session-avatar">'+((s.candidate_name||'C').charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="sr-title">'+s.title+'</div><div class="sr-meta">'+metaLine+'</div></div><div class="sr-right">'+startNowBtn+copyBtn+scoreHtml+statusBadge+'<button class="btn btn-outline btn-sm" data-del-sess="'+s.id+'" title="Delete interview" style="font-size:11px;padding:4px 9px;color:#dc2626;border-color:#fecaca">Delete</button></div>';
+    row.innerHTML = '<div class="session-avatar">'+((s.candidate_name||'C').charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="sr-title">'+s.title+'</div><div class="sr-meta">'+metaLine+'</div></div><div class="sr-right">'+startNowBtn+copyBtn+scoreHtml+statusBadge+(s.status==='ended' ? '<a href="/recordings" class="btn btn-outline btn-sm" title="View recording in library" style="font-size:11px;padding:4px 9px;color:#2563eb;border-color:#bfdbfe;text-decoration:none">View Recording</a>' : '')+'<button class="btn btn-outline btn-sm" data-del-sess="'+s.id+'" title="Delete interview" style="font-size:11px;padding:4px 9px;color:#dc2626;border-color:#fecaca">Delete</button></div>';
     container.appendChild(row);
   });
 }
@@ -589,6 +589,21 @@ async function init(){
 }
 
 init();
+// Lightweight auto-refresh: keep the dashboard's session lists current so a scheduled
+// interview's 'Start in Xm' -> 'Start Now' transition (and completed sessions moving out
+// of Upcoming) happen on their own, without a manual page reload. Guarded so it never
+// interrupts the user mid-action.
+setInterval(function(){
+  try{
+    // Don't refresh while a modal is open or the user is typing in a field.
+    var modalOpen = document.querySelector('.modal-overlay[style*="flex"], #ov-new-session[style*="flex"]');
+    var ae = document.activeElement;
+    var typing = ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA' || ae.tagName==='SELECT');
+    // Only auto-refresh the Sessions or Upcoming tabs (not while managing the Company tab).
+    var teamActive = (function(){ var t=document.getElementById('tab-team'); return t && t.classList.contains('active'); })();
+    if(!modalOpen && !typing && !teamActive && typeof loadSessions==='function'){ loadSessions(); }
+  }catch(e){}
+}, 30000);
 </script>
 </body>
 </html>
