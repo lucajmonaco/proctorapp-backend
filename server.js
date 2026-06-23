@@ -808,6 +808,7 @@ io.on('connection', (socket) => {
   socket.on('screen-answer', ({ sessionId, answer }) => socket.to(sessionId).emit('screen-answer', { answer }));
   socket.on('screen-ice', ({ sessionId, candidate }) => socket.to(sessionId).emit('screen-ice', { candidate }));
   socket.on('screen-state', ({ sessionId, sharing }) => socket.to(sessionId).emit('screen-state', { sharing }));
+  socket.on('chat-message', ({ sessionId, from, text }) => { var clean = (text||'').toString().slice(0, 1000); if(clean.trim()) socket.to(sessionId).emit('chat-message', { from: (from||'Participant').toString().slice(0,40), text: clean }); });
   socket.on('next-question', ({ sessionId, qIdx }) => socket.to(sessionId).emit('next-question', { qIdx }));
   socket.on('session-ended', ({ sessionId }) => socket.to(sessionId).emit('session-ended'));
   socket.on('candidate-flag', ({ sessionId, flag }) => {
