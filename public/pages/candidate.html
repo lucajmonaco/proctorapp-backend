@@ -749,7 +749,7 @@ function sendChat(){
 function chatKey(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); } }
 init();
 </script>
-<div id="chat-panel" style="position:fixed;left:16px;bottom:16px;width:300px;max-height:380px;display:flex;flex-direction:column;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:8000;overflow:hidden">
+<div id="chat-panel" style="position:fixed;left:16px;top:50%;transform:translateY(-50%);width:300px;max-height:380px;display:flex;flex-direction:column;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:8000;overflow:hidden">
   <div style="padding:8px 12px;background:#0f172a;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between">
     <span>Chat</span>
   </div>
