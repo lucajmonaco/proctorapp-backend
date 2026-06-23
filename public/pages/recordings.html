@@ -377,9 +377,24 @@ function buildRecCard(rec, inPositionView){
 
 
   var actions=document.createElement('div');actions.className='rec-actions';
-  function btn(cls,html,cb){var b=document.createElement('button');b.className='btn btn-sm '+cls;b.innerHTML=html;b.onclick=cb;actions.appendChild(b);return b;}
+  function openFullScreenPlayer(url){
+  var w=window.open('','_blank');
+  if(!w){ window.open(url,'_blank'); return; }
+  var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recording</title>'
+    +'<style>html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}'
+    +'video{position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;background:#000}'
+    +'</style></head><body>'
+    +'<video src="'+url+'" controls autoplay playsinline></video>'
+    +'<script>var v=document.querySelector("video");'
+    +'function fs(){ if(document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(function(){}); } }'
+    +'document.addEventListener("click",fs,{once:true});'
+    +'v.addEventListener("loadedmetadata",function(){ try{ v.play(); }catch(e){} });<\/script>'
+    +'</body></html>';
+  w.document.open(); w.document.write(doc); w.document.close();
+}
+function btn(cls,html,cb){var b=document.createElement('button');b.className='btn btn-sm '+cls;b.innerHTML=html;b.onclick=cb;actions.appendChild(b);return b;}
   btn('btn-outline','Preview',function(){togglePreview(rec.id,streamUrl);});
-  btn('btn-outline','Watch Full Screen',function(){window.open(streamUrl,'_blank');});
+  btn('btn-outline','Watch Full Screen',function(){ openFullScreenPlayer(streamUrl); });
   btn('btn-primary','Download',function(){dlRec(rec.id,rec.session_title,rec.candidate_name);});
   var cb=btn('btn-purple','Compress for Email',function(){compressRec(rec.id,rec.session_title,cb);});
   if(rec.share_token){
