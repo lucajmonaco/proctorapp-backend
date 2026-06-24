@@ -481,8 +481,7 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
 function togglePreview(id,url){var v=document.getElementById('vid-'+id);if(v.style.display==='block'){v.style.display='none';v.pause();}else{if(url&&!v.src.includes(url.split('/').pop()))v.src=url;v.style.display='block';v.play();}}
 
 function dlRec(id,title,cand){
-  var a=document.createElement('a');a.href='/api/recordings/'+id+'/stream';
-  a.download='interview-'+(title||'session').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.webm';
+  var a=document.createElement('a');a.href='/api/recordings/'+id+'/download';
   a.click();toast('Download started','green');
 }
 
