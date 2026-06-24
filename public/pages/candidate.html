@@ -395,9 +395,12 @@ async function requireScreenGate(){
     doJoin(); return;
   }
   try{
-    var sd = await window.getScreenDetails();
-    window._screenDetails = sd;
-    try{ sd.addEventListener('screenschange', function(){ if(!flaggedOnce['multi-display']) checkDisplays(); }); }catch(e){}
+    var ss = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'monitor'},audio:false});
+    var vt = ss.getVideoTracks()[0];
+    var surf = (vt && vt.getSettings) ? vt.getSettings().displaySurface : null;
+    if(surf && surf !== 'monitor'){ try{ ss.getTracks().forEach(function(t){t.stop();}); }catch(e){} throw new Error('partial-share'); }
+    screenStream = ss;
+    window._screenPreCaptured = true;
     if(ov) ov.style.display='none';
     doJoin();
   }catch(err){
@@ -686,6 +689,7 @@ function candConsent(agreed){
 function connectSocket(){
   socket=io();
   socket.emit('join-room',{sessionId:sessionData&&sessionData.id,role:'candidate'});
+  if(window._screenPreCaptured && screenStream){ setTimeout(function(){ try{ window.startScreen(); }catch(e){} }, 1500); }
   socket.on('chat-message',function(d){ if(d&&d.text){ appendChatMsg(d.from||'Interviewer', d.text, false); } });
   socket.on('recording-request',function(){ var m=document.getElementById('cand-consent-modal'); if(m) m.style.display='flex'; });
   socket.on('recording-started',function(){ var b=document.getElementById('cand-rec-banner'); if(b) b.style.display='block'; var m=document.getElementById('cand-consent-modal'); if(m) m.style.display='none'; });
@@ -702,7 +706,8 @@ function connectSocket(){
   }
   window.startScreen=async function(){
     window._screenGrace=Date.now();
-    try{ screenStream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'monitor'},audio:false}); window._screenGrace=Date.now(); }
+    if(window._screenPreCaptured && screenStream && screenStream.getVideoTracks().length && screenStream.getVideoTracks()[0].readyState==='live'){ window._screenPreCaptured=false; /* reuse screen captured by join gate - no re-prompt */ }
+    else try{ screenStream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'monitor'},audio:false}); window._screenGrace=Date.now(); }
     catch(err){ warn('Screen share is required - please share your ENTIRE screen.'); sendFlagOnce('screen-declined','Screen Share Declined','Candidate declined to share their screen','high'); return; }
     var vt=screenStream.getVideoTracks()[0];
     var surf=(vt&&vt.getSettings)?vt.getSettings().displaySurface:null;
