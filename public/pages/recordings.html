@@ -440,7 +440,6 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
     btn('btn-outline','Copy Share Link',function(){navigator.clipboard.writeText(location.origin+'/share/'+rec.share_token).then(function(){toast('Share link copied!','green',5000);});});
     btn('btn-outline','Open Share Page',function(){window.open('/share/'+rec.share_token,'_blank');});
   }
-  btn('btn-danger','Delete',function(){deleteRec(rec.id);});
   body.appendChild(actions);
 
   var pw=document.createElement('div');pw.className='prog-wrap';pw.id='pw-'+rec.id;
