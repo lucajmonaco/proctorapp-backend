@@ -570,7 +570,7 @@ app.post('/api/recordings/:id/convert-test', requireAuth, function(req, res){
     var codecs = null; try{ codecs = JSON.parse(pout||'{}'); }catch(e){}
     // Step B: attempt a FAST remux (no re-encode) into MP4.
     var t0 = Date.now();
-    execFile('ffmpeg', ['-y','-i', rec.file_path, '-c','copy','-movflags','+faststart', outPath], { timeout: 60000, maxBuffer: 1024*1024*20 }, function(err, stdout, stderr){
+    execFile('ffmpeg', ['-y','-i', rec.file_path, '-c:v','libx264','-preset','veryfast','-crf','23','-c:a','aac','-movflags','+faststart', outPath], { timeout: 1000*60*10, maxBuffer: 1024*1024*20 }, function(err, stdout, stderr){
       var remuxOk = !err;
       var size = 0; try{ size = fs.statSync(outPath).size; }catch(e){}
       if(!remuxOk){ try{ if(fs.existsSync(outPath)) fs.unlinkSync(outPath); }catch(e){} }
