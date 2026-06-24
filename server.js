@@ -126,7 +126,7 @@ if (!fs.existsSync(IDS_DIR)) fs.mkdirSync(IDS_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, RECORDINGS_DIR),
-  filename: (req, file, cb) => cb(null, uuidv4() + '.webm')
+  filename: (req, file, cb) => { var ext = (file && file.originalname && /\.mp4$/i.test(file.originalname)) ? '.mp4' : '.webm'; cb(null, uuidv4() + ext); }
 });
 const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 const idStorage = multer.diskStorage({
@@ -609,6 +609,7 @@ app.get('/api/recordings/:id/org-stream', requireAuth, (req, res) => {
   const filePath = rec.file_path || path.join(DATA_DIR, 'recordings', rec.filename || '');
   if (!filePath || !fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
   const stat = fs.statSync(filePath);
+  var ctype = (/\.mp4$/i.test(filePath)) ? 'video/mp4' : 'video/webm';
   const range = req.headers.range;
   if (range) {
     const [startStr, endStr] = range.replace(/bytes=/, '').split('-');
@@ -616,10 +617,10 @@ app.get('/api/recordings/:id/org-stream', requireAuth, (req, res) => {
     const end = endStr ? parseInt(endStr, 10) : stat.size - 1;
     const chunkSize = end - start + 1;
     const file = fs.createReadStream(filePath, { start, end });
-    res.writeHead(206, { 'Content-Range': `bytes ${start}-${end}/${stat.size}`, 'Accept-Ranges': 'bytes', 'Content-Length': chunkSize, 'Content-Type': 'video/webm' });
+    res.writeHead(206, { 'Content-Range': `bytes ${start}-${end}/${stat.size}`, 'Accept-Ranges': 'bytes', 'Content-Length': chunkSize, 'Content-Type': ctype });
     file.pipe(res);
   } else {
-    res.writeHead(200, { 'Content-Length': stat.size, 'Content-Type': 'video/webm' });
+    res.writeHead(200, { 'Content-Length': stat.size, 'Content-Type': ctype });
     fs.createReadStream(filePath).pipe(res);
   }
 });
@@ -662,15 +663,16 @@ app.delete('/api/sessions/:id', requireAuth, (req, res) => {
 function streamVideo(req, res, filePath) {
   const stat = fs.statSync(filePath);
   const total = stat.size;
+  var ctype = (/\.mp4$/i.test(filePath)) ? 'video/mp4' : 'video/webm';
   const range = req.headers.range;
   if (range) {
     const parts = range.replace(/bytes=/, '').split('-');
     const start = parseInt(parts[0], 10);
     const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
-    res.writeHead(206, { 'Content-Range': `bytes ${start}-${end}/${total}`, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Content-Type': 'video/webm' });
+    res.writeHead(206, { 'Content-Range': `bytes ${start}-${end}/${total}`, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Content-Type': ctype });
     fs.createReadStream(filePath, { start, end }).pipe(res);
   } else {
-    res.writeHead(200, { 'Content-Length': total, 'Content-Type': 'video/webm', 'Accept-Ranges': 'bytes' });
+    res.writeHead(200, { 'Content-Length': total, 'Content-Type': ctype, 'Accept-Ranges': 'bytes' });
     fs.createReadStream(filePath).pipe(res);
   }
 }
