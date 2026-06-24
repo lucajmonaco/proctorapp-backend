@@ -570,6 +570,21 @@ app.get('/api/recordings/:id/stream', requireAuth, (req, res) => {
   streamVideo(req, res, rec.file_path);
 });
 
+// Download endpoint: serves the recording as an attachment with the CORRECT file extension
+// (.mp4 or .webm) based on the actual stored file. Separate from /stream so the in-page player is untouched.
+app.get('/api/recordings/:id/download', requireAuth, (req, res) => {
+  let rec = db.prepare('SELECT * FROM recordings WHERE id=? AND interviewer_id=?').get(req.params.id, req.session.userId);
+  if (!rec) {
+    rec = db.prepare('SELECT r.* FROM recordings r JOIN job_positions p ON r.job_position_id=p.id WHERE r.id=? AND p.org_id=?').get(req.params.id, req.session.orgId);
+  }
+  if (!rec || !fs.existsSync(rec.file_path)) return res.status(404).json({ error: 'Not found' });
+  var ext = (/\.mp4$/i.test(rec.file_path)) ? 'mp4' : 'webm';
+  var base = (rec.candidate_name || rec.session_title || 'interview').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+  var fname = 'interview-' + base + '.' + ext;
+  res.setHeader('Content-Disposition', 'attachment; filename=' + JSON.stringify(fname));
+  streamVideo(req, res, rec.file_path);
+});
+
 // TEMPORARY verification endpoint (Step 2): convert one recording's WebM to MP4 and report.
 // This proves ffmpeg is installed and produces a good MP4 before wiring auto-conversion. Remove after.
 
