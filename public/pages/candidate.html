@@ -451,7 +451,7 @@ function initAudioMonitoring(stream){
       buf.push(peaks);if(buf.length>10)buf.shift();
       var avg=buf.reduce(function(a,b){return a+b;},0)/buf.length;
       var energy=0;for(var k=bs;k<be;k++)energy+=data[k];
-      if(avg>=2.5&&energy/(be-bs)>20){sendFlagCooldown('bg-voice','Background Voice Detected','Audio: second voice detected - possible coaching','high',20000);warn('Background voice detected');}
+      if(avg>=5&&energy/(be-bs)>35){sendFlagCooldown('bg-voice','Background Voice Detected','Audio: second voice detected - possible coaching','high',20000);warn('Background voice detected');}
     },500);
   }catch(e){console.warn('Audio monitor:',e.message);}
 }
