@@ -87,17 +87,11 @@
     <p class="modal-sub">Create a session and share the invite link with your candidate.</p>
     <label class="label">Session Title *</label>
     <input type="text" id="ns-title" class="input" placeholder="e.g. Senior Engineer Round 2" maxlength="80">
-    <label class="label">Candidate Name</label>
+    <label class="label">Candidate Name <span style="color:var(--red)">*</span></label>
     <input type="text" id="ns-candidate" class="input" placeholder="e.g. Jane Smith">
     <label class="label">Candidate Email <span style="font-weight:400;color:var(--text4);font-size:11px">(optional)</span></label>
     <input type="email" id="ns-candidate-email" class="input" placeholder="e.g. jane@example.com">
-    <label class="label">Interview Questions <span style="font-weight:400;color:var(--text4);font-size:11px">(one per line)</span></label>
-    <textarea id="ns-questions" class="input" rows="5" placeholder="Tell me about yourself.
-What is your biggest strength?
-Describe a challenging project.
-How do you handle conflict?
-Where do you see yourself in 5 years?"></textarea>
-    <label class="label">Schedule Interview <span style="font-weight:400;color:var(--text4);font-size:11px">(optional - leave blank to start now)</span></label>
+        <label class="label">Schedule Interview <span style="font-weight:400;color:var(--text4);font-size:11px">(optional - leave blank to start now)</span></label>
     <input type="datetime-local" id="ns-scheduled" class="input" style="color-scheme:light">
     <div style="font-size:11px;color:var(--text4);margin-top:5px;padding:6px 10px;background:var(--sky);border-radius:6px;border-left:3px solid var(--blue-light)">Leave blank to start immediately. Candidate cannot join until 5 min before scheduled time.</div>
     <label class="label" style="display:flex;align-items:flex-start;gap:9px;margin-top:14px;cursor:pointer;font-weight:500">
@@ -170,15 +164,15 @@ async function doCreateSession(){
   var title = document.getElementById('ns-title').value.trim();
   var candidate = document.getElementById('ns-candidate').value.trim();
   var candidateEmail = document.getElementById('ns-candidate-email').value.trim();
-  var questionsRaw = document.getElementById('ns-questions').value;
   var scheduledEl = document.getElementById('ns-scheduled');
   var scheduled = scheduledEl ? scheduledEl.value : '';
   var errEl = document.getElementById('ns-err');
   errEl.style.display = 'none';
   if(!title){ errEl.textContent = 'Session title is required'; errEl.style.display = 'block'; return; }
+  if(!candidate){ errEl.textContent = 'Candidate name is required'; errEl.style.display = 'block'; return; }
   var btn = document.getElementById('ns-create-btn');
   btn.disabled = true; btn.textContent = 'Creating...';
-  var questions = questionsRaw.split('\n').map(function(q){ return q.trim(); }).filter(function(q){ return q; });
+  var questions = [];
   var _reqScreenEl = document.getElementById('ns-require-screen');
   var requireScreen = _reqScreenEl ? _reqScreenEl.checked : false;
   var body = {title:title, candidateName:candidate||'Candidate', candidateEmail:candidateEmail||null, questions:questions, scheduledAt:scheduled?Math.floor(new Date(scheduled).getTime()/1000):null, requireScreen:requireScreen};
