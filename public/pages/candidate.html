@@ -667,7 +667,7 @@ function leaveInterview(){
   if(!confirm('Leave this interview now? You will be disconnected and will need the link to rejoin.')){ try{ interviewActive=wasActive; }catch(e){} return; }
   try{ stopAllMedia(); }catch(e){}
   try{ if(socket) socket.disconnect(); }catch(e){}
-  window.location.href='/';
+  try{ showGoodbye(); }catch(e){ window.location.href='/'; }
 }
 (function(){ function wire(){ var b=document.getElementById('leave-btn'); if(b) b.onclick=leaveInterview; } if(document.readyState!=='loading'){ wire(); } else { document.addEventListener('DOMContentLoaded', wire); } })();
 function candConsent(agreed){
