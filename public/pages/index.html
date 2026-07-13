@@ -348,7 +348,7 @@ async function doSignIn(){
   if(res.error){ err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Sign In'; return; }
   window.location.href = '/dashboard';
 }
-async function doCreate(){
+async function doCreate(){ var _pw6=$("cr-pass").value; if(_pw6.length<6){ var _pe=$("cr-err"); _pe.textContent="Password must be at least 6 characters"; _pe.style.display="block"; return; }
   var btn = $('cr-btn'), err = $('cr-err');
   btn.disabled = true; btn.textContent = 'Creating...'; err.style.display = 'none';
   var res = await post('/api/auth/org/create',{
@@ -363,7 +363,7 @@ async function doCreate(){
   $('cr-form').style.display = 'none';
   $('cr-switch').innerHTML = '<a href="/dashboard">Go to Dashboard &rarr;</a>';
 }
-async function doJoin(){
+async function doJoin(){ var _pw6=$("jo-pass").value; if(_pw6.length<6){ var _pe=$("jo-err"); _pe.textContent="Password must be at least 6 characters"; _pe.style.display="block"; return; }
   var btn = $('jo-btn'), err = $('jo-err');
   btn.disabled = true; btn.textContent = 'Joining...'; err.style.display = 'none';
   var res = await post('/api/auth/org/join',{
