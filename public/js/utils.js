@@ -49,3 +49,13 @@ async function requireLogin(back){
 
 function trustClass(score){return score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo';}
 function trustLabel(score){return score>=80?'Excellent':score>=60?'Good':score>=40?'Caution':'High Risk';}
+
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest(".pwd-toggle");
+  if (!btn) return;
+  var input = document.getElementById(btn.getAttribute("data-target"));
+  if (!input) return;
+  var reveal = input.type === "password";
+  input.type = reveal ? "text" : "password";
+  btn.classList.toggle("is-visible", reveal);
+});
