@@ -399,6 +399,7 @@ async function loadCompanyPanel(){
   });
 
   // Event delegation for all panel actions
+  if(!panel._actionsWired){ panel._actionsWired = true;
   panel.addEventListener('click', function(e){
     var cBtn=e.target.closest('[data-copy-val]');
     if(cBtn){ navigator.clipboard.writeText(cBtn.getAttribute('data-copy-val')).then(function(){toast(cBtn.getAttribute('data-toast')||'Copied!','green');}); return; }
@@ -407,6 +408,7 @@ async function loadCompanyPanel(){
     var dBtn=e.target.closest('[data-remove-id]');
     if(dBtn){ removeMember(dBtn.getAttribute('data-remove-id'),dBtn.getAttribute('data-member-name')); }
   });
+  }
 
   // Activity Log (admin only)
   if(me && me.role==='admin'){
