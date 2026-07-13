@@ -389,10 +389,4 @@ input[type="datetime-local"].input{color-scheme:light}
 /* Org code input */
 .org-code-input{font-family:monospace;font-size:18px;letter-spacing:4px;text-align:center;text-transform:uppercase}
 
-.pwd-wrap{position:relative;display:block}
-.pwd-wrap .input{padding-right:42px}
-.pwd-toggle{position:absolute;top:50%;right:6px;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;background:none;border:0;cursor:pointer;color:var(--muted,#8a8f98)}
-.pwd-toggle:hover{color:var(--text,#111)}
-.pwd-toggle .i-eye-off{display:none}
-.pwd-toggle.is-visible .i-eye{display:none}
-.pwd-toggle.is-visible .i-eye-off{display:block}
+.input-hint{margin-top:5px;font-size:11px;color:var(--muted,#8a8f98);line-height:1.4}
