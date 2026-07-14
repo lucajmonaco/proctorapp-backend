@@ -54,7 +54,7 @@
   <div class="tabs-bar">
     <button class="tab-btn active" id="tab-sessions-btn" data-tab="sessions">Sessions</button>
     <button class="tab-btn" id="tab-upcoming-btn" data-tab="upcoming">Upcoming</button>
-    <button class="tab-btn" id="tab-team-btn" data-tab="team">Company</button>
+    <button class="tab-btn" id="tab-team-btn" data-tab="team">Company</button><button class="tab-btn" id="tab-reviews-btn" data-tab="reviews" style="display:none">Reviews</button>
   </div>
 
   <div class="tab-panel active" id="tab-sessions">
@@ -129,6 +129,50 @@ function closeDrawer(){
 }
 
 //  TABS 
+async function loadReviewsPanel(){
+  var panel = document.getElementById('tab-reviews');
+  if(!panel) return;
+  panel.textContent = '';
+  var wrap = document.createElement('div');
+  var data;
+  try{ var res = await fetch('/api/reviews'); data = res.ok ? await res.json() : []; }catch(e){ data = []; }
+  var iVals = [], cVals = [];
+  data.forEach(function(d){ if(d.ratings.interviewer) iVals.push(d.ratings.interviewer.stars); if(d.ratings.candidate) cVals.push(d.ratings.candidate.stars); });
+  function avg(a){ if(!a.length) return '-'; var s=0; a.forEach(function(n){ s+=n; }); return (s/a.length).toFixed(1); }
+  var summary = document.createElement('div'); summary.style.cssText='display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px';
+  [['Total reviews', String(data.length)],['Avg interviewer', avg(iVals)],['Avg candidate', avg(cVals)]].forEach(function(pair){
+    var c=document.createElement('div'); c.style.cssText='background:var(--sky);border:1px solid var(--sky-deep);border-radius:10px;padding:14px 18px;min-width:120px';
+    var v=document.createElement('div'); v.style.cssText='font-size:22px;font-weight:800;color:var(--navy)'; v.textContent=pair[1];
+    var l=document.createElement('div'); l.style.cssText='font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;font-weight:600'; l.textContent=pair[0];
+    c.appendChild(v); c.appendChild(l); summary.appendChild(c);
+  });
+  wrap.appendChild(summary);
+  if(!data.length){ var empty=document.createElement('div'); empty.style.cssText='color:var(--text3);font-size:13px;padding:16px 0'; empty.textContent='No reviews yet.'; wrap.appendChild(empty); panel.appendChild(wrap); return; }
+  function fmtDate(ts){ if(!ts) return ''; return new Date(ts*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+  function makeStar(filled){ var ns='http://www.w3.org/2000/svg'; var svg=document.createElementNS(ns,'svg'); svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('width','14'); svg.setAttribute('height','14'); var p=document.createElementNS(ns,'path'); p.setAttribute('d','M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'); p.setAttribute('fill', filled?'#f5a623':'none'); p.setAttribute('stroke', filled?'#f5a623':'#cbd5e1'); p.setAttribute('stroke-width','1.5'); svg.appendChild(p); return svg; }
+  function starRow(r){ var sp=document.createElement('span'); sp.style.cssText='display:inline-flex;align-items:center'; if(r){ for(var i=1;i<=5;i++) sp.appendChild(makeStar(i<=r.stars)); } else { var dd=document.createElement('span'); dd.style.cssText='color:var(--text3);font-size:12px'; dd.textContent='Not rated'; sp.appendChild(dd); } return sp; }
+  data.forEach(function(d){
+    var card=document.createElement('div'); card.style.cssText='border:1px solid var(--sky-deep);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--white)';
+    var head=document.createElement('div'); head.style.cssText='display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px';
+    var left=document.createElement('div');
+    var cand=document.createElement('div'); cand.style.cssText='font-weight:700;color:var(--navy);font-size:14px'; cand.textContent=d.candidate_name||'Candidate';
+    var meta=document.createElement('div'); meta.style.cssText='font-size:12px;color:var(--text3)'; meta.textContent=(d.session_title||'')+'  -  '+(d.interviewer_name||'Interviewer');
+    left.appendChild(cand); left.appendChild(meta);
+    var date=document.createElement('div'); date.style.cssText='font-size:12px;color:var(--text3)'; date.textContent=fmtDate(d.created_at);
+    head.appendChild(left); head.appendChild(date); card.appendChild(head);
+    [['Interviewer','interviewer'],['Candidate','candidate']].forEach(function(pair){
+      var r=d.ratings[pair[1]];
+      var row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;flex-wrap:wrap';
+      var who=document.createElement('span'); who.style.cssText='color:var(--text3);min-width:78px'; who.textContent=pair[0];
+      row.appendChild(who); row.appendChild(starRow(r));
+      if(r&&r.note){ var n=document.createElement('span'); n.style.cssText='color:var(--text2);font-style:italic;flex-basis:100%;margin-top:2px'; n.textContent=r.note; row.appendChild(n); }
+      card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  });
+  panel.appendChild(wrap);
+}
+
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
@@ -137,6 +181,7 @@ function switchTab(name){
   if(btn) btn.classList.add('active');
   if(panel) panel.classList.add('active');
   if(name === 'team') loadCompanyPanel();
+  if(name === 'reviews') loadReviewsPanel();
 }
 
 //  MODALS 
@@ -339,6 +384,7 @@ async function loadCompanyPanel(){
   var members = await get('/api/org/members');
   if(!orgInfo||!Array.isArray(members)){ panel.innerHTML=''; var e=document.createElement('div'); e.style.cssText='text-align:center;padding:24px;color:var(--red)'; e.textContent='Could not load.'; panel.appendChild(e); return; }
   var isAdmin = me.role==='admin';
+    if(isAdmin){ var _rvb=document.getElementById('tab-reviews-btn'); if(_rvb) _rvb.style.display=''; if(!document.getElementById('tab-reviews')){ var _tt=document.getElementById('tab-team'); if(_tt){ var _rp=document.createElement('div'); _rp.className='tab-panel'; _rp.id='tab-reviews'; _tt.parentElement.appendChild(_rp); } } }
   var code = orgInfo.code||me.orgCode||'';
   var orgName = orgInfo.name||me.orgName||'';
   var inviteUrl = location.origin+'/join-company/'+code;
