@@ -656,6 +656,18 @@ setInterval(function(){
     if(!modalOpen && !typing && !teamActive && typeof loadSessions==='function'){ loadSessions(); }
   }catch(e){}
 }, 30000);
+(async function(){
+  try{
+    var _rr = await fetch('/api/reviews');
+    if(!_rr.ok) return;
+    var _rb = document.getElementById('tab-reviews-btn');
+    if(_rb) _rb.style.display = '';
+    if(!document.getElementById('tab-reviews')){
+      var _tt = document.getElementById('tab-team');
+      if(_tt){ var _rp = document.createElement('div'); _rp.className = 'tab-panel'; _rp.id = 'tab-reviews'; _tt.parentElement.appendChild(_rp); }
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
