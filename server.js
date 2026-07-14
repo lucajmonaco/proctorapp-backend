@@ -575,6 +575,7 @@ app.get('/api/reviews', requireAuth, (req, res) => {
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
   const recs = db.prepare('SELECT r.session_id, r.session_title, r.candidate_name, r.created_at, u.name AS interviewer_name FROM recordings r LEFT JOIN users u ON u.id = r.interviewer_id WHERE r.org_id = ? ORDER BY r.created_at DESC').all(req.session.orgId);
   const rstmt = db.prepare('SELECT rater_role,stars,note FROM interview_ratings WHERE session_id=?');
+  db.exec('CREATE TABLE IF NOT EXISTS submissions (session_id TEXT PRIMARY KEY, recording_id TEXT, client_name TEXT, client_email TEXT, recommendation TEXT, submitted_by TEXT, submitted_at INTEGER)');
   const subStmt = db.prepare('SELECT submitted_at, client_name FROM submissions WHERE session_id=?');
   const out = [];
   recs.forEach(function(rec){
