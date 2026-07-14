@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Candidate Submission - InterviewMyCandidate</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.share-page{max-width:840px;margin:0 auto;padding:32px 20px 64px}
+.share-card{background:var(--white,#fff);border:1px solid var(--sky-deep,#bfdbfe);border-radius:16px;box-shadow:0 8px 30px rgba(37,99,235,.08);overflow:hidden}
+.share-cardhead{padding:24px 28px;border-bottom:1px solid var(--sky-deep,#bfdbfe);background:linear-gradient(180deg,var(--sky,#eff6ff),var(--white,#fff))}
+.share-title{font-size:21px;font-weight:700;color:var(--navy,#0f2241);margin:0 0 12px;line-height:1.3}
+.share-meta{display:flex;flex-wrap:wrap;gap:18px;font-size:13px;color:var(--text2,#64748b)}
+.share-meta .m{display:inline-flex;align-items:center;gap:7px}
+.share-meta svg{width:15px;height:15px;flex:none;color:var(--blue,#2563eb)}
+.share-meta strong{color:var(--navy,#0f2241);font-weight:600}
+.share-videoframe{background:#0b1220}
+.share-video{width:100%;max-height:70vh;display:block;background:#000}
+.share-actions{padding:18px 28px;border-bottom:1px solid var(--sky-deep,#bfdbfe)}
+.share-download{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--blue,#2563eb);color:#fff;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;transition:background .15s}
+.share-download:hover{background:var(--blue-mid,#1d4ed8)}
+.share-download svg{width:16px;height:16px}
+.share-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--sky-deep,#bfdbfe)}
+.share-stat{background:var(--white,#fff);padding:22px 16px;text-align:center}
+.share-stat-val{font-size:26px;font-weight:800;color:var(--navy,#0f2241);line-height:1}
+.share-stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2,#64748b);margin-top:7px;font-weight:600}
+.share-stat-sub{font-size:11px;margin-top:3px;font-weight:700}
+.share-flags{border-top:1px solid var(--sky-deep,#bfdbfe)}
+.share-flags summary{cursor:pointer;padding:16px 28px;font-size:13px;font-weight:700;color:var(--navy,#0f2241);display:flex;align-items:center;gap:9px;list-style:none;background:var(--white,#fff)}
+.share-flags summary::-webkit-details-marker{display:none}
+.share-flags summary svg{width:16px;height:16px;color:var(--blue,#2563eb)}
+.share-flags summary .chev{margin-left:auto;transition:transform .2s}
+.share-flags[open] summary .chev{transform:rotate(180deg)}
+.share-flags summary .fc{color:var(--text2,#64748b);font-weight:600}
+.share-flag-row{display:flex;align-items:flex-start;gap:12px;padding:12px 28px;border-top:1px solid var(--sky,#eff6ff);font-size:13px;background:#fafcff}
+.share-flag-time{font-variant-numeric:tabular-nums;font-weight:700;color:var(--blue,#2563eb);flex:none;min-width:50px}
+.share-flag-text{color:var(--text,#0f172a);flex:1;line-height:1.45}
+.share-flag-sev{font-size:10px;text-transform:uppercase;font-weight:700;padding:2px 9px;border-radius:20px;flex:none;letter-spacing:.04em}
+.share-flag-empty{padding:16px 28px;color:var(--text2,#64748b);font-size:13px;background:#fafcff}
+.share-state{text-align:center;padding:80px 24px;color:var(--text2,#64748b)}
+.share-state svg{width:48px;height:48px;color:var(--sky-deep,#bfdbfe);margin-bottom:16px}
+.share-state h2{font-size:20px;color:var(--navy,#0f2241);margin:0 0 8px}
+@media(max-width:560px){.share-stats{grid-template-columns:1fr}.share-page{padding:20px 14px 48px}}
+.share-identity{border-top:1px solid var(--sky-deep,#bfdbfe);padding:20px 28px}
+.share-identity-head{font-size:13px;font-weight:700;color:var(--navy,#0f2241);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.share-identity-head svg{width:16px;height:16px;color:var(--blue,#2563eb)}
+.share-identity-imgs{display:flex;gap:16px;flex-wrap:wrap}
+.share-identity-item{flex:1;min-width:170px}
+.share-identity-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text2,#64748b);font-weight:600;margin-bottom:6px}
+.share-identity-img{width:100%;border-radius:10px;border:1px solid var(--sky-deep,#bfdbfe);display:block;background:#f1f5fd}
+.sub-header{padding:20px 28px;background:linear-gradient(180deg,var(--navy,#0f2241),var(--navy-mid,#1a3560));color:#fff}
+.sub-agency{font-size:12px;text-transform:uppercase;letter-spacing:.08em;opacity:.75;font-weight:600}
+.sub-line{font-size:16px;font-weight:700;margin:6px 0 10px}
+.sub-reco{font-size:13px;line-height:1.5;color:rgba(255,255,255,.92);white-space:pre-wrap}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-logo" aria-label="InterviewMyCandidate home"><span class="logo-interview">Interview</span><span class="logo-my">My</span><span class="logo-candidate">Candidate</span></a>
+  <div class="nav-right" style="font-size:12px;color:var(--text2)">Client Submission</div>
+</nav>
+<div class="share-page">
+  <div id="s-loading" class="share-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><p>Loading recording...</p></div>
+  <div id="s-notfound" class="share-state" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><line x1="1" y1="1" x2="23" y2="23"/></svg><h2>Recording not found</h2><p>This link may have expired or been deleted.</p></div>
+  <div id="s-content" class="share-card" hidden>
+    <div id="sub-header" class="sub-header" hidden><div class="sub-agency" id="sub-agency"></div><div class="sub-line" id="sub-line"></div><div class="sub-reco" id="sub-reco"></div></div>
+    <div class="share-cardhead">
+      <div class="share-title" id="s-title"></div>
+      <div class="share-meta">
+        <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Candidate: <strong id="s-candidate"></strong></span>
+        <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span id="s-date"></span></span>
+        <span class="m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Duration: <span id="s-dur"></span></span>
+      </div>
+    </div>
+    <div class="share-videoframe"><video id="s-video" class="share-video" controls preload="metadata" disablePictureInPicture></video></div>
+    <div class="share-actions"><a id="s-download" class="share-download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Recording</a></div>
+    <div class="share-stats">
+      <div class="share-stat"><div class="share-stat-val" id="s-score"></div><div class="share-stat-label">Trust Score</div><div class="share-stat-sub" id="s-scorelabel"></div></div>
+      <div class="share-stat"><div class="share-stat-val" id="s-flags"></div><div class="share-stat-label">Integrity Flags</div></div>
+      <div class="share-stat"><div class="share-stat-val" id="s-statdur"></div><div class="share-stat-label">Duration</div></div>
+    </div>
+    <details class="share-flags" id="s-flagbox">
+      <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Integrity Flag Timeline <span class="fc" id="s-flagcount"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chev"><polyline points="6 9 12 15 18 9"/></svg></summary>
+      <div id="s-flaglist"></div>
+    </details>
+    <div id="s-identity" class="share-identity" hidden>
+      <div class="share-identity-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>Identity Verification</div>
+      <div class="share-identity-imgs">
+        <div class="share-identity-item" id="s-selfie-wrap" hidden><div class="share-identity-label">Selfie</div><img id="s-selfie" class="share-identity-img" alt="Candidate selfie"></div>
+        <div class="share-identity-item" id="s-id-wrap" hidden><div class="share-identity-label">ID Document</div><img id="s-id" class="share-identity-img" alt="ID document"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var token = location.pathname.split("/").pop();
+  function fmtDate(ts){ if(!ts) return "-"; return new Date(ts*1000).toLocaleString("en-US",{month:"long",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"}); }
+  function fmtDur(s){ if(!s) return "0:00"; return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+  function clean(v){ return String(v==null?"":v).replace(/[\/\\:*?"<>|]/g,"").replace(/\s+/g," ").trim(); }
+  function setText(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; }
+  async function init(){
+    var rec=null;
+    try{ var res=await fetch("/api/recordings/share/"+token+"/info"); rec=res.ok?await res.json():null; }catch(e){ rec=null; }
+    document.getElementById("s-loading").hidden=true;
+    if(!rec||rec.error){ document.getElementById("s-notfound").hidden=false; return; }
+    setText("s-title", rec.session_title||"Interview Recording");
+    setText("s-candidate", rec.candidate_name||"N/A");
+    setText("s-date", fmtDate(rec.created_at));
+    setText("s-dur", fmtDur(rec.duration_secs));
+    var streamUrl="/api/recordings/share/"+token+"/stream";
+    document.getElementById("s-video").setAttribute("src", streamUrl);
+    var dt=new Date((rec.created_at||0)*1000).toISOString().slice(0,10);
+    var fname=clean(rec.session_title)+" - "+clean(rec.candidate_name)+" - "+dt+".webm";
+    var dl=document.getElementById("s-download");
+    dl.setAttribute("href", streamUrl);
+    dl.setAttribute("download", fname);
+    var score=(rec.trust_score==null)?100:rec.trust_score;
+    var scoreColor=score>=80?"#22c55e":score>=60?"#f59e0b":"#ef4444";
+    var scoreLabel=score>=80?"Excellent":score>=60?"Good":score>=40?"Caution":"High Risk";
+    var scoreEl=document.getElementById("s-score"); scoreEl.textContent=score+"%"; scoreEl.style.color=scoreColor;
+    var slEl=document.getElementById("s-scorelabel"); slEl.textContent=scoreLabel; slEl.style.color=scoreColor;
+    var flags=rec.flags||[];
+    var flagEl=document.getElementById("s-flags"); flagEl.textContent=flags.length; flagEl.style.color=flags.length>0?"#f59e0b":"#22c55e";
+    setText("s-statdur", fmtDur(rec.duration_secs));
+    setText("s-flagcount", "("+flags.length+")");
+    var list=document.getElementById("s-flaglist");
+    if(flags.length===0){ var none=document.createElement("div"); none.className="share-flag-empty"; none.textContent="No integrity flags were raised during this interview."; list.appendChild(none); }
+    else { flags.forEach(function(f){ var row=document.createElement("div"); row.className="share-flag-row"; var tm=document.createElement("div"); tm.className="share-flag-time"; tm.textContent=f.time_offset||"0:00"; row.appendChild(tm); var tx=document.createElement("div"); tx.className="share-flag-text"; tx.textContent=f.text||""; row.appendChild(tx); list.appendChild(row); }); }
+    if(rec.has_selfie || rec.has_id){
+      document.getElementById("s-identity").hidden = false;
+      if(rec.has_selfie){ document.getElementById("s-selfie").setAttribute("src", "/api/recordings/share/"+token+"/identity/selfie"); document.getElementById("s-selfie-wrap").hidden = false; }
+      if(rec.has_id){ document.getElementById("s-id").setAttribute("src", "/api/recordings/share/"+token+"/identity/idphoto"); document.getElementById("s-id-wrap").hidden = false; }
+    }
+    try{
+      var subRes = await fetch("/api/recordings/share/"+token+"/submission");
+      var subData = subRes.ok ? await subRes.json() : null;
+      if(subData && subData.submitted){
+        document.getElementById("sub-header").hidden = false;
+        document.getElementById("sub-agency").textContent = (subData.agency_name || "Staffing Agency") + "  -  submitted by " + (subData.recruiter_name || "Recruiter");
+        document.getElementById("sub-line").textContent = "Recommending " + (rec.candidate_name || "this candidate") + " for " + (rec.session_title || "the position");
+        var reco = document.getElementById("sub-reco");
+        if(subData.recommendation){ reco.textContent = subData.recommendation; } else { reco.hidden = true; }
+      }
+    }catch(e){}
+    document.getElementById("s-content").hidden=false;
+  }
+  init();
+})();
+</script>
+</body>
+</html>
