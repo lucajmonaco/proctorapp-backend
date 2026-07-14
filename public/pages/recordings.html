@@ -469,6 +469,49 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   notesActions.appendChild(saveBtn);notesActions.appendChild(cancelBtn);
   notesDiv.appendChild(notesLabel);notesDiv.appendChild(notesView);notesDiv.appendChild(notesEdit);notesDiv.appendChild(notesActions);
   body.appendChild(notesDiv);
+  var subDiv = document.createElement('div'); subDiv.className = 'rec-notes';
+  var subLabel = document.createElement('div'); subLabel.className = 'rec-notes-label';
+  var subSpan = document.createElement('span'); subSpan.textContent = 'Client Submission';
+  subLabel.appendChild(subSpan); subDiv.appendChild(subLabel);
+  var subBody = document.createElement('div');
+  var subRenderSubmitted = function(ts, link){
+    subBody.textContent = '';
+    var badge = document.createElement('span');
+    Object.assign(badge.style,{display:'inline-block',padding:'3px 10px',borderRadius:'20px',background:'#e6f4ea',color:'#1a7f37',fontSize:'11px',fontWeight:'700'});
+    badge.textContent = 'Submitted' + (ts ? (' ' + new Date(ts*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})) : '');
+    subBody.appendChild(badge);
+    if(link){
+      var linkRow = document.createElement('div'); Object.assign(linkRow.style,{marginTop:'8px',display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'});
+      var inp = document.createElement('input'); inp.readOnly = true; inp.value = link; Object.assign(inp.style,{flex:'1',minWidth:'220px',fontSize:'12px',padding:'6px 8px'});
+      var copyBtn = document.createElement('button'); copyBtn.className = 'btn btn-outline btn-sm'; copyBtn.style.fontSize = '11px'; copyBtn.textContent = 'Copy link';
+      copyBtn.onclick = function(){ inp.select(); navigator.clipboard.writeText(link).then(function(){ copyBtn.textContent = 'Copied'; setTimeout(function(){ copyBtn.textContent = 'Copy link'; }, 1500); }); };
+      linkRow.appendChild(inp); linkRow.appendChild(copyBtn); subBody.appendChild(linkRow);
+    }
+    var editBtn = document.createElement('button'); editBtn.className = 'btn btn-outline btn-sm'; Object.assign(editBtn.style,{marginTop:'8px',fontSize:'11px'}); editBtn.textContent = 'Update submission';
+    editBtn.onclick = function(){ subRenderForm(); };
+    subBody.appendChild(editBtn);
+  };
+  var subRenderForm = function(){
+    subBody.textContent = '';
+    var nameI = document.createElement('input'); nameI.placeholder = 'Client contact name'; Object.assign(nameI.style,{width:'100%',fontSize:'12px',padding:'7px 9px',marginBottom:'6px'});
+    var emailI = document.createElement('input'); emailI.placeholder = 'Client email'; Object.assign(emailI.style,{width:'100%',fontSize:'12px',padding:'7px 9px',marginBottom:'6px'});
+    var recoI = document.createElement('textarea'); recoI.placeholder = 'Recommendation to the client (shown at the top of the submission)'; Object.assign(recoI.style,{width:'100%',fontSize:'12px',padding:'7px 9px',minHeight:'60px',marginBottom:'6px',fontFamily:'inherit'});
+    var submitBtn = document.createElement('button'); submitBtn.className = 'btn btn-primary btn-sm'; submitBtn.textContent = 'Create client link';
+    var err = document.createElement('span'); Object.assign(err.style,{color:'#d92d20',fontSize:'12px',marginLeft:'10px'});
+    submitBtn.onclick = async function(){
+      submitBtn.disabled = true; submitBtn.textContent = 'Working...';
+      try{
+        var res = await fetch('/api/recordings/' + rec.id + '/submit', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_name:nameI.value,client_email:emailI.value,recommendation:recoI.value})});
+        var j = await res.json();
+        if(j.ok){ subRenderSubmitted(Math.floor(Date.now()/1000), location.origin + '/submit/' + j.token); }
+        else { err.textContent = j.error || 'Failed'; submitBtn.disabled = false; submitBtn.textContent = 'Create client link'; }
+      }catch(e){ err.textContent = 'Failed'; submitBtn.disabled = false; submitBtn.textContent = 'Create client link'; }
+    };
+    subBody.appendChild(nameI); subBody.appendChild(emailI); subBody.appendChild(recoI); subBody.appendChild(submitBtn); subBody.appendChild(err);
+  };
+  if(rec.submitted_at){ subRenderSubmitted(rec.submitted_at, location.origin + '/submit/' + (rec.share_token || '')); }
+  else { var startBtn = document.createElement('button'); startBtn.className = 'btn btn-primary btn-sm'; startBtn.textContent = 'Submit to Client'; startBtn.onclick = function(){ subRenderForm(); }; subBody.appendChild(startBtn); }
+  subDiv.appendChild(subBody); body.appendChild(subDiv);
   if(rec.ratings && (rec.ratings.interviewer || rec.ratings.candidate)){
     var ratingsDiv = document.createElement('div');ratingsDiv.className = 'rec-notes';
     var rLabel = document.createElement('div');rLabel.className = 'rec-notes-label';
