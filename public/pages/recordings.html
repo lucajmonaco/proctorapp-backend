@@ -469,6 +469,43 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   notesActions.appendChild(saveBtn);notesActions.appendChild(cancelBtn);
   notesDiv.appendChild(notesLabel);notesDiv.appendChild(notesView);notesDiv.appendChild(notesEdit);notesDiv.appendChild(notesActions);
   body.appendChild(notesDiv);
+  if(rec.ratings && (rec.ratings.interviewer || rec.ratings.candidate)){
+    var ratingsDiv = document.createElement('div');ratingsDiv.className = 'rec-notes';
+    var rLabel = document.createElement('div');rLabel.className = 'rec-notes-label';
+    var rSpan = document.createElement('span');rSpan.textContent = 'Star Ratings';
+    rLabel.appendChild(rSpan);ratingsDiv.appendChild(rLabel);
+    var makeStar = function(filled){
+      var ns = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(ns,'svg');
+      svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('width','15');svg.setAttribute('height','15');
+      var p = document.createElementNS(ns,'path');
+      p.setAttribute('d','M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z');
+      p.setAttribute('fill', filled ? '#f5a623' : 'none');
+      p.setAttribute('stroke', filled ? '#f5a623' : '#cbd5e1');
+      p.setAttribute('stroke-width','1.5');
+      svg.appendChild(p);return svg;
+    };
+    [['interviewer','Interviewer'],['candidate','Candidate']].forEach(function(pair){
+      var rr = rec.ratings[pair[0]];
+      var row = document.createElement('div');
+      Object.assign(row.style,{display:'flex',alignItems:'center',gap:'8px',margin:'6px 0',fontSize:'12px',flexWrap:'wrap'});
+      var who = document.createElement('span');
+      Object.assign(who.style,{color:'var(--text3)',minWidth:'74px'});
+      who.textContent = pair[1];row.appendChild(who);
+      if(rr){
+        var starWrap = document.createElement('span');
+        Object.assign(starWrap.style,{display:'inline-flex',alignItems:'center'});
+        for(var si=1;si<=5;si++){ starWrap.appendChild(makeStar(si <= rr.stars)); }
+        row.appendChild(starWrap);
+        if(rr.note){ var noteSpan = document.createElement('span');Object.assign(noteSpan.style,{color:'var(--text2)',fontStyle:'italic',flexBasis:'100%',marginTop:'2px'});noteSpan.textContent = rr.note;row.appendChild(noteSpan); }
+      } else {
+        var na = document.createElement('span');Object.assign(na.style,{color:'var(--text3)'});na.textContent = 'Not rated yet';row.appendChild(na);
+      }
+      ratingsDiv.appendChild(row);
+    });
+    body.appendChild(ratingsDiv);
+  }
+
 
   card.appendChild(body);
 
