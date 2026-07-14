@@ -566,6 +566,7 @@ app.post('/api/recordings/session/:sessionId/sync', requireAuth, (req, res) => {
 app.get('/api/recordings', requireAuth, (req, res) => {
   const recs = db.prepare('SELECT * FROM recordings WHERE interviewer_id=? ORDER BY created_at DESC').all(req.session.userId);
   const rstmt = db.prepare('SELECT rater_role,stars,note,created_at FROM interview_ratings WHERE session_id=?');
+  const subStmt = db.prepare('SELECT submitted_at, client_name FROM submissions WHERE session_id=?');
   recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
   res.json(recs);
 });
