@@ -40,6 +40,13 @@
 .share-state svg{width:48px;height:48px;color:var(--sky-deep,#bfdbfe);margin-bottom:16px}
 .share-state h2{font-size:20px;color:var(--navy,#0f2241);margin:0 0 8px}
 @media(max-width:560px){.share-stats{grid-template-columns:1fr}.share-page{padding:20px 14px 48px}}
+.share-identity{border-top:1px solid var(--sky-deep,#bfdbfe);padding:20px 28px}
+.share-identity-head{font-size:13px;font-weight:700;color:var(--navy,#0f2241);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.share-identity-head svg{width:16px;height:16px;color:var(--blue,#2563eb)}
+.share-identity-imgs{display:flex;gap:16px;flex-wrap:wrap}
+.share-identity-item{flex:1;min-width:170px}
+.share-identity-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text2,#64748b);font-weight:600;margin-bottom:6px}
+.share-identity-img{width:100%;border-radius:10px;border:1px solid var(--sky-deep,#bfdbfe);display:block;background:#f1f5fd}
 </style>
 </head>
 <body>
@@ -70,6 +77,13 @@
       <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Integrity Flag Timeline <span class="fc" id="s-flagcount"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chev"><polyline points="6 9 12 15 18 9"/></svg></summary>
       <div id="s-flaglist"></div>
     </details>
+    <div id="s-identity" class="share-identity" hidden>
+      <div class="share-identity-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>Identity Verification</div>
+      <div class="share-identity-imgs">
+        <div class="share-identity-item" id="s-selfie-wrap" hidden><div class="share-identity-label">Selfie</div><img id="s-selfie" class="share-identity-img" alt="Candidate selfie"></div>
+        <div class="share-identity-item" id="s-id-wrap" hidden><div class="share-identity-label">ID Document</div><img id="s-id" class="share-identity-img" alt="ID document"></div>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -107,6 +121,11 @@
     var list=document.getElementById("s-flaglist");
     if(flags.length===0){ var none=document.createElement("div"); none.className="share-flag-empty"; none.textContent="No integrity flags were raised during this interview."; list.appendChild(none); }
     else { flags.forEach(function(f){ var row=document.createElement("div"); row.className="share-flag-row"; var tm=document.createElement("div"); tm.className="share-flag-time"; tm.textContent=f.time_offset||"0:00"; row.appendChild(tm); var tx=document.createElement("div"); tx.className="share-flag-text"; tx.textContent=f.text||""; row.appendChild(tx); list.appendChild(row); }); }
+    if(rec.has_selfie || rec.has_id){
+      document.getElementById("s-identity").hidden = false;
+      if(rec.has_selfie){ document.getElementById("s-selfie").setAttribute("src", "/api/recordings/share/"+token+"/identity/selfie"); document.getElementById("s-selfie-wrap").hidden = false; }
+      if(rec.has_id){ document.getElementById("s-id").setAttribute("src", "/api/recordings/share/"+token+"/identity/idphoto"); document.getElementById("s-id-wrap").hidden = false; }
+    }
     document.getElementById("s-content").hidden=false;
   }
   init();
