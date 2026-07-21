@@ -343,7 +343,7 @@ async function loadSessions(){
     }
     var scoreHtml = score!==null ? '<span class="sr-score" style="color:'+scoreColor(score)+'">'+score+'%</span>' : '';
     var metaLine = (s.candidate_name||'Candidate')+' &middot; '+fmtDate(s.created_at)+(s.interviewer_name?' &middot; by '+s.interviewer_name:'');
-    var copyBtn = s.status!=='ended' ? '<button class="btn btn-outline btn-sm sr-copy-btn" data-code="'+s.code+'" style="font-size:11px;padding:4px 10px">Copy Link</button>' : '';
+    var copyBtn = s.status!=='ended' ? '<button class="btn btn-outline btn-sm sr-copy-btn" data-code="'+s.code+'" style="font-size:11px;padding:4px 10px">Copy Link</button>' + '<button class="btn btn-primary btn-sm sr-invite-btn" data-code="'+s.code+'" data-cand="'+encodeURIComponent(s.candidate_name||'')+'" data-title="'+encodeURIComponent(s.title||'')+'" data-sched="'+(s.scheduled_at||'')+'" style="font-size:11px;padding:4px 10px;margin-left:6px">Copy Invite</button>' : '';
     // Show "Start Now" for scheduled sessions
     var startNowBtn = '';
     // For unscheduled waiting sessions - always show Start button
@@ -371,6 +371,18 @@ async function loadSessions(){
 //  COPY INVITE 
 function copyInviteCode(code){
   navigator.clipboard.writeText(location.origin+'/join/'+code).then(function(){ toast('Invite link copied!','green'); });
+function copyInviteMessage(ds){
+  var code = ds.code || '';
+  var cand = ds.cand ? decodeURIComponent(ds.cand) : '';
+  var title = ds.title ? decodeURIComponent(ds.title) : '';
+  var sched = ds.sched ? Number(ds.sched) : 0;
+  var link = location.origin + '/join/' + code;
+  var greeting = cand ? ('Hi ' + cand + ',') : 'Hi,';
+  var role = title ? (' for the ' + title + ' role') : '';
+  var when = sched ? (' It is scheduled for ' + new Date(sched*1000).toLocaleString() + '.') : '';
+  var msg = greeting + '\n\nYou are invited to a video interview' + role + '.' + when + '\n\nJoin here: ' + link + '\nSession code: ' + code + '\n\nPlease join from a computer (Chrome recommended) with a working camera and microphone, in a quiet, well-lit space. The session includes a quick ID check and integrity monitoring.\n\nWe look forward to speaking with you.';
+  navigator.clipboard.writeText(msg).then(function(){ toast('Invite message copied - paste it into your email','green'); });
+}
 }
 
 //  COMPANY PANEL 
@@ -581,6 +593,7 @@ async function init(){
     }
     var startBtn = e.target.closest('[data-start-sess]');
     if(startBtn){ window.location.href='/session/'+startBtn.getAttribute('data-start-sess'); return; }
+    var _invBtn = e.target.closest('.sr-invite-btn'); if(_invBtn){ copyInviteMessage(_invBtn.dataset); return; }
     var copyBtn = e.target.closest('.sr-copy-btn');
     if(copyBtn && copyBtn.dataset.code){ copyInviteCode(copyBtn.dataset.code); return; }
     var row = e.target.closest('.session-row');
