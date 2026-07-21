@@ -308,6 +308,11 @@ async function loadSessions(){
             }).catch(function(){ if(typeof toast==='function')toast('Delete failed','red'); upDel.disabled=false; upDel.textContent='Delete'; });
           };
           rightWrap.appendChild(upDel);
+          var upInvite = document.createElement('button');
+          upInvite.textContent = 'Copy Invite';
+          upInvite.style.cssText = 'flex:none;background:var(--blue,#2563eb);border:none;color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;margin-left:6px';
+          upInvite.onclick = function(ev){ ev.stopPropagation(); copyInviteMessage({code:s.code, cand:encodeURIComponent(s.candidate_name||''), title:encodeURIComponent(s.title||''), sched:String(s.scheduled_at||'')}); };
+          rightWrap.appendChild(upInvite);
           upList.appendChild(row);
         });
       }
@@ -371,17 +376,21 @@ async function loadSessions(){
 //  COPY INVITE 
 function copyInviteCode(code){
   navigator.clipboard.writeText(location.origin+'/join/'+code).then(function(){ toast('Invite link copied!','green'); });
+function copyTextRobust(text, okMsg){
+  function fb(){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.top='-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); if(ok){ toast(okMsg,'green'); } else { window.prompt('Copy this message:', text); } }catch(e){ window.prompt('Copy this message:', text); } }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ toast(okMsg,'green'); }, function(){ fb(); }); } else { fb(); }
+}
 function copyInviteMessage(ds){
   var code = ds.code || '';
-  var cand = ds.cand ? decodeURIComponent(ds.cand) : '';
-  var title = ds.title ? decodeURIComponent(ds.title) : '';
+  var cand=''; try{ cand = ds.cand ? decodeURIComponent(ds.cand) : ''; }catch(e){ cand = ds.cand||''; }
+  var title=''; try{ title = ds.title ? decodeURIComponent(ds.title) : ''; }catch(e){ title = ds.title||''; }
   var sched = ds.sched ? Number(ds.sched) : 0;
   var link = location.origin + '/join/' + code;
   var greeting = cand ? ('Hi ' + cand + ',') : 'Hi,';
   var role = title ? (' for the ' + title + ' role') : '';
-  var when = sched ? (' It is scheduled for ' + new Date(sched*1000).toLocaleString() + '.') : '';
+  var when = (sched && !isNaN(sched)) ? (' It is scheduled for ' + new Date(sched*1000).toLocaleString() + '.') : '';
   var msg = greeting + '\n\nYou are invited to a video interview' + role + '.' + when + '\n\nJoin here: ' + link + '\nSession code: ' + code + '\n\nPlease join from a computer (Chrome recommended) with a working camera and microphone, in a quiet, well-lit space. The session includes a quick ID check and integrity monitoring.\n\nWe look forward to speaking with you.';
-  navigator.clipboard.writeText(msg).then(function(){ toast('Invite message copied - paste it into your email','green'); });
+  copyTextRobust(msg, 'Invite message copied - paste it into your email');
 }
 }
 
