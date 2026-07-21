@@ -376,6 +376,8 @@ async function loadSessions(){
 //  COPY INVITE 
 function copyInviteCode(code){
   navigator.clipboard.writeText(location.origin+'/join/'+code).then(function(){ toast('Invite link copied!','green'); });
+}
+
 function copyTextRobust(text, okMsg){
   function fb(){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.top='-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); if(ok){ toast(okMsg,'green'); } else { window.prompt('Copy this message:', text); } }catch(e){ window.prompt('Copy this message:', text); } }
   if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ toast(okMsg,'green'); }, function(){ fb(); }); } else { fb(); }
@@ -392,7 +394,7 @@ function copyInviteMessage(ds){
   var msg = greeting + '\n\nYou are invited to a video interview' + role + '.' + when + '\n\nJoin here: ' + link + '\nSession code: ' + code + '\n\nPlease join from a computer (Chrome recommended) with a working camera and microphone, in a quiet, well-lit space. The session includes a quick ID check and integrity monitoring.\n\nWe look forward to speaking with you.';
   copyTextRobust(msg, 'Invite message copied - paste it into your email');
 }
-}
+
 
 //  COMPANY PANEL 
 async function loadCompanyPanel(){
