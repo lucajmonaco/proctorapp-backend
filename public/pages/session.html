@@ -176,8 +176,10 @@ var FLAG_TYPES = [
 var flagRegistry = {};  // key  {count, cardEl, lastTime}
 var totalFlagCount = 0;
 
+window.PROCTORING_ENABLED = false; /* Proctoring temporarily disabled - set to true to re-enable all detection + flagging. All detector/flagging code retained. */
 function initFlagPanel(){
   var panel = $('sbp-flags');
+  if(!window.PROCTORING_ENABLED){ if(panel){ panel.style.display='none'; if(panel.previousElementSibling) panel.previousElementSibling.style.display='none'; } return; }
   panel.innerHTML = '';
   FLAG_TYPES.forEach(function(ft){
     var card = buildFlagCard(ft.key, ft.text, ft.detail, ft.severity, 0);
@@ -235,7 +237,7 @@ var flagLabels = {
 };
 function flagTitle(key, fallback){ return (flagLabels[key]) ? flagLabels[key] : (fallback || 'Flag'); }
 
-function hitFlag(flag){
+function hitFlag(flag){if(!window.PROCTORING_ENABLED) return; 
   totalFlagCount++;
   var key = resolveKey(flag.text);
 
