@@ -567,7 +567,9 @@ app.get('/api/recordings', requireAuth, (req, res) => {
   const recs = db.prepare('SELECT * FROM recordings WHERE interviewer_id=? ORDER BY created_at DESC').all(req.session.userId);
   const rstmt = db.prepare('SELECT rater_role,stars,note,created_at FROM interview_ratings WHERE session_id=?');
   const subStmt = db.prepare('SELECT submitted_at, client_name FROM submissions WHERE session_id=?');
-  recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
+  db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
+  const resStmt = db.prepare('SELECT session_id FROM resumes WHERE session_id=?');
+  recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; r.has_resume = !!resStmt.get(r.session_id); rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
   res.json(recs);
 });
 
@@ -622,6 +624,28 @@ app.get('/api/recordings/share/:token/submission', (req, res) => {
   const recruiter = db.prepare('SELECT name FROM users WHERE id=?').get(rec.interviewer_id);
   const org = rec.org_id ? db.prepare('SELECT name FROM orgs WHERE id=?').get(rec.org_id) : null;
   res.json({ submitted: true, client_name: sub.client_name, recommendation: sub.recommendation, submitted_at: sub.submitted_at, recruiter_name: recruiter ? recruiter.name : '', agency_name: org ? org.name : '' });
+});
+
+app.post('/api/recordings/:id/resume', requireAuth, upload.single('resume'), (req, res) => {
+  const rec = db.prepare('SELECT id, session_id, interviewer_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec || rec.interviewer_id !== req.session.userId) return res.status(404).json({ error: 'Not found' });
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+  db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
+  db.prepare('INSERT INTO resumes (session_id, recording_id, file_path, original_name, uploaded_at) VALUES (?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET recording_id=excluded.recording_id, file_path=excluded.file_path, original_name=excluded.original_name, uploaded_at=excluded.uploaded_at').run(rec.session_id, rec.id, req.file.path, req.file.originalname || 'resume.pdf', Math.floor(Date.now()/1000));
+  res.json({ ok: true });
+});
+
+app.get('/api/recordings/share/:token/resume', (req, res) => {
+  const rec = db.prepare('SELECT session_id FROM recordings WHERE share_token=?').get(req.params.token);
+  if (!rec) return res.status(404).send('Not found');
+  db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
+  const rez = db.prepare('SELECT file_path, original_name FROM resumes WHERE session_id=?').get(rec.session_id);
+  if (!rez || !rez.file_path || !fs.existsSync(rez.file_path)) return res.status(404).send('No resume');
+  var name = (rez.original_name || 'resume.pdf').replace(/[^\w.\- ]/g, '');
+  var isPdf = /\.pdf$/i.test(name);
+  res.setHeader('Content-Type', isPdf ? 'application/pdf' : 'application/octet-stream');
+  res.setHeader('Content-Disposition', (isPdf ? 'inline' : 'attachment') + '; filename="' + name + '"');
+  fs.createReadStream(rez.file_path).pipe(res);
 });
 
 app.post('/api/ratings', (req, res) => {
@@ -722,6 +746,9 @@ app.get('/api/recordings/share/:token/info', (req, res) => {
   var _cap = db.prepare('SELECT selfie_path, id_path FROM id_captures WHERE session_id=?').get(rec.session_id);
   rec.has_selfie = !!(_cap && _cap.selfie_path);
   rec.has_id = !!(_cap && _cap.id_path);
+  db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
+  var _rez = db.prepare('SELECT session_id FROM resumes WHERE session_id=?').get(rec.session_id);
+  rec.has_resume = !!_rez;
   res.json(rec);
 });
 
