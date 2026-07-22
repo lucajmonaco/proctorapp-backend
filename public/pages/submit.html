@@ -82,6 +82,7 @@
       <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Integrity Flag Timeline <span class="fc" id="s-flagcount"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chev"><polyline points="6 9 12 15 18 9"/></svg></summary>
       <div id="s-flaglist"></div>
     </details>
+    <div id="s-resume" class="share-identity" hidden><div class="share-identity-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>Resume</div><a id="s-resume-link" class="btn btn-outline" target="_blank" style="display:inline-block;text-decoration:none">View / download resume</a></div>
     <div id="s-identity" class="share-identity" hidden>
       <div class="share-identity-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>Identity Verification</div>
       <div class="share-identity-imgs">
@@ -142,6 +143,7 @@
         if(subData.recommendation){ reco.textContent = subData.recommendation; } else { reco.hidden = true; }
       }
     }catch(e){}
+    if(rec.has_resume){ document.getElementById("s-resume").hidden = false; document.getElementById("s-resume-link").setAttribute("href", "/api/recordings/share/" + token + "/resume"); }
     document.getElementById("s-content").hidden=false;
   }
   init();
