@@ -469,6 +469,39 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   notesActions.appendChild(saveBtn);notesActions.appendChild(cancelBtn);
   notesDiv.appendChild(notesLabel);notesDiv.appendChild(notesView);notesDiv.appendChild(notesEdit);notesDiv.appendChild(notesActions);
   body.appendChild(notesDiv);
+  var rezDiv = document.createElement('div'); rezDiv.className = 'rec-notes';
+  var rezLabel = document.createElement('div'); rezLabel.className = 'rec-notes-label';
+  var rezSpan = document.createElement('span'); rezSpan.textContent = 'Resume';
+  rezLabel.appendChild(rezSpan); rezDiv.appendChild(rezLabel);
+  var rezBody = document.createElement('div');
+  var rezPicker = document.createElement('input'); rezPicker.type = 'file'; rezPicker.accept = '.pdf,application/pdf'; rezPicker.style.display = 'none';
+  function rezRender(has){
+    rezBody.textContent = '';
+    if(has && rec.share_token){
+      var link = document.createElement('a'); link.href = '/api/recordings/share/' + rec.share_token + '/resume'; link.target = '_blank';
+      link.className = 'btn btn-outline btn-sm'; link.style.fontSize = '11px'; link.textContent = 'View resume';
+      var repl = document.createElement('button'); repl.className = 'btn btn-outline btn-sm'; repl.style.cssText = 'font-size:11px;margin-left:6px'; repl.textContent = 'Replace';
+      repl.onclick = function(){ rezPicker.click(); };
+      rezBody.appendChild(link); rezBody.appendChild(repl);
+    } else {
+      var upBtn = document.createElement('button'); upBtn.className = 'btn btn-primary btn-sm'; upBtn.textContent = 'Upload resume (PDF)';
+      upBtn.onclick = function(){ rezPicker.click(); };
+      rezBody.appendChild(upBtn);
+    }
+  }
+  rezPicker.onchange = async function(){
+    if(!rezPicker.files || !rezPicker.files[0]) return;
+    var fd = new FormData(); fd.append('resume', rezPicker.files[0]);
+    rezBody.textContent = 'Uploading...';
+    try{
+      var res = await fetch('/api/recordings/' + rec.id + '/resume', { method: 'POST', body: fd });
+      var j = await res.json();
+      rezRender(!!(j && j.ok));
+    }catch(e){ rezRender(false); }
+  };
+  rezDiv.appendChild(rezBody); rezDiv.appendChild(rezPicker);
+  rezRender(!!rec.has_resume);
+  body.appendChild(rezDiv);
   var subDiv = document.createElement('div'); subDiv.className = 'rec-notes';
   var subLabel = document.createElement('div'); subLabel.className = 'rec-notes-label';
   var subSpan = document.createElement('span'); subSpan.textContent = 'Client Submission';
