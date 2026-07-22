@@ -174,7 +174,7 @@ var lockoutViolations = 0;
 var lockoutCountdownInterval = null;
 var BASE_LOCKOUT_SECONDS = 15; // 30s first offense, 60s second, 90s third...
 
-function startLockout(reason){
+function startLockout(reason){if(!window.PROCTORING_ENABLED) return; 
   if(!interviewActive) return;
   if(lockoutActive) return; // already locked
   lockoutActive = true;
