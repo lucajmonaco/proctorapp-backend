@@ -179,7 +179,7 @@ var totalFlagCount = 0;
 window.PROCTORING_ENABLED = false; /* Proctoring temporarily disabled - set to true to re-enable all detection + flagging. All detector/flagging code retained. */
 function initFlagPanel(){
   var panel = $('sbp-flags');
-  if(!window.PROCTORING_ENABLED){ if(panel){ panel.style.display='none'; if(panel.previousElementSibling) panel.previousElementSibling.style.display='none'; } return; }
+  if(!window.PROCTORING_ENABLED){ if(panel){ panel.style.display='none'; if(panel.previousElementSibling) panel.previousElementSibling.style.display='none'; } var _tb=document.querySelector('.trust-box'); if(_tb)_tb.style.display='none'; return; }
   panel.innerHTML = '';
   FLAG_TYPES.forEach(function(ft){
     var card = buildFlagCard(ft.key, ft.text, ft.detail, ft.severity, 0);
