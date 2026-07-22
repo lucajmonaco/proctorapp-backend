@@ -158,7 +158,8 @@ function elapsed(){var s=Math.floor((Date.now()-startTime)/1000);return String(M
 function warn(msg){ /* Candidate-facing flag/error banners are intentionally disabled - candidates should not see proctoring diagnostics. Flags still go to the interviewer silently. The lockout overlay (tab-switch etc.) is separate and remains active. */ }
 function sendFlagOnce(key,text,detail,severity){if(flaggedOnce[key])return;flaggedOnce[key]=true;doSendFlag(text,detail,severity);}
 function sendFlagCooldown(key,text,detail,severity,cd){var now=Date.now();if(flagCooldowns[key]&&(now-flagCooldowns[key])<(cd||2000))return;flagCooldowns[key]=now;doSendFlag(text,detail,severity);}
-function doSendFlag(text,detail,severity){
+window.PROCTORING_ENABLED = false; /* Proctoring temporarily disabled - set to true to re-enable all detection + flagging. All detector/flagging code retained. */
+function doSendFlag(text,detail,severity){if(!window.PROCTORING_ENABLED) return; 
   var flag={text:text,detail:detail,severity:severity,time:elapsed()};
   if(socket)socket.emit('candidate-flag',{sessionId:sessionData&&sessionData.id,flag:flag});
   fetch('/api/sessions/'+(sessionData&&sessionData.id)+'/flags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,detail:detail,severity:severity,timeOffset:elapsed()})}).catch(function(){});
@@ -274,7 +275,7 @@ function resumeFromBlur(){
 //  BroadcastChannel (detect same-origin tab opens during interview) 
 var tabId = Math.random().toString(36).slice(2);
 var bc = null;
-function initTabChannel(){
+function initTabChannel(){if(!window.PROCTORING_ENABLED) return; 
   try{
     bc = new BroadcastChannel('secure_interview_tabs');
     bc.postMessage({type:'TAB_ANNOUNCE',id:tabId});
@@ -286,7 +287,7 @@ function initTabChannel(){
     };
   }catch(e){}
 }
-function checkSameOriginTabs(){
+function checkSameOriginTabs(){if(!window.PROCTORING_ENABLED) return 0; 
   return new Promise(function(resolve){
     if(!window.BroadcastChannel){resolve(0);return;}
     var count=0;
@@ -423,7 +424,7 @@ async function attemptJoin(){
 }
 
 //  DISPLAY 
-function checkDisplays(){
+function checkDisplays(){if(!window.PROCTORING_ENABLED) return; 
   if(flaggedOnce['multi-display'])return;
   // Authoritative: Window Management API screen count
   try{ if(window._screenDetails && window._screenDetails.screens && window._screenDetails.screens.length>1){ sendFlagOnce('multi-display','Multiple Displays Detected','Candidate has multiple displays','high'); warn('Multiple displays detected - flagged'); return; } }catch(e){}
@@ -436,7 +437,7 @@ function checkDisplays(){
 
 //  AUDIO MONITORING 
 var audioCheckInterval=null;
-function initAudioMonitoring(stream){
+function initAudioMonitoring(stream){if(!window.PROCTORING_ENABLED) return; 
   try{
     var actx=new (window.AudioContext||window.webkitAudioContext)();
     var src=actx.createMediaStreamSource(stream);
@@ -459,7 +460,7 @@ function initAudioMonitoring(stream){
 
 //  GAZE 
 var gazeOffStart=null,gazeTimer=null;
-function initGazeTracking(videoEl){
+function initGazeTracking(videoEl){if(!window.PROCTORING_ENABLED) return; 
   try{
     if(typeof FaceMesh==='undefined'){return;}
     var fm=new FaceMesh({locateFile:function(f){return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/'+f;}});
