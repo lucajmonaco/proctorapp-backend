@@ -704,16 +704,17 @@ async function confirmEndSession(){
   if(isRec)stopRec();
   if(timerInterval)clearInterval(timerInterval);
   if(socket)socket.emit('session-ended',{sessionId:sessionId});
-  // Interviewer ended: no full-screen 'concluded' takeover for the interviewer - just save quietly and return them to their library.
-  if(typeof toast==='function') toast('Saving recording to your library...','amber',4000);
-  // Wait for the recording upload to finish saving to the library before leaving (max 60s).
-  if(wasRec && window._recSavePromise){
-    try{ await Promise.race([window._recSavePromise, new Promise(function(rs){ setTimeout(rs,60000); })]); }catch(e){}
-  }
-  await patch('/api/sessions/'+sessionId,{status:'ended'});
-  try{await post('/api/recordings/session/'+sessionId+'/sync',{});}catch(e){}
-  // Recording saved - send the interviewer straight to their library.
-  if(typeof showConcluded==='function') showConcluded('Interview concluded. Recording saved to your library.'); else { if(typeof toast==='function') toast('Recording saved to your library.','green',2500); setTimeout(function(){location.href='/recordings';},900); }
+  // Show the concluded screen (with the rating survey) immediately; save the recording in the background so the survey is never blocked by the upload.
+  if(typeof showConcluded==='function') showConcluded(wasRec?'Saving your recording to your library...':'Interview concluded.');
+  (async function(){
+    if(wasRec && window._recSavePromise){
+      try{ await Promise.race([window._recSavePromise, new Promise(function(rs){ setTimeout(rs,60000); })]); }catch(e){}
+    }
+    try{ await patch('/api/sessions/'+sessionId,{status:'ended'}); }catch(e){}
+    try{ await post('/api/recordings/session/'+sessionId+'/sync',{}); }catch(e){}
+    var sub=document.getElementById('concluded-sub'); if(sub) sub.textContent=wasRec?'Recording saved to your library.':'Interview concluded.';
+    if(typeof showConcluded!=='function'){ if(typeof toast==='function') toast('Recording saved to your library.','green',2500); setTimeout(function(){location.href='/recordings';},900); }
+  })();
 }
 
 function emailInvite(){
