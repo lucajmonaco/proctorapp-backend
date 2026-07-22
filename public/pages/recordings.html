@@ -334,7 +334,7 @@ function buildRecCard(rec, inPositionView){
         sel.style.color=posId?'var(--green)':'';
       }else toast(data.error||'Failed','red');
     };
-    header.appendChild(sel);
+    sel.style.display='none'; var asgBtn=document.createElement('button'); asgBtn.className='btn btn-outline btn-sm'; asgBtn.style.cssText='font-size:11px'; asgBtn.textContent=rec.job_position_id?'Filed':'Assign'; if(rec.job_position_id)asgBtn.style.color='var(--green)'; asgBtn.onclick=function(){ asgBtn.style.display='none'; sel.style.display=''; if(sel.focus)sel.focus(); }; header.appendChild(asgBtn); header.appendChild(sel);
   }
   body.appendChild(header);
 
