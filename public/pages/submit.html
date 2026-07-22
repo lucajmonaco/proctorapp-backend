@@ -149,5 +149,13 @@
   init();
 })();
 </script>
+<script>
+if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=false;
+(function(){ if(window.PROCTORING_ENABLED) return;
+  function h(){ ['s-score','s-flags'].forEach(function(id){var e=document.getElementById(id); if(e){var b=e.closest('.share-stat'); if(b)b.style.display='none';}}); var fb=document.getElementById('s-flagbox'); if(fb)fb.style.display='none'; }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',h); else h();
+  setTimeout(h,1000); setTimeout(h,2500);
+})();
+</script>
 </body>
 </html>
