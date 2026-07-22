@@ -295,7 +295,8 @@ function focusSessionFromUrl(){
 }
 
 //  RECORDING CARD 
-function buildRecCard(rec, inPositionView){
+window.PROCTORING_ENABLED = false; /* proctoring hold: trust/flags hidden - set true to restore */
+  function buildRecCard(rec, inPositionView){
   var score=(rec.trust_score!==null&&rec.trust_score!==undefined)?rec.trust_score:100;
   var scoreClass=score>=80?'trust-hi':score>=60?'trust-mid':'trust-lo';
   // Use org-stream endpoint for position views (any org member can access)
@@ -342,8 +343,8 @@ function buildRecCard(rec, inPositionView){
   meta.innerHTML='<span>Candidate: <strong>'+(rec.candidate_name||'N/A')+'</strong></span>'
     +'<span class="rec-meta-sep"></span><span>'+fmtDate(rec.created_at)+'</span>'
     +'<span class="rec-meta-sep"></span><span>'+fmtDur(rec.duration_secs)+'</span>'
-    +'<span class="rec-meta-sep"></span><span class="'+scoreClass+'"><strong>'+score+'%</strong> trust</span>'
-    +'<span class="rec-meta-sep"></span><span style="color:'+(rec.flag_count>0?'var(--amber)':'var(--text3)')+'">'+( rec.flag_count||0)+' flags</span>'
+    +(window.PROCTORING_ENABLED?('<span class="rec-meta-sep"></span><span class="'+scoreClass+'"><strong>'+score+'%</strong> trust</span>'):'')
+    +(window.PROCTORING_ENABLED?('<span class="rec-meta-sep"></span><span style="color:'+(rec.flag_count>0?'var(--amber)':'var(--text3)')+'">'+( rec.flag_count||0)+' flags</span>'):'')
     +(rec.file_size?'<span class="pill" style="margin-left:auto">'+fmtSize(rec.file_size)+'</span>':'');
   body.appendChild(meta);
   if(rec.flag_count>0){
