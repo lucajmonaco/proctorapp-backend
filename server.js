@@ -594,10 +594,12 @@ function computeTrustScore(sessionId){
 app.get('/api/recordings', requireAuth, (req, res) => {
   const recs = db.prepare('SELECT * FROM recordings WHERE interviewer_id=? ORDER BY created_at DESC').all(req.session.userId);
   const rstmt = db.prepare('SELECT rater_role,stars,note,created_at FROM interview_ratings WHERE session_id=?');
-  const subStmt = db.prepare('SELECT submitted_at, client_name FROM submissions WHERE session_id=?');
+  const subStmt = db.prepare('SELECT submitted_at, client_name, client_email, recommendation FROM submissions WHERE session_id=?');
+  var _me = db.prepare('SELECT name, org_id FROM users WHERE id=?').get(req.session.userId);
+  var _org = _me && _me.org_id ? db.prepare('SELECT name FROM orgs WHERE id=?').get(_me.org_id) : null;
   db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
   const resStmt = db.prepare('SELECT session_id FROM resumes WHERE session_id=?');
-  recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; r.has_resume = !!resStmt.get(r.session_id); r.trust_score = computeTrustScore(r.session_id); rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
+  recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; r.client_email = _sub ? _sub.client_email : null; r.recommendation = _sub ? _sub.recommendation : null; r.recruiter_name = _me ? _me.name : ''; r.agency_name = _org ? _org.name : ''; r.has_resume = !!resStmt.get(r.session_id); r.trust_score = computeTrustScore(r.session_id); rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
   res.json(recs);
 });
 
