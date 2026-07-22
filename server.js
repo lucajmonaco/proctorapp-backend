@@ -563,13 +563,41 @@ app.post('/api/recordings/session/:sessionId/sync', requireAuth, (req, res) => {
   doRecordingSync(req.params.sessionId, req.session.userId, res);
 });
 
+function computeTrustScore(sessionId){
+  var flags = db.prepare('SELECT DISTINCT time_offset,text,severity FROM flags WHERE session_id=?').all(sessionId);
+  var pen = 0;
+  flags.forEach(function(f){
+    var ft = (f.text||'').toLowerCase();
+    var p = 2;
+    if(ft.includes('background voice')||ft.includes('coaching')) p = 6;
+    else if(ft.includes('multiple display')) p = 8;
+    else if(ft.includes('devtools')) p = 4;
+    else if(ft.includes('screen config')) p = 5;
+    else if(ft.includes('extended absence')) p = 5;
+    else if(ft.includes('tab switch')) p = 4;
+    else if(ft.includes('new tab')) p = 3;
+    else if(ft.includes('window switch')||ft.includes('window blur')) p = 2;
+    else if(ft.includes('face not visible')) p = 2;
+    else if(ft.includes('gaze')||ft.includes('eye')) p = 1;
+    else if(ft.includes('copy')||ft.includes('paste')||ft.includes('cut')) p = 2;
+    else if(ft.includes('shortcut')||ft.includes('keyboard')) p = 1;
+    else if(ft.includes('right-click')||ft.includes('right click')) p = 0.5;
+    else if(ft.includes('resize')) p = 0.5;
+    else if(f.severity === 'high') p = 4;
+    else if(f.severity === 'medium') p = 2;
+    else if(f.severity === 'low') p = 1;
+    pen += p;
+  });
+  return Math.max(0, Math.round(100 - pen));
+}
+
 app.get('/api/recordings', requireAuth, (req, res) => {
   const recs = db.prepare('SELECT * FROM recordings WHERE interviewer_id=? ORDER BY created_at DESC').all(req.session.userId);
   const rstmt = db.prepare('SELECT rater_role,stars,note,created_at FROM interview_ratings WHERE session_id=?');
   const subStmt = db.prepare('SELECT submitted_at, client_name FROM submissions WHERE session_id=?');
   db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
   const resStmt = db.prepare('SELECT session_id FROM resumes WHERE session_id=?');
-  recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; r.has_resume = !!resStmt.get(r.session_id); rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
+  recs.forEach(function(r){ r.ratings = {}; var _sub = subStmt.get(r.session_id); r.submitted_at = _sub ? _sub.submitted_at : null; r.client_name = _sub ? _sub.client_name : null; r.has_resume = !!resStmt.get(r.session_id); r.trust_score = computeTrustScore(r.session_id); rstmt.all(r.session_id).forEach(function(x){ r.ratings[x.rater_role] = { stars: x.stars, note: x.note, created_at: x.created_at }; }); });
   res.json(recs);
 });
 
