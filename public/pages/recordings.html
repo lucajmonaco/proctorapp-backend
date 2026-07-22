@@ -480,7 +480,7 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
     if(has && rec.share_token){
       var link = document.createElement('a'); link.href = '/api/recordings/share/' + rec.share_token + '/resume'; link.target = '_blank';
       link.className = 'btn btn-outline btn-sm'; link.style.fontSize = '11px'; link.textContent = 'View resume';
-      var repl = document.createElement('button'); repl.className = 'btn btn-outline btn-sm'; repl.style.cssText = 'font-size:11px;margin-left:6px'; repl.textContent = 'Replace';
+      var repl = document.createElement('button'); repl.className = 'btn btn-outline btn-sm'; repl.style.cssText = 'font-size:11px;margin-left:6px'; repl.textContent = 'Upload';
       repl.onclick = function(){ rezPicker.click(); };
       rezBody.appendChild(link); rezBody.appendChild(repl);
     } else {
