@@ -639,7 +639,8 @@ async function connectSocket(){
     if($('s-status')){$('s-status').textContent='Live'; $('s-status').className='badge badge-green';}
     toast('Candidate returned from lockout','amber',3000);
   });
-  function showConcluded(subMsg){
+  window.showConcluded = showConcluded; /* expose globally so confirmEndSession (global scope) can show the end-of-interview survey */
+    function showConcluded(subMsg){
     var ov=document.getElementById('concluded-overlay');
     if(ov){
       // Promote overlay to a full-screen takeover so no frozen video frame shows through
