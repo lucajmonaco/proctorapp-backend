@@ -74,7 +74,7 @@ function load(){
       var st=document.createElement("span"); st.className="se-status"; st.style.color=statusColor(it.status||""); st.textContent=it.status||"";
       var go=document.createElement("a"); go.className="btn btn-outline btn-sm";
       if(scope==="completed"){ go.href="/recordings"; go.textContent="View recording"; }
-      else { go.href=(it.type==="oneway")?"/async":"/live"; go.textContent=(it.type==="oneway")?"Manage invite":"Open session"; }
+      else { go.href=(it.type==="oneway")?"/async":"/live"; go.textContent=(it.type==="oneway")?"Go to invite":"Go to session"; }
       right.appendChild(st); right.appendChild(go);
       row.appendChild(left); row.appendChild(right); box.appendChild(row);
     });
