@@ -81,9 +81,10 @@
       <button class="toggle-device-btn" onclick="toggleJoinDevices()">Settings (camera / mic / speaker)</button>
       <div class="join-device-panel" id="join-device-panel">
         <div class="join-device-label">Device Settings</div>
-        <div class="join-device-row"><div class="join-device-name">Camera</div><select id="jd-camera" class="join-device-select" onchange="startJoinPreview()"></select></div>
-        <div class="join-device-row"><div class="join-device-name">Microphone</div><select id="jd-mic" class="join-device-select" onchange="startJoinPreview()"></select></div>
+        <div class="join-device-row"><div class="join-device-name">Camera</div><select id="jd-camera" class="join-device-select" onchange="if(joinTestOn) startJoinPreview()"></select></div>
+        <div class="join-device-row"><div class="join-device-name">Microphone</div><select id="jd-mic" class="join-device-select" onchange="if(joinTestOn) startJoinPreview()"></select></div>
         <div class="join-device-row"><div class="join-device-name">Speaker</div><select id="jd-speaker" class="join-device-select"></select></div>
+        <div style="margin:10px 0"><button type="button" id="jd-test" class="btn btn-outline btn-sm" onclick="toggleJoinTest()">Test camera and mic</button></div>
         <div class="preview-box" id="join-preview-box" style="display:none"><video id="join-preview-vid" autoplay playsinline muted></video></div>
         <div id="join-device-status" style="font-size:11px;color:var(--text4);margin-top:8px"></div>
       </div>
@@ -280,7 +281,7 @@ var joinDevicesLoaded = false;
 function toggleJoinDevices(){
   var p = document.getElementById('join-device-panel');
   if(!p) return;
-  if(p.style.display === 'block'){ p.style.display = 'none'; return; }
+  if(p.style.display === 'block'){ p.style.display = 'none'; stopJoinPreview(); return; }
   p.style.display = 'block';
   if(!joinDevicesLoaded){ loadJoinDevices(); joinDevicesLoaded = true; }
 }
@@ -313,10 +314,25 @@ async function loadJoinDevices(){
     fill('jd-mic', devs.filter(function(d){ return d.kind === 'audioinput'; }), 'Microphone');
     fill('jd-speaker', devs.filter(function(d){ return d.kind === 'audiooutput'; }), 'Speaker');
     if(status) status.textContent = '';
-    startJoinPreview();
+    var _js=document.getElementById('join-device-status'); if(_js) _js.textContent='Camera and microphone are off. Press Test camera and mic to check them.';
   }catch(e){
     if(status) status.textContent = 'Could not access devices: ' + e.message;
   }
+}
+var joinTestOn = false;
+function stopJoinPreview(){
+  try{ if(typeof joinPreviewStream !== 'undefined' && joinPreviewStream){ joinPreviewStream.getTracks().forEach(function(tr){ tr.stop(); }); joinPreviewStream = null; } }catch(e){}
+  var v=document.getElementById('join-preview-vid'); if(v){ try{ v.srcObject=null; }catch(e){} }
+  var b=document.getElementById('join-preview-box'); if(b) b.style.display='none';
+  var st=document.getElementById('join-device-status'); if(st) st.textContent='Camera and microphone are off.';
+  var btn=document.getElementById('jd-test'); if(btn) btn.textContent='Test camera and mic';
+  joinTestOn=false;
+}
+function toggleJoinTest(){
+  if(joinTestOn){ stopJoinPreview(); return; }
+  joinTestOn=true;
+  var btn=document.getElementById('jd-test'); if(btn) btn.textContent='Stop test';
+  startJoinPreview();
 }
 async function startJoinPreview(){
   if(joinPreviewStream){ joinPreviewStream.getTracks().forEach(function(t){ t.stop(); }); joinPreviewStream = null; }
