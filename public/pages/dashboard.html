@@ -163,7 +163,7 @@ async function loadReviewsPanel(){
   function makeStar(filled){ var ns='http://www.w3.org/2000/svg'; var svg=document.createElementNS(ns,'svg'); svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('width','14'); svg.setAttribute('height','14'); var p=document.createElementNS(ns,'path'); p.setAttribute('d','M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'); p.setAttribute('fill', filled?'#f5a623':'none'); p.setAttribute('stroke', filled?'#f5a623':'#cbd5e1'); p.setAttribute('stroke-width','1.5'); svg.appendChild(p); return svg; }
   function starRow(r){ var sp=document.createElement('span'); sp.style.cssText='display:inline-flex;align-items:center'; if(r){ for(var i=1;i<=5;i++) sp.appendChild(makeStar(i<=r.stars)); } else { var dd=document.createElement('span'); dd.style.cssText='color:var(--text3);font-size:12px'; dd.textContent='Not rated'; sp.appendChild(dd); } return sp; }
   data.forEach(function(d){
-    var card=document.createElement('div'); card.style.cssText='border:1px solid var(--sky-deep);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--white)';
+    var card=document.createElement('div'); card.style.cssText='border:1.5px solid var(--navy);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--white)';
     var head=document.createElement('div'); head.style.cssText='display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px';
     var left=document.createElement('div');
     var cand=document.createElement('div'); cand.style.cssText='font-weight:700;color:var(--navy);font-size:14px'; cand.textContent=d.candidate_name||'Candidate';
