@@ -138,6 +138,35 @@
         _hdr.hidden=false;
         var _ag=document.getElementById("sub-agency"); if(_ag) _ag.textContent=rec.agency_name||"";
         var _ln=document.getElementById("sub-line"); if(_ln) _ln.textContent=(rec.candidate_name||"Candidate")+(rec.session_title?(" - "+rec.session_title):"");
+      var _rc=document.getElementById("sub-reco");
+      if(_rc && _rc.textContent && _rc.textContent.trim() && !document.getElementById("sub-reco-label")){
+        var _rl=document.createElement("div"); _rl.id="sub-reco-label";
+        _rl.style.cssText="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;opacity:.75;margin-bottom:4px";
+        _rl.textContent="Why we are putting this candidate forward";
+        _rc.parentNode.insertBefore(_rl,_rc);
+      }
+      if(!document.getElementById("s-chips")){
+        var _head=document.querySelector(".share-cardhead");
+        if(_head){
+          var _ch=document.createElement("div"); _ch.id="s-chips";
+          _ch.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px";
+          var _lab=document.createElement("div");
+          _lab.style.cssText="width:100%;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:2px";
+          _lab.textContent="What you can review";
+          _ch.appendChild(_lab);
+          function _chip(text,on){
+            var c=document.createElement("span");
+            var col=on?"var(--blue)":"var(--text4)";
+            c.style.cssText="font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;border:1.5px solid "+col+";color:"+col+";opacity:"+(on?"1":".55");
+            c.textContent=text; return c;
+          }
+          _ch.appendChild(_chip("Interview recording",true));
+          _ch.appendChild(_chip("Identity verified",!!(rec.has_id||rec.has_selfie)));
+          _ch.appendChild(_chip("Resume",!!rec.has_resume));
+          var _tc=_chip("Full transcript",false); _tc.id="s-chip-transcript"; _ch.appendChild(_tc);
+          _head.insertAdjacentElement("afterend",_ch);
+        }
+      }
       }
     }catch(e){}
     try{
@@ -171,6 +200,7 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
   function _fmt(x){ var s=Math.max(0,Math.floor(x||0)); var m=Math.floor(s/60), r=s%60; return m+':'+(r<10?'0':'')+r; }
   function _build(d){
     if(!d || d.status!=='ready') return;
+    var _tchip=document.getElementById('s-chip-transcript'); if(_tchip){ _tchip.style.borderColor='var(--blue)'; _tchip.style.color='var(--blue)'; _tchip.style.opacity='1'; }
     var host=document.getElementById('s-resume');
     var parent = host && host.parentNode ? host.parentNode : document.querySelector('.share-card');
     if(!parent) return;
@@ -201,5 +231,6 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_load); else _load();
 })();
 </script>
+<div style="text-align:center;font-size:11px;color:var(--text4);padding:26px 20px 34px">Delivered securely through InterviewMyCandidate</div>
 </body>
 </html>
