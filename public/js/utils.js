@@ -59,3 +59,39 @@ document.addEventListener("click", function (e) {
   input.type = reveal ? "text" : "password";
   btn.classList.toggle("is-visible", reveal);
 });
+
+function imcBuildDrawer(){
+  var host = document.getElementById('drawer-links') || document.querySelector('.nav-drawer-links');
+  if(!host) return;
+  var path = location.pathname;
+  host.innerHTML = '';
+  function mk(href, label, icon, indent){
+    var a = document.createElement('a');
+    a.className = 'nav-drawer-link' + (path === href ? ' active' : '');
+    a.href = href;
+    var s = document.createElement('span'); s.className = 'nav-drawer-link-icon'; s.innerHTML = icon;
+    a.appendChild(s); a.appendChild(document.createTextNode(label));
+    if(indent) a.style.paddingLeft = '38px';
+    return a;
+  }
+  host.appendChild(mk('/', 'Home', '&#127968;'));
+  var group = document.createElement('a');
+  group.className = 'nav-drawer-link'; group.href = '#';
+  var gi = document.createElement('span'); gi.className = 'nav-drawer-link-icon'; gi.innerHTML = '&#128202;';
+  group.appendChild(gi); group.appendChild(document.createTextNode('Interview Dashboard'));
+  var caret = document.createElement('span'); caret.style.marginLeft = 'auto'; caret.style.opacity = '.7';
+  group.appendChild(caret);
+  host.appendChild(group);
+  var sub = document.createElement('div');
+  sub.appendChild(mk('/live', 'Live Interviews', '&#127909;', true));
+  sub.appendChild(mk('/async', 'Async Interviews', '&#128228;', true));
+  sub.appendChild(mk('/sessions', 'Sessions', '&#128203;', true));
+  host.appendChild(sub);
+  var open = (path === '/live' || path === '/async' || path === '/sessions' || path === '/upcoming');
+  function paint(){ sub.style.display = open ? '' : 'none'; caret.textContent = open ? '-' : '+'; }
+  group.onclick = function(e){ e.preventDefault(); open = !open; paint(); };
+  paint();
+  host.appendChild(mk('/recordings', 'Recordings Library', '&#127902;'));
+  host.appendChild(mk('/company', 'Company', '&#127970;'));
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', imcBuildDrawer); else imcBuildDrawer();
