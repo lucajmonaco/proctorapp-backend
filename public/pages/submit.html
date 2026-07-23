@@ -227,7 +227,47 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
     box.appendChild(wrap);
     if(host && host.parentNode) host.parentNode.insertBefore(box, host.nextSibling); else parent.appendChild(box);
   }
-  function _load(){ fetch('/api/recordings/share/'+_tk+'/transcript').then(function(r){return r.json();}).then(_build).catch(function(){}); }
+  function _sumBlock(d){
+    if(!d || d.status!=='ready') return;
+    var host=document.getElementById('s-resume');
+    var parent = host && host.parentNode ? host.parentNode : document.querySelector('.share-card');
+    if(!parent) return;
+    var box=document.createElement('div');
+    box.className='share-identity';
+    box.style.cssText='margin-top:14px';
+    var h=document.createElement('div');
+    h.style.cssText='font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px';
+    h.textContent='Interview summary';
+    box.appendChild(h);
+    if(d.summary){ var p=document.createElement('div'); p.style.cssText='font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px'; p.textContent=d.summary; box.appendChild(p); }
+    function list(title,arr){
+      if(!arr || !arr.length) return;
+      var w=document.createElement('div'); w.style.cssText='margin-top:10px';
+      var t2=document.createElement('div'); t2.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--blue);margin-bottom:4px'; t2.textContent=title;
+      w.appendChild(t2);
+      var ul=document.createElement('ul'); ul.style.cssText='margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--text2)';
+      arr.forEach(function(x){ var li=document.createElement('li'); li.textContent=String(x); ul.appendChild(li); });
+      w.appendChild(ul); box.appendChild(w);
+    }
+    list('Strengths', d.strengths);
+    list('Skills mentioned', d.skills);
+    if(d.key_quotes && d.key_quotes.length){
+      var qw=document.createElement('div'); qw.style.cssText='margin-top:12px';
+      var qh=document.createElement('div'); qh.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--blue);margin-bottom:5px'; qh.textContent='In their own words'; qw.appendChild(qh);
+      d.key_quotes.forEach(function(q){
+        var qd=document.createElement('div');
+        qd.style.cssText='border-left:3px solid var(--blue);padding-left:11px;margin-bottom:8px;font-size:13px;line-height:1.7;color:var(--text2)';
+        qd.textContent='"'+(q.quote||'')+'"'+(q.time?('  ('+q.time+')'):'');
+        qw.appendChild(qd);
+      });
+      box.appendChild(qw);
+    }
+    if(host && host.parentNode) host.parentNode.insertBefore(box, host.nextSibling); else parent.appendChild(box);
+  }
+  function _load(){
+    fetch('/api/recordings/share/'+_tk+'/summary').then(function(r){return r.json();}).then(_sumBlock).catch(function(){});
+    fetch('/api/recordings/share/'+_tk+'/transcript').then(function(r){return r.json();}).then(_build).catch(function(){});
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_load); else _load();
 })();
 </script>
