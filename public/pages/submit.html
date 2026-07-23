@@ -133,6 +133,14 @@
       if(rec.has_id){ document.getElementById("s-id").setAttribute("src", "/api/recordings/share/"+token+"/identity/idphoto"); document.getElementById("s-id-wrap").hidden = false; }
     }
     try{
+      var _hdr=document.getElementById("sub-header");
+      if(_hdr){
+        _hdr.hidden=false;
+        var _ag=document.getElementById("sub-agency"); if(_ag) _ag.textContent=rec.agency_name||"";
+        var _ln=document.getElementById("sub-line"); if(_ln) _ln.textContent=(rec.candidate_name||"Candidate")+(rec.session_title?(" - "+rec.session_title):"");
+      }
+    }catch(e){}
+    try{
       var subRes = await fetch("/api/recordings/share/"+token+"/submission");
       var subData = subRes.ok ? await subRes.json() : null;
       if(subData && subData.submitted){
