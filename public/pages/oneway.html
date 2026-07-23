@@ -95,9 +95,11 @@
     <div id="ow-survey" class="ow-hide">
       <h1 class="ow-h">Thank you</h1>
       <div class="ow-sub" id="ow-surveymsg"></div>
-      <div class="ow-tlabel">How was your interview experience?</div>
-      <div id="ow-stars" style="margin:6px 0 10px"></div>
-      <textarea id="ow-note" class="input" rows="3" placeholder="Anything you would like the recruiter to know (optional)" style="width:100%;font-family:inherit"></textarea>
+      <div id="ow-ratecard" style="margin-top:18px;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:20px 22px;max-width:360px;box-shadow:0 -2px 0 0 var(--blue) inset,var(--shadow-sm)">
+        <div id="ow-rateprompt" style="font-size:14px;font-weight:600;color:#0f2241;margin-bottom:14px">How was your interview experience?</div>
+        <div id="ow-stars" style="display:flex;gap:8px;margin-bottom:14px"></div>
+        <textarea id="ow-note" class="input" rows="3" placeholder="Anything you would like the recruiter to know (optional)" style="width:100%;font-family:inherit"></textarea>
+      </div>
       <div style="margin-top:12px"><button id="ow-sendrating" class="btn btn-primary" disabled>Send feedback</button> <button id="ow-skiprating" class="btn btn-outline">Skip</button></div>
     </div>
     <div id="ow-end" class="ow-hide">
@@ -262,7 +264,22 @@ function finish(){
     show("ow-survey");
   }).catch(function(){ ended("Thank you","Your interview was recorded. You may close this window."); });
 }
-(function(){ var box=$("ow-stars"); for(var i=1;i<=5;i++){ (function(n){ var st=document.createElement("span"); st.className="ow-star"; st.textContent="*"; st.title=n+" of 5"; st.onclick=function(){ rating=n; [].slice.call(box.children).forEach(function(el,j){ el.classList.toggle("lit", j<n); }); $("ow-sendrating").disabled=false; }; box.appendChild(st); })(i); } })();
+(function(){
+  var box=$("ow-stars");
+  var PTS="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2";
+  function paint(n){ [].slice.call(box.children).forEach(function(el,j){ var on=j<n; el.setAttribute("fill", on?"#f0b429":"none"); el.setAttribute("stroke", on?"#f0b429":"#93a3b8"); }); }
+  for(var i=1;i<=5;i++){
+    (function(n){
+      var sv=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      sv.setAttribute("class","rstar"); sv.setAttribute("width","30"); sv.setAttribute("height","30");
+      sv.setAttribute("viewBox","0 0 24 24"); sv.setAttribute("fill","none"); sv.setAttribute("stroke","#93a3b8");
+      sv.setAttribute("stroke-width","1.5"); sv.setAttribute("stroke-linejoin","round"); sv.style.cursor="pointer";
+      var pg=document.createElementNS("http://www.w3.org/2000/svg","polygon"); pg.setAttribute("points",PTS); sv.appendChild(pg);
+      sv.onclick=function(){ rating=n; paint(n); $("ow-sendrating").disabled=false; };
+      box.appendChild(sv);
+    })(i);
+  }
+})();
 $("ow-sendrating").onclick=function(){
   if(!rating) return;
   $("ow-sendrating").disabled=true;
