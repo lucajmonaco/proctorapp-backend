@@ -157,5 +157,41 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
   setTimeout(h,1000); setTimeout(h,2500);
 })();
 </script>
+<script>
+(function(){
+  var _tk = location.pathname.split('/').pop();
+  function _fmt(x){ var s=Math.max(0,Math.floor(x||0)); var m=Math.floor(s/60), r=s%60; return m+':'+(r<10?'0':'')+r; }
+  function _build(d){
+    if(!d || d.status!=='ready') return;
+    var host=document.getElementById('s-resume');
+    var parent = host && host.parentNode ? host.parentNode : document.querySelector('.share-card');
+    if(!parent) return;
+    var box=document.createElement('details');
+    box.className='share-identity'; box.style.cssText='margin-top:14px';
+    var sum=document.createElement('summary');
+    sum.style.cssText='cursor:pointer;font-weight:700'; sum.textContent='Interview transcript';
+    box.appendChild(sum);
+    var wrap=document.createElement('div');
+    wrap.style.cssText='margin-top:10px;max-height:340px;overflow:auto;font-size:13px;line-height:1.7';
+    var segs=d.segments||[];
+    if(!segs.length){ wrap.textContent=d.text||''; }
+    else segs.forEach(function(sg){
+      var line=document.createElement('div'); line.style.cssText='margin-bottom:8px';
+      var isFirst=(sg.speaker===0);
+      var who=(d.swap? !isFirst : isFirst)?'Interviewer':'Candidate';
+      var tag=document.createElement('span');
+      tag.style.cssText='font-weight:700;cursor:pointer;color:'+(who==='Candidate'?'var(--blue)':'var(--navy)');
+      tag.textContent=who+' '+_fmt(sg.start)+'  ';
+      tag.onclick=function(){ var v=document.querySelector('video'); if(v){ try{ v.currentTime=sg.start||0; if(v.play) v.play(); }catch(e){} } };
+      var tx=document.createElement('span'); tx.textContent=sg.text||'';
+      line.appendChild(tag); line.appendChild(tx); wrap.appendChild(line);
+    });
+    box.appendChild(wrap);
+    if(host && host.parentNode) host.parentNode.insertBefore(box, host.nextSibling); else parent.appendChild(box);
+  }
+  function _load(){ fetch('/api/recordings/share/'+_tk+'/transcript').then(function(r){return r.json();}).then(_build).catch(function(){}); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_load); else _load();
+})();
+</script>
 </body>
 </html>
