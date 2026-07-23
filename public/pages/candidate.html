@@ -135,7 +135,7 @@
 </div>
 
 <!-- GOODBYE SCREEN -->
-<div id="goodbye-screen" class="goodbye-screen" style="display:none"><div id="goodbye-brand" style="display:none;font-size:16px;font-weight:800;color:#0f2241;background:#ffffff;border:1px solid #e5e9f0;border-radius:999px;padding:7px 18px;margin-bottom:16px;letter-spacing:.3px;box-shadow:0 2px 10px rgba(0,0,0,.08)"></div>
+<div id="goodbye-screen" class="goodbye-screen" style="display:none"><div style="position:absolute;top:22px;left:26px;font-size:18px;font-weight:800;letter-spacing:-.5px;color:#0f2241"><span>Interview</span><span style="color:#2563eb">My</span><span>Candidate</span></div><div id="goodbye-brand" style="display:none;font-size:16px;font-weight:800;color:#0f2241;background:#ffffff;border:1px solid #e5e9f0;border-radius:999px;padding:7px 18px;margin-bottom:16px;letter-spacing:.3px;box-shadow:0 2px 10px rgba(0,0,0,.08)"></div>
   <div class="goodbye-icon">&#10004;&#65039;</div>
   <div class="goodbye-title">Thank You!</div>
   <div class="goodbye-sub">The interview has concluded. Thank you for your time.</div>
@@ -543,7 +543,7 @@ function showGoodbye(){
   $('interview-screen').style.display='none';
   $('lockout-overlay').style.display='none';
   $('pause-overlay').classList.remove('active');
-  $('goodbye-screen').style.display='flex'; var _gb=document.getElementById('goodbye-brand'); if(_gb && typeof sessionData!=='undefined' && sessionData && sessionData.company_name){ _gb.textContent=sessionData.company_name; _gb.style.display=''; }
+  $('goodbye-screen').style.display='flex'; var _gb=document.getElementById('goodbye-brand'); if(_gb && typeof sessionData!=='undefined' && sessionData && sessionData.company_name){ _gb.textContent=sessionData.company_name+' thanks you for interviewing.'; _gb.style.display=''; }
 }
 
 function captureIdentity(){
