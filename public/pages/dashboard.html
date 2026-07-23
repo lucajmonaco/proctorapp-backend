@@ -152,7 +152,7 @@ async function loadReviewsPanel(){
   function avg(a){ if(!a.length) return '-'; var s=0; a.forEach(function(n){ s+=n; }); return (s/a.length).toFixed(1); }
   var summary = document.createElement('div'); summary.style.cssText='display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px';
   [['Total reviews', String(data.length)],['Avg interviewer', avg(iVals)],['Avg candidate', avg(cVals)]].forEach(function(pair){
-    var c=document.createElement('div'); c.style.cssText='background:var(--sky);border:1px solid var(--sky-deep);border-radius:10px;padding:14px 18px;min-width:120px';
+    var c=document.createElement('div'); c.style.cssText='background:var(--sky);border:1.5px solid var(--navy);border-radius:10px;padding:14px 18px;min-width:120px';
     var v=document.createElement('div'); v.style.cssText='font-size:22px;font-weight:800;color:var(--navy)'; v.textContent=pair[1];
     var l=document.createElement('div'); l.style.cssText='font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;font-weight:600'; l.textContent=pair[0];
     c.appendChild(v); c.appendChild(l); summary.appendChild(c);
@@ -438,7 +438,7 @@ async function loadCompanyPanel(){
 
   // Invite box (admin only)
   if(isAdmin){
-    var ibox=document.createElement('div'); ibox.style.cssText='background:var(--sky);border:1.5px solid var(--sky-deep);border-radius:var(--r);padding:16px 18px;margin-bottom:20px';
+    var ibox=document.createElement('div'); ibox.style.cssText='background:var(--sky);border:1.5px solid var(--navy);border-radius:var(--r);padding:16px 18px;margin-bottom:20px';
     var iTitle=document.createElement('div'); iTitle.style.cssText='font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px'; iTitle.textContent='Share Invite Link';
     var iSub=document.createElement('div'); iSub.style.cssText='font-size:12px;color:var(--text4);margin-bottom:10px;line-height:1.5'; iSub.textContent='Send this to new team members. After joining they sign in with email and password only.';
     var iRow=document.createElement('div'); iRow.style.cssText='display:flex;gap:8px;align-items:center';
