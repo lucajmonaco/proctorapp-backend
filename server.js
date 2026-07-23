@@ -881,6 +881,100 @@ app.delete('/api/oneway/:id', requireAuth, (req, res) => {
 });
 
 
+function finishOneWay(interviewId) {
+  var iv = null;
+  try { iv = db.prepare('SELECT * FROM async_interviews WHERE id=?').get(interviewId); } catch (e) {}
+  if (!iv || iv.status === 'completed') return;
+  var answers = [];
+  try { answers = db.prepare('SELECT * FROM async_answers WHERE interview_id=? ORDER BY q_index ASC').all(interviewId); } catch (e) {}
+  if (!answers.length) return;
+  var dir = path.dirname(answers[0].file_path);
+  var listPath = path.join(dir, 'ow-' + interviewId + '.txt');
+  var outPath = path.join(dir, 'ow-' + interviewId + '.mp4');
+  try { fs.writeFileSync(listPath, answers.map(function (a) { return "file '" + String(a.file_path).replace(/'/g, "") + "'"; }).join('\n')); } catch (e) { return; }
+  execFile('ffmpeg', ['-y','-f','concat','-safe','0','-i', listPath, '-c:v','libx264','-preset','veryfast','-c:a','aac','-movflags','+faststart', outPath], { timeout: 1000*60*25, maxBuffer: 1024*1024*20 }, function (err) {
+    try { fs.unlinkSync(listPath); } catch (e) {}
+    if (err) { return; }
+    try {
+      var sessionId = uuidv4();
+      var code = (typeof generateSessionCode === 'function') ? generateSessionCode() : uuidv4().slice(0, 7);
+      var qs = owQs(iv);
+      db.prepare('INSERT INTO sessions (id,code,title,candidate_name,candidate_email,interviewer_id,org_id,questions,started_at,scheduled_at,require_screen) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+        .run(sessionId, code, iv.role_title || 'One-way interview', iv.candidate_name || 'Candidate', iv.candidate_email || null, iv.created_by, iv.org_id, JSON.stringify(qs.map(function (q) { return q.text; })), iv.started_at || owNow(), iv.created_at || owNow(), 0);
+      var recId = uuidv4();
+      var size = 0;
+      try { size = fs.statSync(outPath).size; } catch (e) {}
+      var dur = answers.reduce(function (a, b) { return a + (b.duration_secs || 0); }, 0);
+      var shareToken = uuidv4().replace(/-/g, '');
+      db.prepare('INSERT INTO recordings (id,session_id,interviewer_id,org_id,session_title,candidate_name,file_path,file_size,duration_secs,trust_score,flag_count,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+        .run(recId, sessionId, iv.created_by, iv.org_id, iv.role_title || 'One-way interview', iv.candidate_name || 'Candidate', outPath, size, dur, 100, 0, shareToken);
+      db.prepare("UPDATE async_interviews SET status='completed', completed_at=?, recording_id=? WHERE id=?").run(owNow(), recId, iv.id);
+      try { transcribeRecording(recId); } catch (e) {}
+    } catch (e) {}
+  });
+}
+
+app.get('/api/oneway/t/:token', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (iv.status === 'completed') return res.json({ status: 'completed', role_title: iv.role_title, candidate_name: iv.candidate_name });
+  if (owExpired(iv)) return res.json({ status: 'expired', role_title: iv.role_title, candidate_name: iv.candidate_name });
+  var org = null;
+  try { org = db.prepare('SELECT name FROM orgs WHERE id=?').get(iv.org_id); } catch (e) {}
+  var qs = owQs(iv);
+  res.json({ status: iv.status, role_title: iv.role_title, candidate_name: iv.candidate_name, company: (org && org.name) || '', question_count: qs.length, current_q: iv.current_q || 0, expires_at: iv.expires_at });
+});
+
+app.post('/api/oneway/t/:token/start', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (iv.status === 'completed') return res.status(400).json({ error: 'This interview has already been submitted' });
+  if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  if (iv.status === 'pending') { try { db.prepare("UPDATE async_interviews SET status='started', started_at=? WHERE id=?").run(owNow(), iv.id); } catch (e) {} }
+  res.json({ ok: true, question_count: owQs(iv).length, current_q: iv.current_q || 0 });
+});
+
+app.get('/api/oneway/t/:token/q/:idx', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (iv.status !== 'started') return res.status(400).json({ error: 'The interview has not been started' });
+  if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  var idx = parseInt(req.params.idx, 10);
+  var qs = owQs(iv);
+  if (isNaN(idx) || idx < 0 || idx >= qs.length) return res.status(404).json({ error: 'No such question' });
+  if (idx !== (iv.current_q || 0)) return res.status(403).json({ error: 'Questions are revealed one at a time' });
+  var q = qs[idx] || {};
+  res.json({ index: idx, total: qs.length, text: q.text || '', prep_secs: q.prep_secs, answer_secs: q.answer_secs });
+});
+
+app.post('/api/oneway/t/:token/answer', upload.single('clip'), (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (iv.status !== 'started') return res.status(400).json({ error: 'The interview has not been started' });
+  if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  var idx = parseInt((req.body && req.body.q_index), 10);
+  var qs = owQs(iv);
+  if (isNaN(idx) || idx !== (iv.current_q || 0)) return res.status(400).json({ error: 'Unexpected question' });
+  if (!req.file) return res.status(400).json({ error: 'No recording received' });
+  try {
+    db.prepare('INSERT INTO async_answers (id, interview_id, q_index, question_text, file_path, duration_secs) VALUES (?,?,?,?,?,?)')
+      .run(uuidv4(), iv.id, idx, (qs[idx] && qs[idx].text) || '', req.file.path, parseInt((req.body && req.body.duration), 10) || 0);
+    db.prepare('UPDATE async_interviews SET current_q=? WHERE id=?').run(idx + 1, iv.id);
+  } catch (e) { return res.status(500).json({ error: 'Could not save that answer' }); }
+  res.json({ ok: true, done: (idx + 1) >= qs.length, next: ((idx + 1) < qs.length) ? (idx + 1) : null });
+});
+
+app.post('/api/oneway/t/:token/finish', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (iv.status === 'completed') return res.json({ ok: true, already: true });
+  try { finishOneWay(iv.id); } catch (e) {}
+  res.json({ ok: true });
+});
+
+app.get('/oneway/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'oneway.html')));
+
+
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
