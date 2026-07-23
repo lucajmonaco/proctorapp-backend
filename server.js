@@ -1083,11 +1083,11 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 app.get('/oneway/:token', (req, res) => sendPage(res, 'oneway.html'));
 app.get('/contact', (req, res) => sendPage(res, 'contact.html'));
 app.get('/guide', (req, res) => sendPage(res, 'guide.html'));
-app.get('/async', requireAuth, (req, res) => sendPage(res, 'async.html'));
-app.get('/live', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
-app.get('/sessions', requireAuth, (req, res) => sendPage(res, 'sessions.html'));
-app.get('/upcoming', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
-app.get('/company', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/async', requirePage, (req, res) => sendPage(res, 'async.html'));
+app.get('/live', requirePage, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/sessions', requirePage, (req, res) => sendPage(res, 'sessions.html'));
+app.get('/upcoming', requirePage, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/company', requirePage, (req, res) => sendPage(res, 'dashboard.html'));
 
 
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN consented_at INTEGER'); } catch (e) {}
@@ -1570,6 +1570,11 @@ app.get('/session/:id', (req, res) => res.sendFile(path.join(__dirname, 'public'
 app.get('/join/:code', (req, res) => sendPage(res, 'candidate.html'));
 app.get('/recordings', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'recordings.html')));
 app.get('/positions', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'recordings.html')));
+function requirePage(req, res, next) {
+  if (!req.session.userId) return res.redirect('/');
+  next();
+}
+
 function sendPage(res, file) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
