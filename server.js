@@ -694,6 +694,37 @@ app.post('/api/recordings/:id/transcript/swap', requireAuth, (req, res) => {
   res.json({ ok: true, swap: !!(row && row.swap_speakers) });
 });
 
+try { db.exec('ALTER TABLE submissions ADD COLUMN include_summary INTEGER DEFAULT 1'); } catch (e) {}
+
+app.get('/api/recordings/share/:token/summary', (req, res) => {
+  var rec = db.prepare('SELECT id, session_id FROM recordings WHERE share_token=?').get(req.params.token);
+  if (!rec) return res.status(404).json({ error: 'Not found' });
+  var sub = null;
+  try { sub = db.prepare('SELECT include_summary FROM submissions WHERE session_id=?').get(rec.session_id); } catch (e) {}
+  if (sub && sub.include_summary === 0) return res.json({ status: 'off' });
+  var row = null;
+  try { row = db.prepare('SELECT status, data FROM summaries WHERE session_id=?').get(rec.session_id); } catch (e) {}
+  if (!row || row.status !== 'ready') return res.json({ status: (row && row.status) || 'none' });
+  var d = null;
+  try { d = row.data ? JSON.parse(row.data) : null; } catch (e) {}
+  if (!d) return res.json({ status: 'none' });
+  // Client-facing view only: concerns, integrity signals and the model recommendation stay internal.
+  res.json({ status: 'ready', summary: d.summary || '', strengths: d.strengths || [], skills: d.skills || [], key_quotes: d.key_quotes || [] });
+});
+
+app.post('/api/recordings/:id/summary/share-toggle', requireAuth, (req, res) => {
+  var rec = db.prepare('SELECT id, session_id, org_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'Recording not found' });
+  if (rec.org_id !== req.session.orgId) return res.status(403).json({ error: 'Not allowed' });
+  var cur = null;
+  try { cur = db.prepare('SELECT include_summary FROM submissions WHERE session_id=?').get(rec.session_id); } catch (e) {}
+  if (!cur) return res.status(400).json({ error: 'Submit this candidate to a client first' });
+  var next = (cur.include_summary === 0) ? 1 : 0;
+  try { db.prepare('UPDATE submissions SET include_summary=? WHERE session_id=?').run(next, rec.session_id); } catch (e) {}
+  logAudit(req, 'submission.summary_visibility', (next ? 'Showed' : 'Hid') + ' the AI summary on a client submission');
+  res.json({ ok: true, include_summary: next });
+});
+
 app.get('/api/recordings/share/:token/transcript', (req, res) => {
   var rec = db.prepare('SELECT session_id FROM recordings WHERE share_token=?').get(req.params.token);
   if (!rec) return res.status(404).json({ error: 'Not found' });
