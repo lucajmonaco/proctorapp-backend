@@ -603,6 +603,15 @@ app.get('/api/recordings', requireAuth, (req, res) => {
   res.json(recs);
 });
 
+app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
+  const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const s = db.prepare('SELECT org_id FROM sessions WHERE id=?').get(req.params.sessionId);
+  if (!s || s.org_id !== me.org_id) return res.status(404).json({ error: 'Review not found' });
+  db.prepare('DELETE FROM interview_ratings WHERE session_id=?').run(req.params.sessionId);
+  res.json({ ok: true });
+});
+
 app.get('/api/reviews', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role FROM users WHERE id=?').get(req.session.userId);
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
