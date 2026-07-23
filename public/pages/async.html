@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Async Interviews - InterviewMyCandidate</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.as-wrap{max-width:1000px;margin:0 auto;padding:26px 20px}
+.as-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:22px 24px;margin-bottom:20px;box-shadow:0 -2px 0 0 var(--blue) inset,var(--shadow-sm)}
+.as-h{font-size:18px;font-weight:800;color:var(--navy);margin:0 0 4px;letter-spacing:-.3px}
+.as-sub{font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6}
+.as-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.as-in{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit}
+.as-num{width:78px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit}
+.as-item{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;box-shadow:0 -2px 0 0 var(--blue) inset}
+.as-badge{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 9px;border-radius:999px;border:1.5px solid}
+.as-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:5px}
+</style></head><body>
+<nav class="nav">
+  <a href="/" class="nav-logo" aria-label="Home"><span class="logo-interview">Interview</span><span class="logo-my">My</span><span class="logo-candidate">Candidate</span></a>
+  <div class="nav-right">
+    <span id="user-chip" style="font-size:12px;color:rgba(255,255,255,.5)"></span>
+    <div class="topbar-sep"></div>
+    <button class="burger-btn" id="burger-btn" aria-label="Open menu" aria-expanded="false"><span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span></button>
+  </div>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-drawer-bg" id="drawer-bg"></div>
+  <div class="nav-drawer-panel">
+    <div class="nav-drawer-header"><span class="nav-drawer-title">Navigation</span><button class="nav-drawer-close" id="drawer-close">X</button></div>
+    <nav class="nav-drawer-links">
+      <a href="/" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#127968;</span>Home</a>
+      <a href="/dashboard" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#128203;</span>Dashboard</a>
+      <a href="/recordings" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#127902;</span>Recordings Library</a>
+      <a href="/async" class="nav-drawer-link active"><span class="nav-drawer-link-icon">&#128228;</span>Async Interviews</a>
+    </nav>
+  </div>
+</div>
+<div class="as-wrap">
+  <div class="as-card">
+    <h2 class="as-h">Question templates</h2>
+    <div class="as-sub">Save a set of questions once, then reuse it for every candidate screening this role.</div>
+    <input id="tpl-name" class="as-in" placeholder="Template name (e.g. Frontend Developer screen)" style="margin-bottom:10px">
+    <div id="tpl-qs"></div>
+    <div class="as-row">
+      <button id="tpl-add" class="btn btn-outline btn-sm">Add question</button>
+      <button id="tpl-save" class="btn btn-primary btn-sm">Save template</button>
+      <span id="tpl-msg" style="font-size:12px;color:var(--text3)"></span>
+    </div>
+    <div id="tpl-list" style="margin-top:16px"></div>
+  </div>
+  <div class="as-card">
+    <h2 class="as-h">Send a one-way interview</h2>
+    <div class="as-sub">The candidate gets a private link. Questions stay hidden until they press Start, and the link expires automatically.</div>
+    <div class="as-row">
+      <select id="iv-tpl" class="as-in"></select>
+      <input id="iv-name" class="as-in" placeholder="Candidate name">
+    </div>
+    <div class="as-row">
+      <input id="iv-role" class="as-in" placeholder="Role title (shown to candidate)">
+      <input id="iv-email" class="as-in" placeholder="Candidate email (optional)">
+      <input id="iv-days" class="as-num" type="number" min="1" max="60" value="7" title="Days until the link expires">
+      <button id="iv-create" class="btn btn-primary btn-sm">Create link</button>
+    </div>
+    <div id="iv-msg" style="font-size:12px;color:var(--text3)"></div>
+    <div id="iv-list" style="margin-top:16px"></div>
+  </div>
+</div>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id);};
+var burger=$("burger-btn"), drawer=$("nav-drawer");
+function tg(){ drawer.classList.toggle("open"); }
+if(burger) burger.onclick=tg;
+if($("drawer-close")) $("drawer-close").onclick=tg;
+if($("drawer-bg")) $("drawer-bg").onclick=tg;
+function esc(x){ var d=document.createElement("div"); d.textContent=String(x==null?"":x); return d.innerHTML; }
+function qRow(text,prep,ans){
+  var w=document.createElement("div"); w.className="as-row";
+  var i1=document.createElement("input"); i1.className="as-in qq"; i1.placeholder="Question"; i1.value=text||"";
+  var i2=document.createElement("input"); i2.className="as-num qp"; i2.type="number"; i2.min="0"; i2.max="300"; i2.value=prep==null?30:prep; i2.title="Prep seconds";
+  var i3=document.createElement("input"); i3.className="as-num qa"; i3.type="number"; i3.min="15"; i3.max="900"; i3.value=ans==null?120:ans; i3.title="Answer seconds";
+  var rm=document.createElement("button"); rm.className="btn btn-outline btn-sm"; rm.textContent="Remove"; rm.onclick=function(){ w.remove(); };
+  w.appendChild(i1); w.appendChild(i2); w.appendChild(i3); w.appendChild(rm);
+  $("tpl-qs").appendChild(w);
+}
+$("tpl-add").onclick=function(){ qRow("",30,120); };
+qRow("",30,120);
+$("tpl-save").onclick=function(){
+  var name=$("tpl-name").value.trim();
+  var qs=[].slice.call($("tpl-qs").querySelectorAll(".as-row")).map(function(r){ return { text:r.querySelector(".qq").value, prep_secs:parseInt(r.querySelector(".qp").value,10), answer_secs:parseInt(r.querySelector(".qa").value,10) }; }).filter(function(q){ return q.text.trim(); });
+  if(!name){ $("tpl-msg").textContent="Give the template a name."; return; }
+  if(!qs.length){ $("tpl-msg").textContent="Add at least one question."; return; }
+  $("tpl-msg").textContent="Saving...";
+  fetch("/api/templates",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,questions:qs})}).then(function(r){return r.json();}).then(function(j){
+    if(j&&j.ok){ $("tpl-msg").textContent="Saved."; $("tpl-name").value=""; $("tpl-qs").innerHTML=""; qRow("",30,120); loadTemplates(); }
+    else $("tpl-msg").textContent=(j&&j.error)||"Could not save.";
+  }).catch(function(){ $("tpl-msg").textContent="Could not save."; });
+};
+function loadTemplates(){
+  fetch("/api/templates").then(function(r){ if(r.status===401){ location.href="/"; return null; } return r.json(); }).then(function(rows){
+    if(!rows) return;
+    var box=$("tpl-list"); box.innerHTML="";
+    var sel=$("iv-tpl"); sel.innerHTML="";
+    if(!rows.length){ box.innerHTML="<div style=\"font-size:13px;color:var(--text3)\">No templates yet.</div>"; var o=document.createElement("option"); o.textContent="No templates yet"; o.value=""; sel.appendChild(o); return; }
+    rows.forEach(function(tp){
+      var d=document.createElement("div"); d.className="as-item";
+      var head=document.createElement("div"); head.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px";
+      var nm=document.createElement("div"); nm.style.cssText="font-weight:700;color:var(--navy)"; nm.textContent=tp.name+"  ("+tp.questions.length+" questions)";
+      var del=document.createElement("button"); del.className="btn btn-outline btn-sm"; del.style.cssText="color:var(--red);border-color:var(--red)"; del.textContent="Delete";
+      del.onclick=function(){ if(!confirm("Delete this template?")) return; fetch("/api/templates/"+tp.id,{method:"DELETE"}).then(function(){ loadTemplates(); }); };
+      head.appendChild(nm); head.appendChild(del); d.appendChild(head);
+      var ul=document.createElement("ol"); ul.style.cssText="margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--text2)";
+      tp.questions.forEach(function(q){ var li=document.createElement("li"); li.style.marginBottom="3px"; li.textContent=q.text+"  ("+q.prep_secs+"s prep, "+q.answer_secs+"s answer)"; ul.appendChild(li); });
+      d.appendChild(ul); box.appendChild(d);
+      var op=document.createElement("option"); op.value=tp.id; op.textContent=tp.name; sel.appendChild(op);
+    });
+  }).catch(function(){});
+}
+$("iv-create").onclick=function(){
+  var tid=$("iv-tpl").value;
+  if(!tid){ $("iv-msg").textContent="Create a template first."; return; }
+  $("iv-msg").textContent="Creating...";
+  fetch("/api/oneway",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({template_id:tid, candidate_name:$("iv-name").value.trim()||"Candidate", candidate_email:$("iv-email").value.trim()||null, role_title:$("iv-role").value.trim()||null, days:parseInt($("iv-days").value,10)||7})}).then(function(r){return r.json();}).then(function(j){
+    if(j&&j.ok){ $("iv-msg").textContent="Link created."; $("iv-name").value=""; $("iv-email").value=""; loadInvites(); }
+    else $("iv-msg").textContent=(j&&j.error)||"Could not create.";
+  }).catch(function(){ $("iv-msg").textContent="Could not create."; });
+};
+function badge(st){
+  var col = st==="completed"?"var(--green)":(st==="expired"?"var(--red)":(st==="started"?"var(--amber)":"var(--blue)"));
+  var b=document.createElement("span"); b.className="as-badge"; b.style.color=col; b.style.borderColor=col; b.textContent=st;
+  return b;
+}
+function loadInvites(){
+  fetch("/api/oneway").then(function(r){ if(r.status===401){ location.href="/"; return null; } return r.json(); }).then(function(rows){
+    if(!rows) return;
+    var box=$("iv-list"); box.innerHTML="";
+    if(!rows.length){ box.innerHTML="<div style=\"font-size:13px;color:var(--text3)\">No one-way interviews sent yet.</div>"; return; }
+    rows.forEach(function(iv){
+      var d=document.createElement("div"); d.className="as-item";
+      var top=document.createElement("div"); top.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap";
+      var left=document.createElement("div");
+      var nm=document.createElement("div"); nm.style.cssText="font-weight:700;color:var(--navy)"; nm.textContent=iv.candidate_name||"Candidate";
+      var sub=document.createElement("div"); sub.style.cssText="font-size:12px;color:var(--text3)";
+      var exp=iv.expires_at?new Date(iv.expires_at*1000).toLocaleDateString():"";
+      sub.textContent=(iv.role_title||"")+"  |  "+(iv.question_count||0)+" questions  |  progress "+(iv.current_q||0)+"/"+(iv.question_count||0)+(exp?("  |  expires "+exp):"");
+      left.appendChild(nm); left.appendChild(sub);
+      top.appendChild(left); top.appendChild(badge(iv.status||"pending"));
+      d.appendChild(top);
+      var row=document.createElement("div"); row.style.cssText="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap";
+      var link=location.origin+"/oneway/"+iv.token;
+      var cp=document.createElement("button"); cp.className="btn btn-primary btn-sm"; cp.textContent="Copy link";
+      cp.onclick=function(){ var done=function(){ cp.textContent="Copied"; setTimeout(function(){cp.textContent="Copy link";},1600); }; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(link).then(done,function(){window.prompt("Copy this link:",link);}); } else window.prompt("Copy this link:",link); };
+      var cm=document.createElement("button"); cm.className="btn btn-outline btn-sm"; cm.textContent="Copy invite message";
+      cm.onclick=function(){ var msg="Hi "+(iv.candidate_name||"there")+",\n\nPlease complete a short recorded interview for the "+(iv.role_title||"role")+".\n\nIt has "+(iv.question_count||0)+" questions. Questions are shown one at a time and recording starts automatically, so set aside a few quiet minutes.\n\nStart here: "+link+(exp?("\n\nThis link expires on "+exp+"."):"")+"\n\nThank you."; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(msg).then(function(){ cm.textContent="Copied"; setTimeout(function(){cm.textContent="Copy invite message";},1600); },function(){ window.prompt("Copy this message:",msg); }); } else window.prompt("Copy this message:",msg); };
+      row.appendChild(cp); row.appendChild(cm);
+      if(iv.recording_id){ var view=document.createElement("a"); view.className="btn btn-outline btn-sm"; view.href="/recordings"; view.textContent="View recording"; row.appendChild(view); }
+      var del=document.createElement("button"); del.className="btn btn-outline btn-sm"; del.style.cssText="color:var(--red);border-color:var(--red)"; del.textContent="Delete";
+      del.onclick=function(){ if(!confirm("Delete this interview invite?")) return; fetch("/api/oneway/"+iv.id,{method:"DELETE"}).then(function(){ loadInvites(); }); };
+      row.appendChild(del);
+      d.appendChild(row); box.appendChild(d);
+    });
+  }).catch(function(){});
+}
+loadTemplates(); loadInvites();
+setInterval(loadInvites, 30000);
+})();
+</script></body></html>
