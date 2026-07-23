@@ -861,6 +861,27 @@ app.post('/api/oneway', requireAuth, (req, res) => {
   res.json({ ok: true, id: id, token: token, link: (process.env.APP_URL || ('https://' + req.get('host'))) + '/oneway/' + token, expires_at: exp });
 });
 
+app.get('/api/activity', requireAuth, (req, res) => {
+  var items = [];
+  var now = Math.floor(Date.now() / 1000);
+  try {
+    var ses = db.prepare("SELECT id, code, title, candidate_name, status, scheduled_at, started_at FROM sessions WHERE interviewer_id=? AND COALESCE(is_async,0)=0 AND COALESCE(status,'') <> 'ended' ORDER BY COALESCE(scheduled_at, started_at, 0) DESC LIMIT 40").all(req.session.userId);
+    ses.forEach(function (r) {
+      items.push({ type: 'live', id: r.id, code: r.code, title: r.title || 'Interview', candidate_name: r.candidate_name || 'Candidate', status: r.status || 'scheduled', when: r.scheduled_at || r.started_at || null });
+    });
+  } catch (e) {}
+  try {
+    var ow = db.prepare("SELECT id, candidate_name, role_title, status, current_q, questions, expires_at, created_at FROM async_interviews WHERE org_id=? AND status <> 'completed' ORDER BY created_at DESC LIMIT 40").all(req.session.orgId);
+    ow.forEach(function (a) {
+      var n = 0;
+      try { n = JSON.parse(a.questions || '[]').length; } catch (e) {}
+      var st = (a.expires_at && now > a.expires_at) ? 'expired' : (a.status || 'pending');
+      items.push({ type: 'oneway', id: a.id, title: a.role_title || 'Interview', candidate_name: a.candidate_name || 'Candidate', status: st, progress: (a.current_q || 0) + '/' + n, when: a.expires_at || null });
+    });
+  } catch (e) {}
+  res.json(items);
+});
+
 app.get('/api/oneway', requireAuth, (req, res) => {
   var rows = [];
   try { rows = db.prepare('SELECT id, candidate_name, candidate_email, role_title, token, questions, expires_at, status, current_q, started_at, completed_at, recording_id, created_at FROM async_interviews WHERE org_id=? ORDER BY created_at DESC').all(req.session.orgId); } catch (e) {}
