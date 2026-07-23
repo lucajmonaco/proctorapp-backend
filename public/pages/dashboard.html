@@ -171,7 +171,13 @@ async function loadReviewsPanel(){
     var meta=document.createElement('div'); meta.style.cssText='font-size:12px;color:var(--text3)'; meta.textContent=(d.session_title||'')+'  -  '+(d.interviewer_name||'Interviewer');
     left.appendChild(cand); left.appendChild(meta);
     var date=document.createElement('div'); date.style.cssText='font-size:12px;color:var(--text3)'; date.textContent=fmtDate(d.created_at);
-    head.appendChild(left); var _rw=document.createElement('div'); _rw.style.cssText='display:flex;align-items:center;gap:10px'; _rw.appendChild(date); var _rd=document.createElement('button'); _rd.className='btn btn-outline btn-sm'; _rd.style.cssText='font-size:11px;color:var(--red);border-color:var(--red)'; _rd.textContent='Delete'; _rd.onclick=function(){ deleteReview(d.session_id, _rd); }; _rw.appendChild(_rd); head.appendChild(_rw); card.appendChild(head);
+    var _kind=(d.kind==='oneway');
+      var _kc=_kind?'var(--blue)':'var(--text3)';
+      var _kb=document.createElement('span');
+      _kb.style.cssText='display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:999px;margin-left:8px;border:1.5px solid '+_kc+';color:'+_kc;
+      _kb.textContent=_kind?'One-way':'Live';
+      left.appendChild(_kb);
+      head.appendChild(left); var _rw=document.createElement('div'); _rw.style.cssText='display:flex;align-items:center;gap:10px'; _rw.appendChild(date); var _rd=document.createElement('button'); _rd.className='btn btn-outline btn-sm'; _rd.style.cssText='font-size:11px;color:var(--red);border-color:var(--red)'; _rd.textContent='Delete'; _rd.onclick=function(){ deleteReview(d.session_id, _rd); }; _rw.appendChild(_rd); head.appendChild(_rw); card.appendChild(head);
     [['Interviewer','interviewer'],['Candidate','candidate']].forEach(function(pair){
       var r=d.ratings[pair[1]];
       var row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;flex-wrap:wrap';
