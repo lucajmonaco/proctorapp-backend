@@ -428,7 +428,7 @@ app.post('/api/sessions', requireAuth, (req, res) => {
 });
 
 app.get('/api/sessions', requireAuth, (req, res) => {
-  const sessions = db.prepare('SELECT * FROM sessions WHERE interviewer_id=? ORDER BY created_at DESC LIMIT 100').all(req.session.userId);
+  const sessions = db.prepare('SELECT * FROM sessions WHERE interviewer_id=? AND COALESCE(is_async,0)=0 ORDER BY created_at DESC LIMIT 100').all(req.session.userId);
   res.json(sessions.map(s => ({ ...s, flags: JSON.parse(s.flags || '[]'), questions: JSON.parse(s.questions || '[]'), trust_score: s.trust_score != null ? s.trust_score : 100, scheduled_at: s.scheduled_at || null })));
 });
 
@@ -903,6 +903,7 @@ function finishOneWay(interviewId) {
       var qs = owQs(iv);
       db.prepare('INSERT INTO sessions (id,code,title,candidate_name,candidate_email,interviewer_id,org_id,questions,started_at,scheduled_at,require_screen) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
         .run(sessionId, code, iv.role_title || 'One-way interview', iv.candidate_name || 'Candidate', iv.candidate_email || null, iv.created_by, iv.org_id, JSON.stringify(qs.map(function (q) { return q.text; })), iv.started_at || owNow(), iv.created_at || owNow(), 0);
+      try { db.prepare('UPDATE sessions SET is_async=1 WHERE id=?').run(sessionId); } catch (e) {}
       var recId = uuidv4();
       var size = 0;
       try { size = fs.statSync(outPath).size; } catch (e) {}
@@ -1004,6 +1005,7 @@ try { db.exec('ALTER TABLE async_interviews ADD COLUMN id_path TEXT'); } catch (
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_stars INTEGER'); } catch (e) {}
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_note TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN revealed_at INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE sessions ADD COLUMN is_async INTEGER DEFAULT 0'); } catch (e) {}
 
 app.post('/api/oneway/t/:token/consent', (req, res) => {
   var iv = owByToken(req.params.token);
@@ -1067,7 +1069,9 @@ app.get('/api/reviews', requireAuth, (req, res) => {
     if(!rows.length) return;
     const ratings = {};
     rows.forEach(function(x){ ratings[x.rater_role] = { stars: x.stars, note: x.note }; });
-    out.push({ session_id: rec.session_id, session_title: rec.session_title, candidate_name: rec.candidate_name, interviewer_name: rec.interviewer_name, created_at: rec.created_at, ratings: ratings });
+    var _isOw = 0;
+    try { _isOw = db.prepare('SELECT COUNT(*) AS n FROM async_interviews WHERE recording_id=?').get(rec.id).n ? 1 : 0; } catch (e) {}
+    out.push({ kind: _isOw ? 'oneway' : 'live', session_id: rec.session_id, session_title: rec.session_title, candidate_name: rec.candidate_name, interviewer_name: rec.interviewer_name, created_at: rec.created_at, ratings: ratings });
   });
   res.json(out);
 });
