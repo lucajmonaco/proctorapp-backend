@@ -121,5 +121,5 @@ function imcPublicDrawer(){
   host.appendChild(mk('/', 'Home', '&#127968;'));
   host.appendChild(mk('/guide', 'How it works', '&#128218;'));
   host.appendChild(mk('/contact', 'Contact Us', '&#9993;'));
-  host.appendChild(mk('/', 'Sign in', '&#128273;'));
+  host.appendChild(mk('/?signin=1', 'Sign in', '&#128273;'));
 }
