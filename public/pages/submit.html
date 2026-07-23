@@ -160,28 +160,7 @@
         _rl.textContent="Why we are putting this candidate forward";
         _rc.parentNode.insertBefore(_rl,_rc);
       }
-      if(!document.getElementById("s-chips")){
-        var _head=document.querySelector(".share-cardhead");
-        if(_head){
-          var _ch=document.createElement("div"); _ch.id="s-chips";
-          _ch.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px";
-          var _lab=document.createElement("div");
-          _lab.style.cssText="width:100%;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:2px";
-          _lab.textContent="What you can review";
-          _ch.appendChild(_lab);
-          function _chip(text,on){
-            var c=document.createElement("span");
-            var col=on?"var(--blue)":"var(--text4)";
-            c.style.cssText="font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;border:1.5px solid "+col+";color:"+col+";opacity:"+(on?"1":".55");
-            c.textContent=text; return c;
-          }
-          _ch.appendChild(_chip("Interview recording",true));
-          _ch.appendChild(_chip("Identity verified",!!(rec.has_id||rec.has_selfie)));
-          _ch.appendChild(_chip("Resume",!!rec.has_resume));
-          var _tc=_chip("Full transcript",false); _tc.id="s-chip-transcript"; _ch.appendChild(_tc);
-          _head.insertAdjacentElement("afterend",_ch);
-        }
-      }
+
       }
     }catch(e){}
     try{
@@ -222,7 +201,7 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
     var box=document.createElement('details');
     box.className='share-identity'; box.style.cssText='margin-top:14px';
     var sum=document.createElement('summary');
-    sum.style.cssText='cursor:pointer;font-weight:700'; sum.textContent='Interview transcript';
+    sum.style.cssText='cursor:pointer;font-weight:700;font-size:13px;color:var(--navy)'; sum.textContent='Interview transcript';
     box.appendChild(sum);
     var wrap=document.createElement('div');
     wrap.style.cssText='margin-top:10px;max-height:340px;overflow:auto;font-size:13px;line-height:1.7';
@@ -251,7 +230,7 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
     box.className='share-identity';
     box.style.cssText='margin-top:14px';
     var h=document.createElement('summary');
-    h.style.cssText='cursor:pointer;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px';
+    h.style.cssText='cursor:pointer;font-weight:700;font-size:13px;color:var(--navy)';
     h.textContent='Interview summary';
     box.appendChild(h);
     if(d.summary){ var p=document.createElement('div'); p.style.cssText='font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px'; p.textContent=d.summary; box.appendChild(p); }
