@@ -702,6 +702,103 @@ app.get('/api/recordings/share/:token/transcript', (req, res) => {
   res.json(trPayload(row));
 });
 
+// ---------------------------------------------------------------
+// AI interview summary (from transcript)
+// ---------------------------------------------------------------
+try { db.exec("CREATE TABLE IF NOT EXISTS summaries (session_id TEXT PRIMARY KEY, recording_id TEXT, status TEXT DEFAULT 'pending', data TEXT, error TEXT, created_at INTEGER DEFAULT (strftime('%s','now')), updated_at INTEGER)"); } catch (e) {}
+
+function sumSetStatus(sessionId, recordingId, status, errMsg) {
+  try {
+    db.prepare("INSERT INTO summaries (session_id, recording_id, status, updated_at) VALUES (?,?,?,strftime('%s','now')) ON CONFLICT(session_id) DO UPDATE SET status=excluded.status, recording_id=excluded.recording_id, updated_at=excluded.updated_at").run(sessionId, recordingId, status);
+    if (errMsg !== undefined) db.prepare('UPDATE summaries SET error=? WHERE session_id=?').run(errMsg, sessionId);
+  } catch (e) {}
+}
+
+function summarizeRecording(recordingId) {
+  if (!process.env.ANTHROPIC_API_KEY) return;
+  var rec = null;
+  try { rec = db.prepare('SELECT id, session_id, candidate_name, session_title FROM recordings WHERE id=?').get(recordingId); } catch (e) {}
+  if (!rec) return;
+  var tr = null;
+  try { tr = db.prepare('SELECT status, text, segments FROM transcripts WHERE session_id=?').get(rec.session_id); } catch (e) {}
+  if (!tr || tr.status !== 'ready') { sumSetStatus(rec.session_id, rec.id, 'failed', 'Transcript is not ready yet'); return; }
+  sumSetStatus(rec.session_id, rec.id, 'processing', null);
+  (async function () {
+    try {
+      var segs = [];
+      try { segs = tr.segments ? JSON.parse(tr.segments) : []; } catch (e) { segs = []; }
+      var body = segs.length
+        ? segs.map(function (s) { var st = Math.max(0, Math.floor(s.start || 0)); return '[' + Math.floor(st/60) + ':' + ((st%60)<10?'0':'') + (st%60) + '] Speaker ' + s.speaker + ': ' + (s.text || ''); }).join('\n')
+        : (tr.text || '');
+      if (body.length > 60000) body = body.slice(0, 60000);
+      var prompt = 'You are helping a staffing recruiter review a job interview.\n\n'
+        + 'Candidate: ' + (rec.candidate_name || 'Unknown') + '\n'
+        + 'Role: ' + (rec.session_title || 'Unknown') + '\n\n'
+        + 'Below is the interview transcript. Speaker labels come from automatic diarization and may be imperfect, so infer from context who is the interviewer and who is the candidate.\n\n'
+        + 'TRANSCRIPT:\n' + body + '\n\n'
+        + 'Write an assessment based ONLY on what is actually in the transcript. Do not invent details. If the interview is too short or has too little substance to assess, say so plainly in the summary field and return empty arrays.\n\n'
+        + 'Respond with ONLY raw JSON, no markdown fences, in exactly this shape:\n'
+        + '{"summary":"2-3 sentence overview","strengths":["..."],"concerns":["..."],"skills":["..."],"key_quotes":[{"quote":"...","time":"m:ss"}],"recommendation":"Strong yes|Yes|Maybe|No","rationale":"one sentence"}';
+      var resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: process.env.SUMMARY_MODEL || 'claude-sonnet-5', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] })
+      });
+      if (!resp.ok) {
+        var et = '';
+        try { et = (await resp.text()).slice(0, 200); } catch (e) {}
+        sumSetStatus(rec.session_id, rec.id, 'failed', 'Summary API error ' + resp.status + ' ' + et);
+        return;
+      }
+      var out = await resp.json();
+      var txt = ((out.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('\n')) || '';
+      txt = txt.replace(/```json/g, '').replace(/```/g, '').trim();
+      var parsed = null;
+      try { parsed = JSON.parse(txt); } catch (e) {
+        var a = txt.indexOf('{'), b = txt.lastIndexOf('}');
+        if (a >= 0 && b > a) { try { parsed = JSON.parse(txt.slice(a, b + 1)); } catch (e2) {} }
+      }
+      if (!parsed) { sumSetStatus(rec.session_id, rec.id, 'failed', 'Could not read the summary response'); return; }
+      sumSetStatus(rec.session_id, rec.id, 'ready', null);
+      try { db.prepare('UPDATE summaries SET data=?, error=NULL WHERE session_id=?').run(JSON.stringify(parsed), rec.session_id); } catch (e) {}
+    } catch (e) {
+      sumSetStatus(rec.session_id, rec.id, 'failed', String((e && e.message) || e).slice(0, 160));
+    }
+  })();
+}
+
+function sumPayload(row) {
+  var data = null;
+  try { data = row && row.data ? JSON.parse(row.data) : null; } catch (e) { data = null; }
+  return { status: (row && row.status) || 'none', data: data, error: (row && row.error) || null };
+}
+
+app.get('/api/recordings/:id/summary', requireAuth, (req, res) => {
+  var rec = db.prepare('SELECT id, session_id, org_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'Recording not found' });
+  if (rec.org_id !== req.session.orgId) return res.status(403).json({ error: 'Not allowed' });
+  if (!process.env.ANTHROPIC_API_KEY) return res.json({ status: 'unconfigured', data: null });
+  var row = null;
+  try { row = db.prepare('SELECT status, data, error FROM summaries WHERE session_id=?').get(rec.session_id); } catch (e) {}
+  if (!row) {
+    var tr = null;
+    try { tr = db.prepare('SELECT status FROM transcripts WHERE session_id=?').get(rec.session_id); } catch (e) {}
+    if (!tr || tr.status !== 'ready') return res.json({ status: 'needs_transcript', data: null });
+    summarizeRecording(rec.id);
+    return res.json({ status: 'processing', data: null });
+  }
+  res.json(sumPayload(row));
+});
+
+app.post('/api/recordings/:id/summary', requireAuth, (req, res) => {
+  var rec = db.prepare('SELECT id, session_id, org_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'Recording not found' });
+  if (rec.org_id !== req.session.orgId) return res.status(403).json({ error: 'Not allowed' });
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'AI summary is not set up yet' });
+  summarizeRecording(rec.id);
+  res.json({ ok: true, status: 'processing' });
+});
+
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
