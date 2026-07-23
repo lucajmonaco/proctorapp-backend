@@ -428,7 +428,7 @@ app.post('/api/sessions', requireAuth, (req, res) => {
 });
 
 app.get('/api/sessions', requireAuth, (req, res) => {
-  const sessions = db.prepare('SELECT * FROM sessions WHERE interviewer_id=? AND COALESCE(is_async,0)=0 ORDER BY created_at DESC LIMIT 100').all(req.session.userId);
+  const sessions = db.prepare("SELECT * FROM sessions WHERE interviewer_id=? AND COALESCE(is_async,0)=0 AND COALESCE(status,'') <> 'ended' ORDER BY created_at DESC LIMIT 100").all(req.session.userId);
   res.json(sessions.map(s => ({ ...s, flags: JSON.parse(s.flags || '[]'), questions: JSON.parse(s.questions || '[]'), trust_score: s.trust_score != null ? s.trust_score : 100, scheduled_at: s.scheduled_at || null })));
 });
 
