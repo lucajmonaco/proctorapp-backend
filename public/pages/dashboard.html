@@ -269,7 +269,7 @@ async function loadSessions(){
           var d = new Date(s.scheduled_at*1000);
           var when = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) + ' at ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
           var row = document.createElement('div');
-          row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--card)';
+          row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--navy);box-shadow:0 -3px 0 0 var(--blue) inset,var(--shadow-sm);border-radius:8px;margin-bottom:8px;background:var(--card)';
           var left = document.createElement('div');
           left.style.cssText = 'flex:1;min-width:0';
           var t = document.createElement('div');
