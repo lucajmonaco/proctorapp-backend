@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One-Way Interview - InterviewMyCandidate</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.ow-wrap{max-width:760px;margin:0 auto;padding:28px 20px}
+.ow-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--rl);padding:28px 30px;box-shadow:0 -2px 0 0 var(--blue) inset,var(--shadow)}
+.ow-logo{font-size:18px;font-weight:800;letter-spacing:-.5px;color:#0f2241;margin-bottom:18px}
+.ow-h{font-size:24px;font-weight:800;color:var(--navy);margin:0 0 8px;letter-spacing:-.4px}
+.ow-sub{color:var(--text3);font-size:14px;line-height:1.7;margin-bottom:18px}
+.ow-rules{background:var(--sky);border:1px solid var(--sky-deep);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13px;line-height:1.9}
+.ow-vid{width:100%;background:#000;border-radius:12px;aspect-ratio:16/9;object-fit:cover}
+.ow-q{font-size:20px;font-weight:700;color:var(--navy);line-height:1.5;margin:14px 0 6px}
+.ow-timer{font-size:34px;font-weight:800;letter-spacing:-1px}
+.ow-meta{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3)}
+.ow-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:7px;animation:owpulse 1.2s infinite}
+@keyframes owpulse{0%,100%{opacity:1}50%{opacity:.25}}
+.ow-hide{display:none}
+</style></head><body style="background:var(--bg)">
+<div class="ow-wrap">
+  <div class="ow-logo"><span>Interview</span><span style="color:#2563eb">My</span><span>Candidate</span></div>
+  <div class="ow-card">
+    <div id="ow-load" class="ow-sub">Loading your interview...</div>
+    <div id="ow-intro" class="ow-hide">
+      <div class="ow-meta" id="ow-company"></div>
+      <h1 class="ow-h" id="ow-role"></h1>
+      <div class="ow-sub" id="ow-greet"></div>
+      <div class="ow-rules" id="ow-rules"></div>
+      <video id="ow-prev" class="ow-vid" autoplay muted playsinline></video>
+      <div id="ow-devmsg" class="ow-sub" style="margin-top:10px"></div>
+      <button id="ow-start" class="btn btn-primary" style="margin-top:14px" disabled>Start interview</button>
+    </div>
+    <div id="ow-stage" class="ow-hide">
+      <div class="ow-meta"><span id="ow-prog"></span></div>
+      <div class="ow-q" id="ow-qtext"></div>
+      <div id="ow-phase" class="ow-meta" style="margin-bottom:4px"></div>
+      <div class="ow-timer" id="ow-count">0:00</div>
+      <video id="ow-live" class="ow-vid" autoplay muted playsinline style="margin-top:12px"></video>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="ow-skip" class="btn btn-outline">Start answering now</button>
+        <button id="ow-done" class="btn btn-primary ow-hide">Done answering</button>
+      </div>
+      <div id="ow-status" class="ow-sub" style="margin-top:10px"></div>
+    </div>
+    <div id="ow-end" class="ow-hide">
+      <h1 class="ow-h" id="ow-endh">Thank you</h1>
+      <div class="ow-sub" id="ow-endmsg"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+var TOKEN = location.pathname.split("/").pop();
+var $ = function(id){ return document.getElementById(id); };
+var stream=null, rec=null, chunks=[], idx=0, total=0, tick=null, meta=null, startedAt=0;
+function show(id){ ["ow-load","ow-intro","ow-stage","ow-end"].forEach(function(x){ $(x).classList.add("ow-hide"); }); $(id).classList.remove("ow-hide"); }
+function fmt(s){ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+((s%60)<10?"0":"")+(s%60); }
+function ended(title,msg){ $("ow-endh").textContent=title; $("ow-endmsg").textContent=msg; show("ow-end"); }
+function load(){
+  fetch("/api/oneway/t/"+TOKEN).then(function(r){ return r.json(); }).then(function(d){
+    if(!d || d.error){ ended("Link not valid", (d&&d.error)||"This interview link could not be found."); return; }
+    if(d.status==="completed"){ ended("Already submitted","This interview has already been completed. Thank you."); return; }
+    if(d.status==="expired"){ ended("Link expired","This interview link is no longer active. Please contact the recruiter for a new one."); return; }
+    meta=d; total=d.question_count||0; idx=d.current_q||0;
+    $("ow-company").textContent=d.company||"";
+    $("ow-role").textContent=d.role_title||"Interview";
+    $("ow-greet").textContent="Hi "+(d.candidate_name||"there")+", this is a recorded one-way interview. You can complete it whenever you are ready.";
+    var exp = d.expires_at ? new Date(d.expires_at*1000).toLocaleDateString() : null;
+    $("ow-rules").innerHTML = "There are <strong>"+total+"</strong> questions.<br>Each question is shown one at a time, with preparation time and a time limit to answer.<br>Recording starts automatically and <strong>you cannot re-record an answer</strong>.<br>Once you begin, please finish in one sitting."+(exp?("<br>This link expires on <strong>"+exp+"</strong>."):"");
+    show("ow-intro"); initCam();
+  }).catch(function(){ ended("Something went wrong","Please refresh the page and try again."); });
+}
+function initCam(){
+  navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280}},audio:true}).then(function(s){
+    stream=s; $("ow-prev").srcObject=s; $("ow-live").srcObject=s;
+    $("ow-devmsg").textContent="Camera and microphone are ready.";
+    $("ow-start").disabled=false;
+  }).catch(function(){ $("ow-devmsg").textContent="We could not access your camera or microphone. Please allow access and refresh."; });
+}
+function beginQuestion(){
+  fetch("/api/oneway/t/"+TOKEN+"/q/"+idx).then(function(r){ return r.json(); }).then(function(q){
+    if(!q || q.error){ finish(); return; }
+    $("ow-prog").textContent="Question "+(q.index+1)+" of "+q.total;
+    $("ow-qtext").textContent=q.text;
+    $("ow-status").textContent="";
+    show("ow-stage");
+    prep(q);
+  }).catch(function(){ $("ow-status").textContent="Connection problem. Please refresh."; });
+}
+function prep(q){
+  var left=q.prep_secs||0;
+  $("ow-phase").textContent="Get ready";
+  $("ow-count").style.color="var(--navy)";
+  $("ow-skip").classList.remove("ow-hide"); $("ow-done").classList.add("ow-hide");
+  if(left<=0){ record(q); return; }
+  $("ow-count").textContent=fmt(left);
+  clearInterval(tick);
+  tick=setInterval(function(){ left--; $("ow-count").textContent=fmt(left); if(left<=0){ clearInterval(tick); record(q); } },1000);
+  $("ow-skip").onclick=function(){ clearInterval(tick); record(q); };
+}
+function record(q){
+  $("ow-skip").classList.add("ow-hide"); $("ow-done").classList.remove("ow-hide");
+  $("ow-phase").innerHTML="<span class=\"ow-dot\"></span>Recording";
+  $("ow-count").style.color="var(--red)";
+  chunks=[];
+  var mime="video/webm";
+  try{ if(window.MediaRecorder && MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")) mime="video/webm;codecs=vp8,opus"; }catch(e){}
+  try{ rec=new MediaRecorder(stream,{mimeType:mime}); }catch(e){ try{ rec=new MediaRecorder(stream); }catch(e2){ $("ow-status").textContent="Recording is not supported in this browser. Please use Chrome."; return; } }
+  rec.ondataavailable=function(ev){ if(ev.data && ev.data.size) chunks.push(ev.data); };
+  rec.onstop=function(){ upload(q); };
+  rec.start(1000);
+  startedAt=Date.now();
+  var left=q.answer_secs||120;
+  $("ow-count").textContent=fmt(left);
+  clearInterval(tick);
+  tick=setInterval(function(){ left--; $("ow-count").textContent=fmt(left); if(left<=0){ clearInterval(tick); stopRec(); } },1000);
+  $("ow-done").onclick=function(){ clearInterval(tick); stopRec(); };
+}
+function stopRec(){ $("ow-done").disabled=true; $("ow-status").textContent="Saving your answer..."; try{ if(rec && rec.state!=="inactive") rec.stop(); }catch(e){} }
+function upload(q){
+  var blob=new Blob(chunks,{type:"video/webm"});
+  var secs=Math.round((Date.now()-startedAt)/1000);
+  var fd=new FormData();
+  fd.append("clip", blob, "answer-"+q.index+".webm");
+  fd.append("q_index", String(q.index));
+  fd.append("duration", String(secs));
+  fetch("/api/oneway/t/"+TOKEN+"/answer",{method:"POST",body:fd}).then(function(r){ return r.json(); }).then(function(j){
+    $("ow-done").disabled=false;
+    if(!j || j.error){ $("ow-status").textContent=(j&&j.error)||"Could not save that answer."; return; }
+    if(j.done){ finish(); } else { idx=j.next; beginQuestion(); }
+  }).catch(function(){ $("ow-done").disabled=false; $("ow-status").textContent="Upload failed. Check your connection."; });
+}
+function finish(){
+  $("ow-status").textContent="Submitting...";
+  fetch("/api/oneway/t/"+TOKEN+"/finish",{method:"POST"}).then(function(){
+    try{ if(stream) stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+    ended("Thank you", ((meta&&meta.company)?(meta.company+" has"):"We have")+" received your interview. Your responses were submitted successfully - the recruiter will be in touch.");
+  }).catch(function(){ ended("Thank you","Your interview was recorded. You may close this window."); });
+}
+$("ow-start").onclick=function(){ $("ow-start").disabled=true; fetch("/api/oneway/t/"+TOKEN+"/start",{method:"POST"}).then(function(r){ return r.json(); }).then(function(j){ if(!j||j.error){ ended("Cannot start",(j&&j.error)||"This interview cannot be started."); return; } total=j.question_count; idx=j.current_q||0; beginQuestion(); }).catch(function(){ $("ow-start").disabled=false; }); };
+window.addEventListener("beforeunload", function(e){ if(rec && rec.state==="recording"){ e.preventDefault(); e.returnValue=""; } });
+load();
+})();
+</script></body></html>
