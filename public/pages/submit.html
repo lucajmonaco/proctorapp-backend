@@ -76,7 +76,7 @@
     <div class="share-stats">
       <div class="share-stat"><div class="share-stat-val" id="s-score"></div><div class="share-stat-label">Trust Score</div><div class="share-stat-sub" id="s-scorelabel"></div></div>
       <div class="share-stat"><div class="share-stat-val" id="s-flags"></div><div class="share-stat-label">Integrity Flags</div></div>
-      <div class="share-stat"><div class="share-stat-val" id="s-statdur"></div><div class="share-stat-label">Duration</div></div>
+      
     </div>
     <details class="share-flags" id="s-flagbox">
       <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Integrity Flag Timeline <span class="fc" id="s-flagcount"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chev"><polyline points="6 9 12 15 18 9"/></svg></summary>
@@ -129,6 +129,21 @@
     else { flags.forEach(function(f){ var row=document.createElement("div"); row.className="share-flag-row"; var tm=document.createElement("div"); tm.className="share-flag-time"; tm.textContent=f.time_offset||"0:00"; row.appendChild(tm); var tx=document.createElement("div"); tx.className="share-flag-text"; tx.textContent=f.text||""; row.appendChild(tx); list.appendChild(row); }); }
     if(rec.has_selfie || rec.has_id){
       document.getElementById("s-identity").hidden = false;
+      (function(){
+        var _sec=document.getElementById("s-identity");
+        if(!_sec || _sec.getAttribute("data-collapsible")) return;
+        _sec.setAttribute("data-collapsible","1");
+        var _hd=_sec.querySelector(".share-identity-head");
+        var _im=_sec.querySelector(".share-identity-imgs");
+        if(!_hd || !_im) return;
+        _im.style.display="none";
+        _hd.style.cursor="pointer";
+        var _cue=document.createElement("span");
+        _cue.style.cssText="margin-left:8px;font-size:11px;font-weight:700;color:var(--blue)";
+        _cue.textContent="Show";
+        _hd.appendChild(_cue);
+        _hd.onclick=function(){ var open=_im.style.display!=="none"; _im.style.display=open?"none":""; _cue.textContent=open?"Show":"Hide"; };
+      })();
       if(rec.has_selfie){ document.getElementById("s-selfie").setAttribute("src", "/api/recordings/share/"+token+"/identity/selfie"); document.getElementById("s-selfie-wrap").hidden = false; }
       if(rec.has_id){ document.getElementById("s-id").setAttribute("src", "/api/recordings/share/"+token+"/identity/idphoto"); document.getElementById("s-id-wrap").hidden = false; }
     }
@@ -189,7 +204,7 @@
 <script>
 if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=false;
 (function(){ if(window.PROCTORING_ENABLED) return;
-  function h(){ ['s-score','s-flags'].forEach(function(id){var e=document.getElementById(id); if(e){var b=e.closest('.share-stat'); if(b)b.style.display='none';}}); var fb=document.getElementById('s-flagbox'); if(fb)fb.style.display='none'; }
+  function h(){ ['s-score','s-flags'].forEach(function(id){var e=document.getElementById(id); if(e){var b=e.closest('.share-stat'); if(b)b.style.display='none';}}); var fb=document.getElementById('s-flagbox'); if(fb)fb.style.display='none'; var anyStat=document.querySelector('.share-stat'); if(anyStat && anyStat.parentNode){ var vis=[].slice.call(anyStat.parentNode.children).filter(function(c){ return c.style.display!=='none'; }); if(!vis.length) anyStat.parentNode.style.display='none'; } }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',h); else h();
   setTimeout(h,1000); setTimeout(h,2500);
 })();
@@ -232,11 +247,11 @@ if(typeof window.PROCTORING_ENABLED==='undefined') window.PROCTORING_ENABLED=fal
     var host=document.getElementById('s-resume');
     var parent = host && host.parentNode ? host.parentNode : document.querySelector('.share-card');
     if(!parent) return;
-    var box=document.createElement('div');
+    var box=document.createElement('details');
     box.className='share-identity';
     box.style.cssText='margin-top:14px';
-    var h=document.createElement('div');
-    h.style.cssText='font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px';
+    var h=document.createElement('summary');
+    h.style.cssText='cursor:pointer;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px';
     h.textContent='Interview summary';
     box.appendChild(h);
     if(d.summary){ var p=document.createElement('div'); p.style.cssText='font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px'; p.textContent=d.summary; box.appendChild(p); }
