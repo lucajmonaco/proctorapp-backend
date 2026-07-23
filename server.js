@@ -603,6 +603,105 @@ app.get('/api/recordings', requireAuth, (req, res) => {
   res.json(recs);
 });
 
+// ---------------------------------------------------------------
+// Interview transcripts (Deepgram, post-interview)
+// ---------------------------------------------------------------
+try { db.exec("CREATE TABLE IF NOT EXISTS transcripts (session_id TEXT PRIMARY KEY, recording_id TEXT, status TEXT DEFAULT 'pending', text TEXT, segments TEXT, provider TEXT, error TEXT, swap_speakers INTEGER DEFAULT 0, created_at INTEGER DEFAULT (strftime('%s','now')), updated_at INTEGER)"); } catch (e) {}
+
+function trSetStatus(sessionId, recordingId, status, errMsg) {
+  try {
+    db.prepare("INSERT INTO transcripts (session_id, recording_id, status, provider, updated_at) VALUES (?,?,?,'deepgram',strftime('%s','now')) ON CONFLICT(session_id) DO UPDATE SET status=excluded.status, recording_id=excluded.recording_id, updated_at=excluded.updated_at").run(sessionId, recordingId, status);
+    if (errMsg !== undefined) db.prepare('UPDATE transcripts SET error=? WHERE session_id=?').run(errMsg, sessionId);
+  } catch (e) {}
+}
+
+function transcribeRecording(recordingId) {
+  if (!process.env.DEEPGRAM_API_KEY) return;
+  var rec = null;
+  try { rec = db.prepare('SELECT id, session_id, file_path FROM recordings WHERE id=?').get(recordingId); } catch (e) {}
+  if (!rec || !rec.file_path) return;
+  try { if (!fs.existsSync(rec.file_path)) { trSetStatus(rec.session_id, rec.id, 'failed', 'Recording file missing'); return; } } catch (e) {}
+  trSetStatus(rec.session_id, rec.id, 'processing', null);
+  var audioPath = String(rec.file_path).replace(/\.[^.]+$/, '') + '.asr.m4a';
+  execFile('ffmpeg', ['-y','-i', rec.file_path, '-vn','-ac','1','-ar','16000','-c:a','aac','-b:a','64k', audioPath], { timeout: 1000*60*15, maxBuffer: 1024*1024*20 }, function (err) {
+    if (err) { trSetStatus(rec.session_id, rec.id, 'failed', 'Could not extract audio from the recording'); try { fs.unlinkSync(audioPath); } catch (e) {} return; }
+    (async function () {
+      try {
+        var buf = fs.readFileSync(audioPath);
+        var dgUrl = 'https://api.deepgram.com/v1/listen?model=' + (process.env.DEEPGRAM_MODEL || 'nova-2') + '&smart_format=true&punctuate=true&diarize=true&utterances=true';
+        var resp = await fetch(dgUrl, { method: 'POST', headers: { 'Authorization': 'Token ' + process.env.DEEPGRAM_API_KEY, 'Content-Type': 'audio/mp4' }, body: buf });
+        if (!resp.ok) {
+          var body = '';
+          try { body = (await resp.text()).slice(0, 160); } catch (e) {}
+          trSetStatus(rec.session_id, rec.id, 'failed', 'Deepgram error ' + resp.status + ' ' + body);
+        } else {
+          var data = await resp.json();
+          var results = data.results || {};
+          var alt = ((((results.channels || [])[0] || {}).alternatives || [])[0]) || {};
+          var utts = results.utterances || [];
+          var segs = utts.map(function (u) { return { start: u.start, end: u.end, speaker: (u.speaker === undefined ? 0 : u.speaker), text: u.transcript || '' }; });
+          var full = alt.transcript || segs.map(function (x) { return x.text; }).join(' ');
+          if (!full || !String(full).trim()) {
+            trSetStatus(rec.session_id, rec.id, 'failed', 'No speech detected in this recording');
+          } else {
+            trSetStatus(rec.session_id, rec.id, 'ready', null);
+            try { db.prepare('UPDATE transcripts SET text=?, segments=?, error=NULL WHERE session_id=?').run(full, JSON.stringify(segs), rec.session_id); } catch (e) {}
+          }
+        }
+      } catch (e) {
+        trSetStatus(rec.session_id, rec.id, 'failed', String((e && e.message) || e).slice(0, 160));
+      }
+      try { fs.unlinkSync(audioPath); } catch (e) {}
+    })();
+  });
+}
+
+function trRow(sessionId) {
+  try { return db.prepare('SELECT status, text, segments, error, swap_speakers FROM transcripts WHERE session_id=?').get(sessionId); } catch (e) { return null; }
+}
+function trPayload(row) {
+  var segs = [];
+  try { segs = row && row.segments ? JSON.parse(row.segments) : []; } catch (e) { segs = []; }
+  return { status: (row && row.status) || 'none', text: (row && row.text) || '', segments: segs, error: (row && row.error) || null, swap: !!(row && row.swap_speakers) };
+}
+
+app.get('/api/recordings/:id/transcript', requireAuth, (req, res) => {
+  var rec = db.prepare('SELECT id, session_id, org_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'Recording not found' });
+  if (rec.org_id !== req.session.orgId) return res.status(403).json({ error: 'Not allowed' });
+  if (!process.env.DEEPGRAM_API_KEY) return res.json({ status: 'unconfigured', segments: [], text: '' });
+  var row = trRow(rec.session_id);
+  if (!row) { transcribeRecording(rec.id); return res.json({ status: 'processing', segments: [], text: '' }); }
+  res.json(trPayload(row));
+});
+
+app.post('/api/recordings/:id/transcript', requireAuth, (req, res) => {
+  var rec = db.prepare('SELECT id, session_id, org_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'Recording not found' });
+  if (rec.org_id !== req.session.orgId) return res.status(403).json({ error: 'Not allowed' });
+  if (!process.env.DEEPGRAM_API_KEY) return res.status(503).json({ error: 'Transcription is not set up yet' });
+  transcribeRecording(rec.id);
+  logAudit(req, 'transcript.generate', 'Generated transcript for recording ' + rec.id);
+  res.json({ ok: true, status: 'processing' });
+});
+
+app.post('/api/recordings/:id/transcript/swap', requireAuth, (req, res) => {
+  var rec = db.prepare('SELECT id, session_id, org_id FROM recordings WHERE id=?').get(req.params.id);
+  if (!rec) return res.status(404).json({ error: 'Recording not found' });
+  if (rec.org_id !== req.session.orgId) return res.status(403).json({ error: 'Not allowed' });
+  try { db.prepare('UPDATE transcripts SET swap_speakers = CASE WHEN swap_speakers=1 THEN 0 ELSE 1 END WHERE session_id=?').run(rec.session_id); } catch (e) {}
+  var row = trRow(rec.session_id);
+  res.json({ ok: true, swap: !!(row && row.swap_speakers) });
+});
+
+app.get('/api/recordings/share/:token/transcript', (req, res) => {
+  var rec = db.prepare('SELECT session_id FROM recordings WHERE share_token=?').get(req.params.token);
+  if (!rec) return res.status(404).json({ error: 'Not found' });
+  var row = trRow(rec.session_id);
+  if (!row || row.status !== 'ready') return res.json({ status: (row && row.status) || 'none', segments: [], text: '' });
+  res.json(trPayload(row));
+});
+
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
