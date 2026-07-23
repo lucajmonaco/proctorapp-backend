@@ -608,7 +608,9 @@ app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
   const s = db.prepare('SELECT org_id FROM recordings WHERE session_id=?').get(req.params.sessionId) || db.prepare('SELECT org_id FROM sessions WHERE id=?').get(req.params.sessionId);
   if (!s || s.org_id !== me.org_id) return res.status(404).json({ error: 'Review not found' });
+  const _lbl = db.prepare('SELECT candidate_name, session_title FROM recordings WHERE session_id=?').get(req.params.sessionId);
   db.prepare('DELETE FROM interview_ratings WHERE session_id=?').run(req.params.sessionId);
+  try { logAudit(req, 'review.delete', 'Deleted review for: ' + ((_lbl && (_lbl.candidate_name || _lbl.session_title)) || req.params.sessionId)); } catch(e) {}
   res.json({ ok: true });
 });
 
