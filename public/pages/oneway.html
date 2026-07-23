@@ -74,6 +74,9 @@
       <div class="ow-note" id="ow-ready-note"></div>
       <video id="ow-prev" class="ow-vid" autoplay muted playsinline></video>
       <div id="ow-devmsg" class="ow-sub" style="margin-top:10px"></div>
+      <div class="ow-tlabel" style="margin-top:6px">Microphone check</div>
+      <div style="background:var(--border);border-radius:999px;height:10px;overflow:hidden;max-width:340px"><div id="ow-level" style="height:100%;width:0%;background:var(--green)"></div></div>
+      <div class="ow-sub" id="ow-micmsg" style="margin-top:6px">Say a few words out loud - the bar should move. If it stays flat, check your microphone before starting.</div>
       <button id="ow-start" class="btn btn-primary" style="margin-top:12px" disabled>Start interview</button>
     </div>
     <div id="ow-stage" class="ow-hide">
@@ -168,13 +171,37 @@ $("ow-idnext").onclick=function(){
     $("ow-idmsg").textContent=""; show("ow-ready"); ready();
   }).catch(function(){ $("ow-idmsg").textContent="Upload failed. Check your connection."; $("ow-idnext").disabled=false; });
 };
+var meterCtx=null, meterRaf=null, sawSound=false;
+function startMeter(){
+  try{
+    if(meterCtx) return;
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC||!stream) return;
+    meterCtx=new AC();
+    var src=meterCtx.createMediaStreamSource(stream);
+    var an=meterCtx.createAnalyser(); an.fftSize=512;
+    src.connect(an);
+    var buf=new Uint8Array(an.frequencyBinCount);
+    var bar=$("ow-level");
+    var loop=function(){
+      an.getByteFrequencyData(buf);
+      var sum=0; for(var i=0;i<buf.length;i++) sum+=buf[i];
+      var avg=sum/buf.length;
+      var pct=Math.min(100, Math.round(avg*2.2));
+      if(bar) bar.style.width=pct+"%";
+      if(pct>12 && !sawSound){ sawSound=true; var m=$("ow-micmsg"); if(m) m.textContent="Microphone is picking you up. You are good to go."; }
+      meterRaf=requestAnimationFrame(loop);
+    };
+    loop();
+  }catch(e){}
+}
+function stopMeter(){ try{ if(meterRaf) cancelAnimationFrame(meterRaf); meterRaf=null; if(meterCtx){ meterCtx.close(); meterCtx=null; } }catch(e){} }
 function ready(){
   $("ow-ready-note").innerHTML="You are about to answer <strong>"+total+" questions</strong>. Recording starts on its own after the thinking time for each question, and you cannot re-record. Make sure you are somewhere quiet with a steady connection.";
-  if(stream){ $("ow-prev").srcObject=stream; $("ow-devmsg").textContent="Camera and microphone are ready."; $("ow-start").disabled=false; }
-  else cam().then(function(s){ stream=s; $("ow-prev").srcObject=s; $("ow-devmsg").textContent="Camera and microphone are ready."; $("ow-start").disabled=false; }).catch(function(){ $("ow-devmsg").textContent="We could not access your camera or microphone."; });
+  if(stream){ $("ow-prev").srcObject=stream; $("ow-devmsg").textContent="Camera and microphone are ready."; $("ow-start").disabled=false; startMeter(); }
+  else cam().then(function(s){ stream=s; $("ow-prev").srcObject=s; $("ow-devmsg").textContent="Camera and microphone are ready."; $("ow-start").disabled=false; startMeter(); }).catch(function(){ $("ow-devmsg").textContent="We could not access your camera or microphone."; });
 }
 $("ow-start").onclick=function(){
-  $("ow-start").disabled=true;
+  $("ow-start").disabled=true; stopMeter();
   fetch("/api/oneway/t/"+TOKEN+"/start",{method:"POST"}).then(function(r){return r.json();}).then(function(j){
     if(!j||j.error){ ended("Cannot start",(j&&j.error)||"This interview cannot be started."); return; }
     total=j.question_count; idx=j.current_q||0; if(stream) $("ow-live").srcObject=stream; beginQuestion();
@@ -242,7 +269,7 @@ $("ow-sendrating").onclick=function(){
   fetch("/api/oneway/t/"+TOKEN+"/rating",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({stars:rating,note:$("ow-note").value||""})}).then(function(){ thanks(); }).catch(function(){ thanks(); });
 };
 $("ow-skiprating").onclick=function(){ thanks(); };
-function thanks(){ ended("All done", "Your interview has been submitted"+((meta&&meta.company)?(" to "+meta.company):"")+". They will be in touch. You can close this window."); }
+function thanks(){ var co=(meta&&meta.company)?meta.company:"the recruiting company"; ended("All done", "Thank you for taking the time to complete this interview. Your responses have been submitted to "+co+", and they will be in touch about next steps. If you have any questions or concerns, please reach out to "+co+" directly. You can now close this window."); }
 window.addEventListener("beforeunload",function(e){ if(rec&&rec.state==="recording"){ e.preventDefault(); e.returnValue=""; } });
 load();
 })();
