@@ -99,7 +99,7 @@ function loadTemplates(){
     if(!rows) return;
     var box=$("tpl-list"); box.innerHTML="";
     var sel=$("iv-tpl"); sel.innerHTML="";
-    if(!rows.length){ box.innerHTML="<div style=\"font-size:13px;color:var(--text3)\">No templates yet.</div>"; var o=document.createElement("option"); o.textContent="No templates yet"; o.value=""; sel.appendChild(o); return; }
+    if(!rows.length){ box.innerHTML='<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">No question templates yet</div><div style=\"font-size:13px;color:var(--text3)\">Save a set of questions once and reuse it for every candidate screening this role.</div></div>'; var o=document.createElement("option"); o.textContent="No templates yet"; o.value=""; sel.appendChild(o); return; }
     rows.forEach(function(tp){
       var d=document.createElement("div"); d.className="as-item";
       var head=document.createElement("div"); head.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px";
@@ -136,7 +136,7 @@ function loadInvites(){
     if(!rows) return;
     var box=$("iv-list"); box.innerHTML="";
     rows=rows.filter(function(x){ return (x.status||"")!=="completed"; });
-    if(!rows.length){ box.innerHTML="<div style=\"font-size:13px;color:var(--text3)\">No open one-way interviews. Completed ones are in Sessions.</div>"; return; }
+    if(!rows.length){ box.innerHTML='<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">No open one-way interviews</div><div style=\"font-size:13px;color:var(--text3)\">Pick a template above and create a link to send a candidate. Completed interviews live in Sessions.</div></div>'; return; }
     rows.forEach(function(iv){
       var d=document.createElement("div"); d.className="as-item";
       var top=document.createElement("div"); top.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap";
