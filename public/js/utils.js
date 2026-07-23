@@ -61,6 +61,13 @@ document.addEventListener("click", function (e) {
 });
 
 function imcBuildDrawer(){
+  var _host = document.getElementById('drawer-links') || document.querySelector('.nav-drawer-links');
+  if(_host && !_host.getAttribute('data-authchecked')){
+    _host.setAttribute('data-authchecked','1');
+    fetch('/api/auth/me/settings').then(function(r){
+      if(r.status === 401){ imcPublicDrawer(); }
+    }).catch(function(){});
+  }
   var host = document.getElementById('drawer-links') || document.querySelector('.nav-drawer-links');
   if(!host) return;
   var path = location.pathname;
@@ -97,3 +104,22 @@ function imcBuildDrawer(){
   host.appendChild(mk('/contact', 'Contact Us', '&#9993;'));
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', imcBuildDrawer); else imcBuildDrawer();
+
+function imcPublicDrawer(){
+  var host = document.getElementById('drawer-links') || document.querySelector('.nav-drawer-links');
+  if(!host) return;
+  var path = location.pathname;
+  host.innerHTML = '';
+  function mk(href,label,icon){
+    var a=document.createElement('a');
+    a.className='nav-drawer-link' + (path===href?' active':'');
+    a.href=href;
+    var s=document.createElement('span'); s.className='nav-drawer-link-icon'; s.innerHTML=icon;
+    a.appendChild(s); a.appendChild(document.createTextNode(label));
+    return a;
+  }
+  host.appendChild(mk('/', 'Home', '&#127968;'));
+  host.appendChild(mk('/guide', 'How it works', '&#128218;'));
+  host.appendChild(mk('/contact', 'Contact Us', '&#9993;'));
+  host.appendChild(mk('/', 'Sign in', '&#128273;'));
+}
