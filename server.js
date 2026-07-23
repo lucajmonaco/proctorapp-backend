@@ -1082,6 +1082,7 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 
 app.get('/oneway/:token', (req, res) => sendPage(res, 'oneway.html'));
 app.get('/contact', (req, res) => sendPage(res, 'contact.html'));
+app.get('/guide', (req, res) => sendPage(res, 'guide.html'));
 app.get('/async', requireAuth, (req, res) => sendPage(res, 'async.html'));
 app.get('/live', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
 app.get('/sessions', requireAuth, (req, res) => sendPage(res, 'sessions.html'));
