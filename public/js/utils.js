@@ -93,5 +93,6 @@ function imcBuildDrawer(){
   paint();
   host.appendChild(mk('/recordings', 'Recordings Library', '&#127902;'));
   host.appendChild(mk('/company', 'Company', '&#127970;'));
+  host.appendChild(mk('/contact', 'Contact Us', '&#9993;'));
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', imcBuildDrawer); else imcBuildDrawer();
