@@ -78,8 +78,8 @@
     <nav class="nav-drawer-links">
       <a href="/" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#127968;</span>Home</a>
       <a href="/dashboard" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#128203;</span>Dashboard</a>
-      <a href="/recordings" class="nav-drawer-link active"><span class="nav-drawer-link-icon">&#127902;</span>Recordings Library</a>
-          <a href="/async" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#128228;</span>Async Interviews</a>
+      <a href="/async" class="nav-drawer-link"><span class="nav-drawer-link-icon">&#128228;</span>Async Interviews</a>
+          <a href="/recordings" class="nav-drawer-link active"><span class="nav-drawer-link-icon">&#127902;</span>Recordings Library</a>
     </nav>
     <div class="nav-drawer-user" id="drawer-user">
       <div class="nav-drawer-user-name" id="drawer-user-name"></div>
@@ -439,8 +439,7 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   btn('btn-outline','ID Verification',function(){ viewIdentity(rec.session_id, rec.candidate_name); });
   var cb=btn('btn-purple','Compress for Email',function(){compressRec(rec.id,rec.session_title,cb);});
   if(rec.share_token){
-    btn('btn-outline','Copy Share Link',function(){navigator.clipboard.writeText(location.origin+'/share/'+rec.share_token).then(function(){toast('Share link copied!','green',5000);});});
-    btn('btn-outline','Open Share Page',function(){window.open('/share/'+rec.share_token,'_blank');});
+    btn('btn-outline','Preview Submission Page',function(){window.open('/share/'+rec.share_token+'?v='+Date.now(),'_blank');});
   }
   body.appendChild(actions);
 
