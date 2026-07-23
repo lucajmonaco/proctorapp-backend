@@ -606,7 +606,7 @@ app.get('/api/recordings', requireAuth, (req, res) => {
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-  const s = db.prepare('SELECT org_id FROM sessions WHERE id=?').get(req.params.sessionId);
+  const s = db.prepare('SELECT org_id FROM recordings WHERE session_id=?').get(req.params.sessionId) || db.prepare('SELECT org_id FROM sessions WHERE id=?').get(req.params.sessionId);
   if (!s || s.org_id !== me.org_id) return res.status(404).json({ error: 'Review not found' });
   db.prepare('DELETE FROM interview_ratings WHERE session_id=?').run(req.params.sessionId);
   res.json({ ok: true });
@@ -625,7 +625,7 @@ app.get('/api/reviews', requireAuth, (req, res) => {
     if(!rows.length) return;
     const ratings = {};
     rows.forEach(function(x){ ratings[x.rater_role] = { stars: x.stars, note: x.note }; });
-    out.push({ session_title: rec.session_title, candidate_name: rec.candidate_name, interviewer_name: rec.interviewer_name, created_at: rec.created_at, ratings: ratings });
+    out.push({ session_id: rec.session_id, session_title: rec.session_title, candidate_name: rec.candidate_name, interviewer_name: rec.interviewer_name, created_at: rec.created_at, ratings: ratings });
   });
   res.json(out);
 });
