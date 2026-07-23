@@ -1019,6 +1019,9 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 app.get('/oneway/:token', (req, res) => sendPage(res, 'oneway.html'));
 app.get('/async', requireAuth, (req, res) => sendPage(res, 'async.html'));
 app.get('/live', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/sessions', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/upcoming', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/company', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
 
 
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN consented_at INTEGER'); } catch (e) {}
