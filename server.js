@@ -911,6 +911,7 @@ function finishOneWay(interviewId) {
       db.prepare('INSERT INTO recordings (id,session_id,interviewer_id,org_id,session_title,candidate_name,file_path,file_size,duration_secs,trust_score,flag_count,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
         .run(recId, sessionId, iv.created_by, iv.org_id, iv.role_title || 'One-way interview', iv.candidate_name || 'Candidate', outPath, size, dur, 100, 0, shareToken);
       db.prepare("UPDATE async_interviews SET status='completed', completed_at=?, recording_id=? WHERE id=?").run(owNow(), recId, iv.id);
+      try { db.prepare('INSERT INTO audit_log (id, org_id, user_id, user_name, action, detail) VALUES (?,?,?,?,?,?)').run(uuidv4(), iv.org_id, iv.created_by, iv.candidate_name || 'Candidate', 'oneway.completed', 'One-way interview submitted by ' + (iv.candidate_name || 'candidate') + ' for ' + (iv.role_title || 'a role')); } catch (e) {}
       try { db.exec("CREATE TABLE IF NOT EXISTS id_captures (id TEXT PRIMARY KEY, session_id TEXT, selfie_path TEXT, id_path TEXT, consented INTEGER, created_at INTEGER DEFAULT (strftime('%s','now')))"); } catch (e) {}
       try { if (iv.selfie_path || iv.id_path) db.prepare('INSERT INTO id_captures (id, session_id, selfie_path, id_path, consented) VALUES (?,?,?,?,?)').run(uuidv4(), sessionId, iv.selfie_path, iv.id_path, iv.consented_at ? 1 : 0); } catch (e) {}
       try { if (iv.rating_stars) db.prepare("INSERT INTO interview_ratings (session_id, rater_role, stars, note) VALUES (?,'candidate',?,?) ON CONFLICT(session_id, rater_role) DO UPDATE SET stars=excluded.stars, note=excluded.note").run(sessionId, iv.rating_stars, iv.rating_note || ''); } catch (e) {}
@@ -951,7 +952,21 @@ app.get('/api/oneway/t/:token/q/:idx', (req, res) => {
   if (isNaN(idx) || idx < 0 || idx >= qs.length) return res.status(404).json({ error: 'No such question' });
   if (idx !== (iv.current_q || 0)) return res.status(403).json({ error: 'Questions are revealed one at a time' });
   var q = qs[idx] || {};
-  res.json({ index: idx, total: qs.length, text: q.text || '', prep_secs: q.prep_secs, answer_secs: q.answer_secs });
+  // The question text is deliberately NOT returned here. It is only released once recording has started.
+  res.json({ index: idx, total: qs.length, prep_secs: q.prep_secs, answer_secs: q.answer_secs });
+});
+
+app.post('/api/oneway/t/:token/q/:idx/reveal', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (iv.status !== 'started') return res.status(400).json({ error: 'The interview has not been started' });
+  if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  var idx2 = parseInt(req.params.idx, 10);
+  var qs2 = owQs(iv);
+  if (isNaN(idx2) || idx2 < 0 || idx2 >= qs2.length) return res.status(404).json({ error: 'No such question' });
+  if (idx2 !== (iv.current_q || 0)) return res.status(403).json({ error: 'Questions are revealed one at a time' });
+  try { db.prepare('UPDATE async_interviews SET revealed_at=? WHERE id=?').run(owNow(), iv.id); } catch (e) {}
+  res.json({ index: idx2, text: (qs2[idx2] && qs2[idx2].text) || '' });
 });
 
 app.post('/api/oneway/t/:token/answer', upload.single('clip'), (req, res) => {
@@ -988,6 +1003,7 @@ try { db.exec('ALTER TABLE async_interviews ADD COLUMN selfie_path TEXT'); } cat
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN id_path TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_stars INTEGER'); } catch (e) {}
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_note TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN revealed_at INTEGER'); } catch (e) {}
 
 app.post('/api/oneway/t/:token/consent', (req, res) => {
   var iv = owByToken(req.params.token);
