@@ -973,6 +973,7 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 });
 
 app.get('/oneway/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'oneway.html')));
+app.get('/async', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'async.html')));
 
 
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
