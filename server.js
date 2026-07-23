@@ -861,6 +861,39 @@ app.post('/api/oneway', requireAuth, (req, res) => {
   res.json({ ok: true, id: id, token: token, link: (process.env.APP_URL || ('https://' + req.get('host'))) + '/oneway/' + token, expires_at: exp });
 });
 
+app.get('/api/interviews', requireAuth, (req, res) => {
+  var scope = (req.query.scope === 'upcoming') ? 'upcoming' : 'completed';
+  var rows = [];
+  var now = Math.floor(Date.now() / 1000);
+  if (scope === 'completed') {
+    try {
+      var recs = db.prepare('SELECT id, session_id, session_title, candidate_name, created_at, duration_secs, share_token FROM recordings WHERE interviewer_id=? ORDER BY created_at DESC LIMIT 100').all(req.session.userId);
+      recs.forEach(function (r) {
+        var ow = 0;
+        try { ow = db.prepare('SELECT COUNT(*) AS n FROM async_interviews WHERE recording_id=?').get(r.id).n ? 1 : 0; } catch (e) {}
+        rows.push({ type: ow ? 'oneway' : 'live', id: r.id, title: r.session_title || 'Interview', candidate_name: r.candidate_name || 'Candidate', when: r.created_at, duration: r.duration_secs || 0, share_token: r.share_token, status: 'completed' });
+      });
+    } catch (e) {}
+  } else {
+    try {
+      var ses = db.prepare("SELECT id, code, title, candidate_name, status, scheduled_at FROM sessions WHERE interviewer_id=? AND COALESCE(is_async,0)=0 AND COALESCE(status,'') <> 'ended' ORDER BY COALESCE(scheduled_at,0) ASC LIMIT 60").all(req.session.userId);
+      ses.forEach(function (r) {
+        rows.push({ type: 'live', id: r.id, code: r.code, title: r.title || 'Interview', candidate_name: r.candidate_name || 'Candidate', when: r.scheduled_at || null, status: r.status || 'scheduled' });
+      });
+    } catch (e) {}
+    try {
+      var ow2 = db.prepare("SELECT id, candidate_name, role_title, status, current_q, questions, expires_at, token FROM async_interviews WHERE org_id=? AND status <> 'completed' ORDER BY created_at DESC LIMIT 60").all(req.session.orgId);
+      ow2.forEach(function (a) {
+        var n = 0;
+        try { n = JSON.parse(a.questions || '[]').length; } catch (e) {}
+        var st = (a.expires_at && now > a.expires_at) ? 'expired' : (a.status || 'pending');
+        rows.push({ type: 'oneway', id: a.id, title: a.role_title || 'Interview', candidate_name: a.candidate_name || 'Candidate', when: a.expires_at || null, status: st, progress: (a.current_q || 0) + '/' + n, token: a.token });
+      });
+    } catch (e) {}
+  }
+  res.json(rows);
+});
+
 app.get('/api/activity', requireAuth, (req, res) => {
   var items = [];
   var now = Math.floor(Date.now() / 1000);
@@ -1019,7 +1052,7 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 app.get('/oneway/:token', (req, res) => sendPage(res, 'oneway.html'));
 app.get('/async', requireAuth, (req, res) => sendPage(res, 'async.html'));
 app.get('/live', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
-app.get('/sessions', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
+app.get('/sessions', requireAuth, (req, res) => sendPage(res, 'sessions.html'));
 app.get('/upcoming', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
 app.get('/company', requireAuth, (req, res) => sendPage(res, 'dashboard.html'));
 
