@@ -799,6 +799,88 @@ app.post('/api/recordings/:id/summary', requireAuth, (req, res) => {
   res.json({ ok: true, status: 'processing' });
 });
 
+// ---------------------------------------------------------------
+// One-way (async) interviews
+// ---------------------------------------------------------------
+try { db.exec("CREATE TABLE IF NOT EXISTS question_templates (id TEXT PRIMARY KEY, org_id TEXT, position_id TEXT, name TEXT, questions TEXT, created_by TEXT, created_at INTEGER DEFAULT (strftime('%s','now')))"); } catch (e) {}
+try { db.exec("CREATE TABLE IF NOT EXISTS async_interviews (id TEXT PRIMARY KEY, org_id TEXT, template_id TEXT, position_id TEXT, candidate_name TEXT, candidate_email TEXT, role_title TEXT, token TEXT, questions TEXT, expires_at INTEGER, status TEXT DEFAULT 'pending', current_q INTEGER DEFAULT 0, started_at INTEGER, completed_at INTEGER, recording_id TEXT, created_by TEXT, created_at INTEGER DEFAULT (strftime('%s','now')))"); } catch (e) {}
+try { db.exec("CREATE TABLE IF NOT EXISTS async_answers (id TEXT PRIMARY KEY, interview_id TEXT, q_index INTEGER, question_text TEXT, file_path TEXT, duration_secs INTEGER, created_at INTEGER DEFAULT (strftime('%s','now')))"); } catch (e) {}
+
+function owNow(){ return Math.floor(Date.now()/1000); }
+function owByToken(tok){ try { return db.prepare('SELECT * FROM async_interviews WHERE token=?').get(tok); } catch (e) { return null; } }
+function owQs(iv){ try { return iv && iv.questions ? JSON.parse(iv.questions) : []; } catch (e) { return []; } }
+function owExpired(iv){ return !!(iv && iv.expires_at && owNow() > iv.expires_at); }
+
+app.get('/api/templates', requireAuth, (req, res) => {
+  var rows = [];
+  try { rows = db.prepare('SELECT id, name, position_id, questions, created_at FROM question_templates WHERE org_id=? ORDER BY created_at DESC').all(req.session.orgId); } catch (e) {}
+  rows.forEach(function (r) { try { r.questions = r.questions ? JSON.parse(r.questions) : []; } catch (e) { r.questions = []; } });
+  res.json(rows);
+});
+
+app.post('/api/templates', requireAuth, (req, res) => {
+  var b = req.body || {};
+  var name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Give the template a name' });
+  var qs = Array.isArray(b.questions) ? b.questions : [];
+  var clean = qs.map(function (q) { return { text: String((q && q.text) || '').slice(0, 600).trim(), prep_secs: Math.max(0, Math.min(300, parseInt(q && q.prep_secs, 10) || 30)), answer_secs: Math.max(15, Math.min(900, parseInt(q && q.answer_secs, 10) || 120)) }; }).filter(function (q) { return q.text; });
+  if (!clean.length) return res.status(400).json({ error: 'Add at least one question' });
+  var id = uuidv4();
+  try { db.prepare('INSERT INTO question_templates (id, org_id, position_id, name, questions, created_by) VALUES (?,?,?,?,?,?)').run(id, req.session.orgId, b.position_id || null, name, JSON.stringify(clean), req.session.userId); } catch (e) { return res.status(500).json({ error: 'Could not save template' }); }
+  logAudit(req, 'template.create', 'Created question template: ' + name);
+  res.json({ ok: true, id: id });
+});
+
+app.delete('/api/templates/:id', requireAuth, (req, res) => {
+  var row = db.prepare('SELECT id, name, org_id FROM question_templates WHERE id=?').get(req.params.id);
+  if (!row || row.org_id !== req.session.orgId) return res.status(404).json({ error: 'Template not found' });
+  try { db.prepare('DELETE FROM question_templates WHERE id=?').run(req.params.id); } catch (e) {}
+  logAudit(req, 'template.delete', 'Deleted question template: ' + (row.name || ''));
+  res.json({ ok: true });
+});
+
+app.post('/api/oneway', requireAuth, (req, res) => {
+  var b = req.body || {};
+  var tpl = null;
+  try { tpl = b.template_id ? db.prepare('SELECT * FROM question_templates WHERE id=? AND org_id=?').get(b.template_id, req.session.orgId) : null; } catch (e) {}
+  if (!tpl) return res.status(400).json({ error: 'Pick a question template' });
+  var qs = [];
+  try { qs = JSON.parse(tpl.questions || '[]'); } catch (e) {}
+  if (!qs.length) return res.status(400).json({ error: 'That template has no questions' });
+  var days = Math.max(1, Math.min(60, parseInt(b.days, 10) || 7));
+  var id = uuidv4();
+  var token = uuidv4().replace(/-/g, '');
+  var exp = owNow() + days * 86400;
+  try {
+    db.prepare('INSERT INTO async_interviews (id, org_id, template_id, position_id, candidate_name, candidate_email, role_title, token, questions, expires_at, status, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(id, req.session.orgId, tpl.id, b.position_id || tpl.position_id || null, String(b.candidate_name || 'Candidate').slice(0,120), b.candidate_email || null, String(b.role_title || tpl.name || 'Interview').slice(0,160), token, JSON.stringify(qs), exp, 'pending', req.session.userId);
+  } catch (e) { return res.status(500).json({ error: 'Could not create the interview' }); }
+  logAudit(req, 'oneway.create', 'Created one-way interview for ' + (b.candidate_name || 'candidate'));
+  res.json({ ok: true, id: id, token: token, link: (process.env.APP_URL || ('https://' + req.get('host'))) + '/oneway/' + token, expires_at: exp });
+});
+
+app.get('/api/oneway', requireAuth, (req, res) => {
+  var rows = [];
+  try { rows = db.prepare('SELECT id, candidate_name, candidate_email, role_title, token, questions, expires_at, status, current_q, started_at, completed_at, recording_id, created_at FROM async_interviews WHERE org_id=? ORDER BY created_at DESC').all(req.session.orgId); } catch (e) {}
+  var now = owNow();
+  rows.forEach(function (r) {
+    var n = 0;
+    try { n = JSON.parse(r.questions || '[]').length; } catch (e) {}
+    r.question_count = n; delete r.questions;
+    if (r.status !== 'completed' && r.expires_at && now > r.expires_at) r.status = 'expired';
+  });
+  res.json(rows);
+});
+
+app.delete('/api/oneway/:id', requireAuth, (req, res) => {
+  var row = db.prepare('SELECT id, org_id, candidate_name FROM async_interviews WHERE id=?').get(req.params.id);
+  if (!row || row.org_id !== req.session.orgId) return res.status(404).json({ error: 'Not found' });
+  try { db.prepare('DELETE FROM async_interviews WHERE id=?').run(req.params.id); } catch (e) {}
+  logAudit(req, 'oneway.delete', 'Deleted one-way interview for ' + (row.candidate_name || ''));
+  res.json({ ok: true });
+});
+
+
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
