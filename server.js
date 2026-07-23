@@ -911,6 +911,9 @@ function finishOneWay(interviewId) {
       db.prepare('INSERT INTO recordings (id,session_id,interviewer_id,org_id,session_title,candidate_name,file_path,file_size,duration_secs,trust_score,flag_count,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
         .run(recId, sessionId, iv.created_by, iv.org_id, iv.role_title || 'One-way interview', iv.candidate_name || 'Candidate', outPath, size, dur, 100, 0, shareToken);
       db.prepare("UPDATE async_interviews SET status='completed', completed_at=?, recording_id=? WHERE id=?").run(owNow(), recId, iv.id);
+      try { db.exec("CREATE TABLE IF NOT EXISTS id_captures (id TEXT PRIMARY KEY, session_id TEXT, selfie_path TEXT, id_path TEXT, consented INTEGER, created_at INTEGER DEFAULT (strftime('%s','now')))"); } catch (e) {}
+      try { if (iv.selfie_path || iv.id_path) db.prepare('INSERT INTO id_captures (id, session_id, selfie_path, id_path, consented) VALUES (?,?,?,?,?)').run(uuidv4(), sessionId, iv.selfie_path, iv.id_path, iv.consented_at ? 1 : 0); } catch (e) {}
+      try { if (iv.rating_stars) db.prepare("INSERT INTO interview_ratings (session_id, rater_role, stars, note) VALUES (?,'candidate',?,?) ON CONFLICT(session_id, rater_role) DO UPDATE SET stars=excluded.stars, note=excluded.note").run(sessionId, iv.rating_stars, iv.rating_note || ''); } catch (e) {}
       try { transcribeRecording(recId); } catch (e) {}
     } catch (e) {}
   });
@@ -932,6 +935,8 @@ app.post('/api/oneway/t/:token/start', (req, res) => {
   if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
   if (iv.status === 'completed') return res.status(400).json({ error: 'This interview has already been submitted' });
   if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  if (!iv.consented_at) return res.status(400).json({ error: 'Please review and agree to the recording notice first' });
+  if (!iv.selfie_path || !iv.id_path) return res.status(400).json({ error: 'Please complete identity verification first' });
   if (iv.status === 'pending') { try { db.prepare("UPDATE async_interviews SET status='started', started_at=? WHERE id=?").run(owNow(), iv.id); } catch (e) {} }
   res.json({ ok: true, question_count: owQs(iv).length, current_q: iv.current_q || 0 });
 });
@@ -977,6 +982,50 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 app.get('/oneway/:token', (req, res) => sendPage(res, 'oneway.html'));
 app.get('/async', requireAuth, (req, res) => sendPage(res, 'async.html'));
 
+
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN consented_at INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN selfie_path TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN id_path TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_stars INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_note TEXT'); } catch (e) {}
+
+app.post('/api/oneway/t/:token/consent', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  if (!(req.body && (req.body.agree === true || req.body.agree === 'true'))) return res.status(400).json({ error: 'Consent is required to continue' });
+  try { db.prepare('UPDATE async_interviews SET consented_at=? WHERE id=?').run(owNow(), iv.id); } catch (e) {}
+  res.json({ ok: true });
+});
+
+app.post('/api/oneway/t/:token/identity', idUpload.fields([{ name: 'selfie', maxCount: 1 }, { name: 'idphoto', maxCount: 1 }]), (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  if (owExpired(iv)) return res.status(400).json({ error: 'This interview link has expired' });
+  if (!iv.consented_at) return res.status(400).json({ error: 'Please agree to the recording notice first' });
+  var f = req.files || {};
+  var selfie = (f.selfie && f.selfie[0]) ? f.selfie[0].path : null;
+  var idp = (f.idphoto && f.idphoto[0]) ? f.idphoto[0].path : null;
+  if (!selfie || !idp) return res.status(400).json({ error: 'A photo of you and a photo ID are both required' });
+  try { db.prepare('UPDATE async_interviews SET selfie_path=?, id_path=? WHERE id=?').run(selfie, idp, iv.id); } catch (e) {}
+  res.json({ ok: true });
+});
+
+app.post('/api/oneway/t/:token/rating', (req, res) => {
+  var iv = owByToken(req.params.token);
+  if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
+  var stars = parseInt((req.body && req.body.stars), 10);
+  if (!(stars >= 1 && stars <= 5)) return res.status(400).json({ error: 'Pick a rating from 1 to 5' });
+  var note = String((req.body && req.body.note) || '').slice(0, 1000);
+  try { db.prepare('UPDATE async_interviews SET rating_stars=?, rating_note=? WHERE id=?').run(stars, note, iv.id); } catch (e) {}
+  try {
+    if (iv.recording_id) {
+      var rr = db.prepare('SELECT session_id FROM recordings WHERE id=?').get(iv.recording_id);
+      if (rr) db.prepare("INSERT INTO interview_ratings (session_id, rater_role, stars, note) VALUES (?,'candidate',?,?) ON CONFLICT(session_id, rater_role) DO UPDATE SET stars=excluded.stars, note=excluded.note").run(rr.session_id, stars, note);
+    }
+  } catch (e) {}
+  res.json({ ok: true });
+});
 
 app.delete('/api/reviews/:sessionId', requireAuth, (req, res) => {
   const me = db.prepare('SELECT role, org_id FROM users WHERE id=?').get(req.session.userId);
