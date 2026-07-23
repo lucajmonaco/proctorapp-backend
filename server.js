@@ -1230,6 +1230,8 @@ app.get('/api/recordings/share/:token/info', (req, res) => {
   db.exec('CREATE TABLE IF NOT EXISTS resumes (session_id TEXT PRIMARY KEY, recording_id TEXT, file_path TEXT, original_name TEXT, uploaded_at INTEGER)');
   var _rez = db.prepare('SELECT session_id FROM resumes WHERE session_id=?').get(rec.session_id);
   rec.has_resume = !!_rez;
+  try { var _org2 = db.prepare('SELECT name FROM orgs WHERE id=?').get(rec.org_id); rec.agency_name = _org2 ? _org2.name : ''; } catch (e) { rec.agency_name = ''; }
+  try { var _usr2 = db.prepare('SELECT name FROM users WHERE id=?').get(rec.interviewer_id); rec.recruiter_name = _usr2 ? _usr2.name : ''; } catch (e) { rec.recruiter_name = ''; }
   res.json(rec);
 });
 
