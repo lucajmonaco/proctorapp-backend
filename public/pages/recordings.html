@@ -548,6 +548,65 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
       } else { trPanel.style.display='none'; trBtn.textContent='Show transcript'; }
     };
     body.appendChild(trDiv);
+    var suDiv = document.createElement('div'); suDiv.className = 'rec-notes';
+    var suLabel = document.createElement('div'); suLabel.className = 'rec-notes-label';
+    var suSpan = document.createElement('span'); suSpan.textContent = 'AI Summary';
+    suLabel.appendChild(suSpan); suDiv.appendChild(suLabel);
+    var suBody = document.createElement('div');
+    var suBtn = document.createElement('button'); suBtn.className='btn btn-primary btn-sm'; suBtn.textContent='Show summary';
+    var suPanel = document.createElement('div'); suPanel.style.cssText='display:none;margin-top:10px;font-size:13px;line-height:1.7';
+    suBody.appendChild(suBtn); suBody.appendChild(suPanel); suDiv.appendChild(suBody);
+    var suLoaded=false;
+    function suList(title, arr, color){
+      if(!arr || !arr.length) return null;
+      var w=document.createElement('div'); w.style.cssText='margin-top:10px';
+      var h=document.createElement('div'); h.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:'+(color||'var(--text3)')+';margin-bottom:4px';
+      h.textContent=title; w.appendChild(h);
+      var ul=document.createElement('ul'); ul.style.cssText='margin:0;padding-left:18px';
+      arr.forEach(function(x){ var li=document.createElement('li'); li.style.marginBottom='3px'; li.textContent=String(x); ul.appendChild(li); });
+      w.appendChild(ul); return w;
+    }
+    function suRender(d){
+      suPanel.innerHTML='';
+      if(!d || d.status==='unconfigured'){ suPanel.textContent='AI summary is not set up yet.'; return; }
+      if(d.status==='needs_transcript'){ suPanel.textContent='Open the transcript first - the summary is built from it.'; return; }
+      if(d.status==='processing'||d.status==='pending'){ suPanel.textContent='Analyzing the interview - reopen in a moment.'; return; }
+      if(d.status==='failed'){ suPanel.textContent=d.error||'Summary could not be generated.'; return; }
+      var s=d.data||{};
+      if(s.recommendation){
+        var rec2=document.createElement('div');
+        var col = /strong yes|^yes/i.test(s.recommendation)?'var(--green)':(/no/i.test(s.recommendation)?'var(--red)':'var(--amber)');
+        rec2.style.cssText='display:inline-block;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:'+col+';border:1.5px solid '+col+';border-radius:999px;padding:3px 12px;margin-bottom:8px';
+        rec2.textContent=s.recommendation; suPanel.appendChild(rec2);
+      }
+      if(s.summary){ var p=document.createElement('div'); p.textContent=s.summary; p.style.marginBottom='4px'; suPanel.appendChild(p); }
+      if(s.rationale){ var r3=document.createElement('div'); r3.style.cssText='color:var(--text3);font-style:italic'; r3.textContent=s.rationale; suPanel.appendChild(r3); }
+      var a=suList('Strengths', s.strengths, 'var(--green)'); if(a) suPanel.appendChild(a);
+      var b2=suList('Concerns', s.concerns, 'var(--amber)'); if(b2) suPanel.appendChild(b2);
+      var c2=suList('Skills mentioned', s.skills, 'var(--blue)'); if(c2) suPanel.appendChild(c2);
+      if(s.key_quotes && s.key_quotes.length){
+        var qw=document.createElement('div'); qw.style.cssText='margin-top:10px';
+        var qh=document.createElement('div'); qh.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px'; qh.textContent='Key quotes'; qw.appendChild(qh);
+        s.key_quotes.forEach(function(q){
+          var qd=document.createElement('div'); qd.style.cssText='border-left:3px solid var(--blue);padding-left:10px;margin-bottom:6px;color:var(--text2)';
+          qd.textContent='"'+(q.quote||'')+'"'+(q.time?('  ('+q.time+')'):'');
+          qw.appendChild(qd);
+        });
+        suPanel.appendChild(qw);
+      }
+      var re=document.createElement('button'); re.className='btn btn-outline btn-sm'; re.style.cssText='margin-top:10px'; re.textContent='Regenerate';
+      re.onclick=function(){ re.disabled=true; re.textContent='Working...'; fetch('/api/recordings/'+rec.id+'/summary',{method:'POST'}).then(function(x){return x.json();}).then(function(){ suPanel.textContent='Analyzing the interview - reopen in a moment.'; }).catch(function(){ re.disabled=false; re.textContent='Regenerate'; }); };
+      suPanel.appendChild(re);
+    }
+    suBtn.onclick=function(){
+      if(suPanel.style.display==='none'){
+        suPanel.style.display=''; suBtn.textContent='Hide summary';
+        if(!suLoaded){ suLoaded=true; suPanel.textContent='Loading...';
+          fetch('/api/recordings/'+rec.id+'/summary').then(function(r){return r.json();}).then(suRender).catch(function(){ suPanel.textContent='Could not load summary.'; });
+        }
+      } else { suPanel.style.display='none'; suBtn.textContent='Show summary'; }
+    };
+    body.appendChild(suDiv);
   var subDiv = document.createElement('div'); subDiv.className = 'rec-notes';
   var subLabel = document.createElement('div'); subLabel.className = 'rec-notes-label';
   var subSpan = document.createElement('span'); subSpan.textContent = 'Client Submission';
