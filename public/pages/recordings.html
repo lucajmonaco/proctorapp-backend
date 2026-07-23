@@ -503,36 +503,32 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   rezDiv.appendChild(rezBody); rezDiv.appendChild(rezPicker);
   rezRender(!!rec.has_resume);
   body.appendChild(rezDiv);
-    var trDiv = document.createElement('div');
-    trDiv.style.cssText='margin-top:12px;padding-top:12px;border-top:1px solid var(--border)';
-    var trHead = document.createElement('div');
-    trHead.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px';
-    var trLbl = document.createElement('div');
-    trLbl.style.cssText='font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px';
-    trLbl.textContent='Transcript';
-    var trBtn = document.createElement('button');
-    trBtn.className='btn btn-outline btn-sm'; trBtn.style.cssText='font-size:11px'; trBtn.textContent='Show';
-    trHead.appendChild(trLbl); trHead.appendChild(trBtn); trDiv.appendChild(trHead);
+    var trDiv = document.createElement('div'); trDiv.className = 'rec-notes';
+    var trLabel = document.createElement('div'); trLabel.className = 'rec-notes-label';
+    var trSpan = document.createElement('span'); trSpan.textContent = 'Transcript';
+    trLabel.appendChild(trSpan); trDiv.appendChild(trLabel);
     var trBody = document.createElement('div');
-    trBody.style.cssText='display:none;margin-top:10px;max-height:260px;overflow:auto;font-size:13px;line-height:1.7';
-    trDiv.appendChild(trBody);
+    var trBtn = document.createElement('button'); trBtn.className = 'btn btn-primary btn-sm'; trBtn.textContent = 'Show transcript';
+    var trPanel = document.createElement('div');
+    trPanel.style.cssText='display:none;margin-top:10px;max-height:260px;overflow:auto;font-size:13px;line-height:1.7';
+    trBody.appendChild(trBtn); trBody.appendChild(trPanel); trDiv.appendChild(trBody);
     var trLoaded = false;
     function trRender(d){
-      trBody.innerHTML='';
-      if(!d || d.status==='unconfigured'){ trBody.textContent='Transcription is not set up yet.'; return; }
-      if(d.status==='processing'||d.status==='pending'){ trBody.textContent='Transcribing - this can take a few minutes. Reopen to check.'; return; }
-      if(d.status==='failed'){ trBody.textContent = d.error || 'Transcript could not be generated.'; return; }
-      if(d.status!=='ready'){ trBody.textContent='No transcript yet.'; return; }
+      trPanel.innerHTML='';
+      if(!d || d.status==='unconfigured'){ trPanel.textContent='Transcription is not set up yet.'; return; }
+      if(d.status==='processing'||d.status==='pending'){ trPanel.textContent='Transcribing - this can take a few minutes. Reopen to check.'; return; }
+      if(d.status==='failed'){ trPanel.textContent = d.error || 'Transcript could not be generated.'; return; }
+      if(d.status!=='ready'){ trPanel.textContent='No transcript yet.'; return; }
       var segs = d.segments||[];
-      if(!segs.length){ trBody.textContent = d.text||''; return; }
+      if(!segs.length){ trPanel.textContent = d.text||''; return; }
       var swapBtn=document.createElement('button');
-      swapBtn.className='btn btn-outline btn-sm'; swapBtn.style.cssText='font-size:10px;margin-bottom:8px'; swapBtn.textContent='Swap speaker labels';
+      swapBtn.className='btn btn-outline btn-sm'; swapBtn.style.cssText='margin-bottom:10px'; swapBtn.textContent='Swap speaker labels';
       swapBtn.onclick=function(){ fetch('/api/recordings/'+rec.id+'/transcript/swap',{method:'POST'}).then(function(r){return r.json();}).then(function(j){ d.swap=!!j.swap; trRender(d); }).catch(function(){}); };
-      trBody.appendChild(swapBtn);
+      trPanel.appendChild(swapBtn);
       segs.forEach(function(sg){
         var line=document.createElement('div'); line.style.cssText='margin-bottom:8px';
-        var isFirst = (sg.speaker===0);
-        var who = (d.swap ? !isFirst : isFirst) ? 'Interviewer' : 'Candidate';
+        var isFirst=(sg.speaker===0);
+        var who=(d.swap? !isFirst : isFirst)?'Interviewer':'Candidate';
         var st=Math.max(0, Math.floor(sg.start||0));
         var mm=Math.floor(st/60), ss=st%60;
         var tag=document.createElement('span');
@@ -540,16 +536,16 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
         tag.textContent=who+' '+mm+':'+(ss<10?'0':'')+ss+'  ';
         tag.onclick=function(){ var v=card.querySelector('video'); if(v){ try{ v.currentTime=sg.start||0; if(v.play) v.play(); }catch(e){} } };
         var tx=document.createElement('span'); tx.textContent=sg.text||'';
-        line.appendChild(tag); line.appendChild(tx); trBody.appendChild(line);
+        line.appendChild(tag); line.appendChild(tx); trPanel.appendChild(line);
       });
     }
     trBtn.onclick=function(){
-      if(trBody.style.display==='none'){
-        trBody.style.display=''; trBtn.textContent='Hide';
-        if(!trLoaded){ trLoaded=true; trBody.textContent='Loading...';
-          fetch('/api/recordings/'+rec.id+'/transcript').then(function(r){return r.json();}).then(trRender).catch(function(){ trBody.textContent='Could not load transcript.'; });
+      if(trPanel.style.display==='none'){
+        trPanel.style.display=''; trBtn.textContent='Hide transcript';
+        if(!trLoaded){ trLoaded=true; trPanel.textContent='Loading...';
+          fetch('/api/recordings/'+rec.id+'/transcript').then(function(r){return r.json();}).then(trRender).catch(function(){ trPanel.textContent='Could not load transcript.'; });
         }
-      } else { trBody.style.display='none'; trBtn.textContent='Show'; }
+      } else { trPanel.style.display='none'; trBtn.textContent='Show transcript'; }
     };
     body.appendChild(trDiv);
   var subDiv = document.createElement('div'); subDiv.className = 'rec-notes';
