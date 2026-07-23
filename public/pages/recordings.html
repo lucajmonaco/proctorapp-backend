@@ -595,6 +595,26 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
         });
         suPanel.appendChild(qw);
       }
+      var ig = s.integrity;
+      if(ig && (ig.concern || (ig.signals&&ig.signals.length))){
+        var icol = /high/i.test(ig.concern||'') ? 'var(--red)' : (/medium/i.test(ig.concern||'') ? 'var(--amber)' : 'var(--green)');
+        var iw=document.createElement('div'); iw.style.cssText='margin-top:12px;padding-top:10px;border-top:1px solid var(--border)';
+        var ih=document.createElement('div'); ih.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:5px';
+        ih.textContent='Response integrity'; iw.appendChild(ih);
+        var ib=document.createElement('span');
+        ib.style.cssText='display:inline-block;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:'+icol+';border:1.5px solid '+icol+';border-radius:999px;padding:3px 12px';
+        ib.textContent=(ig.concern||'Low')+' concern'; iw.appendChild(ib);
+        if(ig.note){ var inote=document.createElement('div'); inote.style.cssText='margin-top:6px;color:var(--text2)'; inote.textContent=ig.note; iw.appendChild(inote); }
+        (ig.signals||[]).forEach(function(sg){
+          var sd=document.createElement('div'); sd.style.cssText='margin-top:8px;border-left:3px solid '+icol+';padding-left:10px';
+          var ob=document.createElement('div'); ob.style.cssText='font-weight:600'; ob.textContent=sg.observation||''; sd.appendChild(ob);
+          if(sg.quote){ var qq=document.createElement('div'); qq.style.cssText='color:var(--text3);font-style:italic'; qq.textContent='"'+sg.quote+'"'+(sg.time?('  ('+sg.time+')'):''); sd.appendChild(qq); }
+          iw.appendChild(sd);
+        });
+        var dis=document.createElement('div'); dis.style.cssText='margin-top:8px;font-size:11px;color:var(--text3)';
+        dis.textContent='Advisory only - these are prompts to review the recording yourself, not proof of cheating. Do not reject a candidate on this alone.';
+        iw.appendChild(dis); suPanel.appendChild(iw);
+      }
       var re=document.createElement('button'); re.className='btn btn-outline btn-sm'; re.style.cssText='margin-top:10px'; re.textContent='Regenerate';
       re.onclick=function(){ re.disabled=true; re.textContent='Working...'; fetch('/api/recordings/'+rec.id+'/summary',{method:'POST'}).then(function(x){return x.json();}).then(function(){ suPanel.textContent='Analyzing the interview - reopen in a moment.'; }).catch(function(){ re.disabled=false; re.textContent='Regenerate'; }); };
       suPanel.appendChild(re);
