@@ -142,13 +142,25 @@ async function deleteReview(sessionId, btn){
   }catch(e){ alert('Could not delete this review.'); }
   if(btn){ btn.disabled=false; btn.textContent='Delete'; }
 }
+var reviewKindFilter = 'live';
 async function loadReviewsPanel(){
   var panel = document.getElementById('tab-reviews');
   if(!panel) return;
   panel.textContent = '';
+  var _tg = document.createElement('div'); _tg.style.cssText='display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap';
+  [['live','Live interviews'],['oneway','One-way interviews']].forEach(function(p){
+    var b=document.createElement('button');
+    var on=(reviewKindFilter===p[0]);
+    b.className='btn '+(on?'btn-primary':'btn-outline')+' btn-sm';
+    b.textContent=p[1];
+    b.onclick=function(){ reviewKindFilter=p[0]; loadReviewsPanel(); };
+    _tg.appendChild(b);
+  });
+  panel.appendChild(_tg);
   var wrap = document.createElement('div');
   var data;
   try{ var res = await fetch('/api/reviews'); data = res.ok ? await res.json() : []; }catch(e){ data = []; }
+  data = data.filter(function(x){ return ((x && x.kind === 'oneway') ? 'oneway' : 'live') === reviewKindFilter; });
   var iVals = [], cVals = [];
   data.forEach(function(d){ if(d.ratings.interviewer) iVals.push(d.ratings.interviewer.stars); if(d.ratings.candidate) cVals.push(d.ratings.candidate.stars); });
   function avg(a){ if(!a.length) return '-'; var s=0; a.forEach(function(n){ s+=n; }); return (s/a.length).toFixed(1); }
