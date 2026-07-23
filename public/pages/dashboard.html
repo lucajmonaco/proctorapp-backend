@@ -711,5 +711,26 @@ setInterval(function(){
   }catch(e){}
 })();
 </script>
+<script>
+(function(){
+  var isLive = location.pathname.indexOf('/live') === 0;
+  function el(id){ return document.getElementById(id); }
+  function hide(id){ var e=el(id); if(e) e.style.display='none'; }
+  function show(id){ var e=el(id); if(e) e.style.display=''; }
+  function apply(){
+    if(isLive){
+      hide('tab-team-btn'); hide('tab-reviews-btn');
+      show('tab-sessions-btn'); show('tab-upcoming-btn'); show('new-sess-btn');
+      if(typeof switchTab==='function'){ try{ switchTab('sessions'); }catch(e){} }
+      document.title='Live Interviews - InterviewMyCandidate';
+    } else {
+      hide('tab-sessions-btn'); hide('tab-upcoming-btn'); hide('new-sess-btn');
+      if(typeof switchTab==='function'){ try{ switchTab('team'); }catch(e){} }
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+  setTimeout(apply, 500); setTimeout(apply, 1500);
+})();
+</script>
 </body>
 </html>
