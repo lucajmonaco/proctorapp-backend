@@ -143,7 +143,7 @@ async function loadReviewsPanel(){
   if(!panel) return;
   panel.textContent = '';
   var _tg = document.createElement('div'); _tg.style.cssText='display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap';
-  [['live','Live interviews'],['oneway','One-way interviews']].forEach(function(p){
+  [['live','Live interviews'],['oneway','Async interviews']].forEach(function(p){
     var b=document.createElement('button');
     var on=(reviewKindFilter===p[0]);
     b.className='btn '+(on?'btn-primary':'btn-outline')+' btn-sm';
@@ -183,7 +183,7 @@ async function loadReviewsPanel(){
       var _kc=_kind?'var(--blue)':'var(--text3)';
       var _kb=document.createElement('span');
       _kb.style.cssText='display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:999px;margin-left:8px;border:1.5px solid '+_kc+';color:'+_kc;
-      _kb.textContent=_kind?'One-way':'Live';
+      _kb.textContent=_kind?'Async':'Live';
       left.appendChild(_kb);
       head.appendChild(left); var _rw=document.createElement('div'); _rw.style.cssText='display:flex;align-items:center;gap:10px'; _rw.appendChild(date); var _rd=document.createElement('button'); _rd.className='btn btn-outline btn-sm'; _rd.style.cssText='font-size:11px;color:var(--red);border-color:var(--red)'; _rd.textContent='Delete'; _rd.onclick=function(){ deleteReview(d.session_id, _rd); }; _rw.appendChild(_rd); head.appendChild(_rw); card.appendChild(head);
     [['Interviewer','interviewer'],['Candidate','candidate']].forEach(function(pair){
@@ -776,7 +776,7 @@ setInterval(function(){
       var trow=document.createElement('div'); trow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px';
       trow.appendChild(usageBox('Interviews', String(tot.interviews), null));
       trow.appendChild(usageBox('Live', String(tot.live), null));
-      trow.appendChild(usageBox('One-way', String(tot.oneway), null));
+      trow.appendChild(usageBox('Async', String(tot.oneway), null));
       trow.appendChild(usageBox('Minutes', String(tot.minutes), null));
       trow.appendChild(usageBox('Companies', String(p.companies.length), null));
       trow.appendChild(usageBox('Users', String(tot.users), null));
@@ -795,7 +795,7 @@ setInterval(function(){
         var left=document.createElement('div');
         var nm=document.createElement('div'); nm.style.cssText='font-weight:700;color:var(--navy)'; nm.textContent=c.org;
         var sub=document.createElement('div'); sub.style.cssText='font-size:12px;color:var(--text3)';
-        sub.textContent=c.live+' live  |  '+c.oneway+' one-way  |  '+c.users+' users  |  '+c.all_time+' all time';
+        sub.textContent=c.live+' live  |  '+c.oneway+' async  |  '+c.users+' users  |  '+c.all_time+' all time';
         left.appendChild(nm); left.appendChild(sub);
         var n=document.createElement('div'); n.style.cssText='font-size:20px;font-weight:800;color:var(--navy)'; n.textContent=c.this_month;
         var right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:10px';
@@ -851,7 +851,7 @@ setInterval(function(){
       var tm=u.this_month||{}; var lm=u.last_month||{}; var at=u.all_time||{};
       row.appendChild(usageBox('Interviews', String(tm.interviews||0), (lm.interviews||0)+' last month'));
       row.appendChild(usageBox('Live', String(tm.live||0), null));
-      row.appendChild(usageBox('One-way', String(tm.oneway||0), null));
+      row.appendChild(usageBox('Async', String(tm.oneway||0), null));
       row.appendChild(usageBox('Minutes recorded', String(tm.minutes||0), null));
       row.appendChild(usageBox('Users', String(u.users||0), null));
       row.appendChild(usageBox('Interviews all time', String(at.interviews||0), (u.transcripts||0)+' transcribed'));

@@ -30,7 +30,7 @@
 </div>
 <div class="se-wrap">
   <h1 class="se-h" id="se-title">Sessions</h1>
-  <div class="se-sub" id="se-sub">Completed interviews, live and one-way together.</div>
+  <div class="se-sub" id="se-sub">Completed interviews, live and async together.</div>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button id="se-completed" class="btn btn-primary btn-sm">Completed</button>
     <button id="se-upcoming" class="btn btn-outline btn-sm">Upcoming and open</button>
@@ -48,17 +48,17 @@ if($("burger-btn")) $("burger-btn").onclick=tg;
 if($("drawer-close")) $("drawer-close").onclick=tg;
 if($("drawer-bg")) $("drawer-bg").onclick=tg;
 function when(ts,type,st){ if(!ts) return ""; var d=new Date(ts*1000).toLocaleDateString(); if(scope==="completed") return d; return (type==="oneway")?("expires "+d):("scheduled "+d); }
-function badge(type){ var ow=(type==="oneway"); var c=ow?"var(--blue)":"var(--text3)"; var b=document.createElement("span"); b.className="se-badge"; b.style.borderColor=c; b.style.color=c; b.textContent=ow?"One-way":"Live"; return b; }
+function badge(type){ var ow=(type==="oneway"); var c=ow?"var(--blue)":"var(--text3)"; var b=document.createElement("span"); b.className="se-badge"; b.style.borderColor=c; b.style.color=c; b.textContent=ow?"Async":"Live"; return b; }
 function statusColor(st){ if(/expired/i.test(st)) return "var(--red)"; if(/started|active/i.test(st)) return "var(--amber)"; if(/completed/i.test(st)) return "var(--green)"; return "var(--text3)"; }
 function load(){
   $("se-completed").className="btn btn-sm "+(scope==="completed"?"btn-primary":"btn-outline");
   $("se-upcoming").className="btn btn-sm "+(scope==="upcoming"?"btn-primary":"btn-outline");
-  $("se-sub").textContent=(scope==="completed")?"Completed interviews, live and one-way together.":"Scheduled live sessions and one-way interviews still open.";
+  $("se-sub").textContent=(scope==="completed")?"Completed interviews, live and async together.":"Scheduled live sessions and async interviews still open.";
   var box=$("se-list"); box.textContent="Loading...";
   fetch("/api/interviews?scope="+scope).then(function(r){ if(r.status===401){ location.href="/"; return null; } return r.json(); }).then(function(rows){
     if(!rows) return;
     box.innerHTML="";
-    if(!rows.length){ box.innerHTML=(scope==="completed")?'<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">No completed interviews yet</div><div style=\"font-size:13px;color:var(--text3)\">Once a live or one-way interview finishes it appears here, with its recording and transcript.</div></div>':'<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">Nothing outstanding</div><div style=\"font-size:13px;color:var(--text3)\">Every interview you have scheduled or sent has been completed.</div></div>'; return; }
+    if(!rows.length){ box.innerHTML=(scope==="completed")?'<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">No completed interviews yet</div><div style=\"font-size:13px;color:var(--text3)\">Once a live or async interview finishes it appears here, with its recording and transcript.</div></div>':'<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">Nothing outstanding</div><div style=\"font-size:13px;color:var(--text3)\">Every interview you have scheduled or sent has been completed.</div></div>'; return; }
     rows.forEach(function(it){
       var row=document.createElement("div"); row.className="se-row";
       var left=document.createElement("div");

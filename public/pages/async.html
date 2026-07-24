@@ -45,7 +45,7 @@
     <div id="tpl-list" style="margin-top:16px"></div>
   </div>
   <div class="as-card">
-    <h2 class="as-h">Send a one-way interview</h2>
+    <h2 class="as-h">Send an async interview</h2>
     <div class="as-sub">The candidate gets a private link. They must agree to be recorded and verify their identity with a photo and photo ID before any question is shown. Questions appear one at a time, answers cannot be re-recorded, and the link stops working after the number of days you set.</div>
     <div class="as-row">
       <select id="iv-tpl" class="as-in"></select>
@@ -153,7 +153,7 @@ function loadInvites(){
     if(!rows) return;
     var box=$("iv-list"); box.innerHTML="";
     rows=rows.filter(function(x){ return (x.status||"")!=="completed"; });
-    if(!rows.length){ box.innerHTML='<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">No open one-way interviews</div><div style=\"font-size:13px;color:var(--text3)\">Pick a template above and create a link to send a candidate. Completed interviews live in Sessions.</div></div>'; return; }
+    if(!rows.length){ box.innerHTML='<div style=\"border:1px solid var(--border);border-radius:10px;padding:22px 20px;text-align:center;box-shadow:0 -2px 0 0 var(--blue) inset\"><div style=\"font-weight:700;color:var(--navy);margin-bottom:5px\">No open async interviews</div><div style=\"font-size:13px;color:var(--text3)\">Pick a template above and create a link to send a candidate. Completed interviews live in Sessions.</div></div>'; return; }
     rows.forEach(function(iv){
       var d=document.createElement("div"); d.className="as-item";
       var top=document.createElement("div"); top.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap";
