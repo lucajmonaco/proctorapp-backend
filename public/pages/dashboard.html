@@ -673,6 +673,7 @@ async function init(){
     if(ob && currentMe){
       ob.textContent = currentMe.orgName || '';
       var sp = document.createElement('span');
+      sp.id = 'me-role-badge';
       sp.textContent = currentMe.role === 'admin' ? 'Admin' : 'Recruiter';
       var adm = currentMe.role === 'admin';
       sp.style.background = adm ? 'rgba(124,58,237,.15)' : '#eff6ff';
@@ -762,6 +763,8 @@ setInterval(function(){
       if(!p || !p.companies) return;
       var host=el('usage-wrap'); if(!host) return;
       platformMode=true;
+      var _rb=document.getElementById('me-role-badge'); if(_rb) _rb.textContent='Owner';
+      setTimeout(function(){ var b2=document.getElementById('me-role-badge'); if(b2) b2.textContent='Owner'; }, 900);
       host.innerHTML='';
       var tot={interviews:0,live:0,oneway:0,minutes:0,users:0,all:0};
       p.companies.forEach(function(c){ tot.interviews+=c.this_month||0; tot.live+=c.live||0; tot.oneway+=c.oneway||0; tot.minutes+=c.minutes||0; tot.users+=c.users||0; tot.all+=c.all_time||0; });
