@@ -18,6 +18,7 @@ const io = new Server(server, { cors: { origin: '*' } });
 const PORT = process.env.PORT || 8080;
 
 const db = new Database(path.join(DATA_DIR, 'proctor.db'));
+const integrity = require('./integrity')(db);
 db.exec(`
   CREATE TABLE IF NOT EXISTS orgs (
     id TEXT PRIMARY KEY,
@@ -469,6 +470,7 @@ app.post('/api/sessions/:id/flags', (req, res) => {
 });
 
 // Candidate identity capture (public - candidate is not authenticated). Selfie + ID photo for manual review.
+app.post('/api/sessions/:id/identity', async (req, res, next) => { try { db.prepare('UPDATE sessions SET candidate_ip=?, candidate_ua=? WHERE id=?').run(integrity.ip(req), integrity.ua(req), req.params.id); } catch (e) {} if (await integrity.blockIfVpn(req, res)) return; next(); });
 app.post('/api/sessions/:id/identity', idUpload.fields([{ name: 'selfie', maxCount: 1 }, { name: 'idphoto', maxCount: 1 }]), (req, res) => {
   try {
     const sess = db.prepare('SELECT id FROM sessions WHERE id=?').get(req.params.id);
@@ -1216,6 +1218,8 @@ function finishOneWay(interviewId) {
       db.prepare('INSERT INTO recordings (id,session_id,interviewer_id,org_id,session_title,candidate_name,file_path,file_size,duration_secs,trust_score,flag_count,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
         .run(recId, sessionId, iv.created_by, iv.org_id, iv.role_title || 'One-way interview', iv.candidate_name || 'Candidate', outPath, size, dur, 100, 0, shareToken);
       db.prepare("UPDATE async_interviews SET status='completed', completed_at=?, recording_id=? WHERE id=?").run(owNow(), recId, iv.id);
+try { var _f = integrity.computeAsyncFlags(iv); if (_f.count) db.prepare('UPDATE recordings SET flag_count=?, trust_score=? WHERE id=?').run(_f.count, Math.max(0, 100 - _f.count * 15), recId); } catch (e) {}
+try { integrity.notifyRecruiterAsyncComplete(iv, recId); } catch (e) {}
       try { db.prepare('INSERT INTO audit_log (id, org_id, user_id, user_name, action, detail) VALUES (?,?,?,?,?,?)').run(uuidv4(), iv.org_id, iv.created_by, iv.candidate_name || 'Candidate', 'oneway.completed', 'One-way interview submitted by ' + (iv.candidate_name || 'candidate') + ' for ' + (iv.role_title || 'a role')); } catch (e) {}
       try { db.exec("CREATE TABLE IF NOT EXISTS id_captures (id TEXT PRIMARY KEY, session_id TEXT, selfie_path TEXT, id_path TEXT, consented INTEGER, created_at INTEGER DEFAULT (strftime('%s','now')))"); } catch (e) {}
       try { if (iv.selfie_path || iv.id_path) db.prepare('INSERT INTO id_captures (id, session_id, selfie_path, id_path, consented) VALUES (?,?,?,?,?)').run(uuidv4(), sessionId, iv.selfie_path, iv.id_path, iv.consented_at ? 1 : 0); } catch (e) {}
@@ -1291,6 +1295,7 @@ app.post('/api/oneway/t/:token/answer', upload.single('clip'), (req, res) => {
   res.json({ ok: true, done: (idx + 1) >= qs.length, next: ((idx + 1) < qs.length) ? (idx + 1) : null });
 });
 
+app.post('/api/oneway/t/:token/finish', (req, res, next) => { try { var _iv = owByToken(req.params.token); if (_iv) db.prepare('UPDATE async_interviews SET finish_ip=? WHERE id=?').run(integrity.ip(req), _iv.id); } catch (e) {} next(); });
 app.post('/api/oneway/t/:token/finish', (req, res) => {
   var iv = owByToken(req.params.token);
   if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
@@ -1316,8 +1321,14 @@ try { db.exec('ALTER TABLE async_interviews ADD COLUMN id_path TEXT'); } catch (
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_stars INTEGER'); } catch (e) {}
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN rating_note TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE async_interviews ADD COLUMN revealed_at INTEGER'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN device_ip TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN device_ua TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE async_interviews ADD COLUMN finish_ip TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE sessions ADD COLUMN candidate_ip TEXT'); } catch (e) {}
+try { db.exec('ALTER TABLE sessions ADD COLUMN candidate_ua TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE sessions ADD COLUMN is_async INTEGER DEFAULT 0'); } catch (e) {}
 
+app.post('/api/oneway/t/:token/consent', async (req, res, next) => { try { var _iv = owByToken(req.params.token); if (_iv) db.prepare('UPDATE async_interviews SET device_ip=?, device_ua=? WHERE id=?').run(integrity.ip(req), integrity.ua(req), _iv.id); } catch (e) {} if (await integrity.blockIfVpn(req, res)) return; next(); });
 app.post('/api/oneway/t/:token/consent', (req, res) => {
   var iv = owByToken(req.params.token);
   if (!iv) return res.status(404).json({ error: 'This interview link is not valid' });
