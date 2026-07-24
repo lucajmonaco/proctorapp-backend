@@ -57,12 +57,8 @@
 
 <main>
   <!-- HERO -->
-  <div class="hero-section">
+  <div class="hero-section" style="display:flex;align-items:center;justify-content:center;min-height:300px;padding-bottom:58px">
     <h1 class="hero-title">Interview<span class="grad">My</span>Candidate</h1>
-    <div class="hero-btns" style="margin-top:92px;margin-bottom:-46px">
-      <button class="btn btn-blue btn-lg" id="h-start">Start Free Trial</button>
-      <button class="btn btn-outline btn-lg" id="h-in">Sign In</button>
-    </div>
   </div>
 
   <!-- CANDIDATE JOIN -->
@@ -211,8 +207,8 @@ function closeDrawer(){
 //  NAV BUTTONS 
 document.getElementById('n-in').addEventListener('click', function(){ showModal('ov-signin'); });
 document.getElementById('n-up').addEventListener('click', function(){ showModal('ov-create'); });
-document.getElementById('h-start').addEventListener('click', function(){ showModal('ov-create'); });
-document.getElementById('h-in').addEventListener('click', function(){ showModal('ov-signin'); });
+var _hs=document.getElementById('h-start'); if(_hs) _hs.addEventListener('click', function(){ showModal('ov-create'); });
+var _hi=document.getElementById('h-in'); if(_hi) _hi.addEventListener('click', function(){ showModal('ov-signin'); });
 
 // Close modals on backdrop click
 ['ov-signin','ov-create','ov-join'].forEach(function(id){
