@@ -107,7 +107,7 @@ function loadTemplates(){
       var d=document.createElement("div"); d.className="as-item";
       var head=document.createElement("div"); head.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px";
       var nm=document.createElement("div"); nm.style.cssText="font-weight:700;color:var(--navy)"; nm.textContent=tp.name+"  ("+tp.questions.length+" questions)";
-      var edit=document.createElement("button"); edit.className="btn btn-outline btn-sm"; edit.style.cssText="font-size:11px;margin-right:8px"; edit.textContent="Edit";
+      var edit=document.createElement("button"); edit.className="btn btn-outline btn-sm"; edit.style.cssText="font-size:11px"; edit.textContent="Edit";
       edit.onclick=function(){
         editingId=tp.id;
         $("tpl-name").value=tp.name||"";
@@ -119,12 +119,13 @@ function loadTemplates(){
         $("tpl-msg").textContent="Editing "+(tp.name||"template");
         window.scrollTo({top:0,behavior:"smooth"});
       };
-      head.insertBefore(edit, head.lastChild);
-      var del=document.createElement("button"); del.className="btn btn-outline btn-sm"; del.style.cssText="color:var(--red);border-color:var(--red)"; del.textContent="Delete";
+      acts.appendChild(edit);
+      var del=document.createElement("button"); del.className="btn btn-outline btn-sm"; del.style.cssText="font-size:11px;color:var(--red);border-color:var(--red)"; del.textContent="Delete";
       del.onclick=function(){ if(!confirm("Delete this template?")) return; fetch("/api/templates/"+tp.id,{method:"DELETE"}).then(function(){ say("Template deleted","amber"); loadTemplates(); }); };
-      head.appendChild(nm); head.appendChild(del); d.appendChild(head);
-      var tog=document.createElement("button"); tog.className="btn btn-outline btn-sm"; tog.style.cssText="font-size:11px;margin-right:8px"; tog.textContent="Show questions";
-      head.insertBefore(tog, head.lastChild);
+      head.appendChild(nm); acts.appendChild(del); head.appendChild(acts); d.appendChild(head);
+      var tog=document.createElement("button"); tog.className="btn btn-outline btn-sm"; tog.style.cssText="font-size:11px"; tog.textContent="Show questions";
+      var acts=document.createElement("div"); acts.style.cssText="display:flex;gap:8px;align-items:center;flex-shrink:0";
+      acts.appendChild(tog);
       var ul=document.createElement("ol"); ul.style.cssText="margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--text2);display:none";
       tog.onclick=function(){ var open=ul.style.display!=="none"; ul.style.display=open?"none":""; tog.textContent=open?"Show questions":"Hide questions"; };
       tp.questions.forEach(function(q){ var li=document.createElement("li"); li.style.marginBottom="3px"; li.textContent=q.text+"  ("+q.prep_secs+"s prep, "+q.answer_secs+"s answer)"; ul.appendChild(li); });
