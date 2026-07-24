@@ -97,6 +97,33 @@ var g=document.getElementById("drawer-bg"); if(g) g.onclick=tg;})();
     html+='<div style="'+sec+';background:var(--bg)"><div style="'+inner+'"><div style="'+kick+'">Step three</div><h2 style="'+h+'">Everything in one place.</h2><p style="'+p+'">Keep every candidate organized by role and open to the entire team.</p><p style="'+quiet+';font-size:19px;font-weight:600;color:var(--navy);line-height:1.7">No forwarding files.<br>No searching through inboxes.<br>No asking who has the recording.</p></div></div>';
     html+='<div style="'+sec+';padding-top:120px;padding-bottom:120px"><div style="max-width:760px;margin:0 auto"><div style="'+kick+'">Step four</div><h2 style="font-size:58px;line-height:1.05;font-weight:800;letter-spacing:-1.8px;color:var(--navy);margin:0 0 24px">The candidate submission, reimagined.</h2><p style="font-size:22px;line-height:1.55;color:var(--text2);margin:0 auto 22px;max-width:600px">Deliver more than a r&eacute;sum&eacute;. Give your client a complete, professional view of the candidate.</p><p style="font-size:17px;line-height:1.8;color:var(--text3);max-width:620px;margin:0 auto">Your agency name. Your recommendation. Your candidate. Their interview, r&eacute;sum&eacute;, verification, transcript and AI-generated insights, all delivered in one professional submission.</p><div style="margin-top:40px"><a href="/?signin=1" class="btn btn-primary btn-lg">Get Started</a></div></div></div>';
     wrap.innerHTML=html;
+    var secs=[].slice.call(wrap.children);
+    var reduce=false;
+    try{ reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+    if(reduce || !("IntersectionObserver" in window)) return;
+    var ease="opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1)";
+    secs.forEach(function(el,i){
+      if(i===0) return;
+      el.style.opacity="0";
+      el.style.transform="translateY(30px)";
+      el.style.transition=ease;
+      el.style.willChange="opacity, transform";
+    });
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting) return;
+        var el=en.target;
+        var kids=[].slice.call(el.querySelectorAll("h2, p, div > span, a.btn"));
+        el.style.opacity="1"; el.style.transform="none";
+        kids.slice(0,8).forEach(function(k,j){
+          k.style.opacity="0"; k.style.transform="translateY(14px)";
+          k.style.transition=ease;
+          setTimeout(function(){ k.style.opacity="1"; k.style.transform="none"; }, 90+j*70);
+        });
+        io.unobserve(el);
+      });
+    },{ threshold:0.18, rootMargin:"0px 0px -6% 0px" });
+    secs.forEach(function(el,i){ if(i>0) io.observe(el); });
   }
 })();
 </script>
