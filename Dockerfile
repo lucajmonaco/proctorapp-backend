@@ -10,7 +10,7 @@ COPY package.json ./
 RUN npm install
 COPY server.js ./
 COPY integrity.js ./
-# CACHE_BUST=1784911238957
+# CACHE_BUST=1784915067259
 COPY public ./public
 
 FROM base
