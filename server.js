@@ -1097,6 +1097,7 @@ app.post('/api/oneway/t/:token/finish', (req, res) => {
 app.get('/oneway/:token', (req, res) => sendPage(res, 'oneway.html'));
 app.get('/contact', (req, res) => sendPage(res, 'contact.html'));
 app.get('/guide', (req, res) => sendPage(res, 'guide.html'));
+app.get('/recording/:id', requirePage, (req, res) => sendPage(res, 'recording.html'));
 app.get('/async', requirePage, (req, res) => sendPage(res, 'async.html'));
 app.get('/live', requirePage, (req, res) => sendPage(res, 'dashboard.html'));
 app.get('/sessions', requirePage, (req, res) => sendPage(res, 'sessions.html'));
