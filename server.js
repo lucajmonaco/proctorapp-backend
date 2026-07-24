@@ -864,6 +864,20 @@ app.post('/api/templates', requireAuth, (req, res) => {
   res.json({ ok: true, id: id });
 });
 
+app.put('/api/templates/:id', requireAuth, (req, res) => {
+  var row = db.prepare('SELECT id, org_id FROM question_templates WHERE id=?').get(req.params.id);
+  if (!row || row.org_id !== req.session.orgId) return res.status(404).json({ error: 'Template not found' });
+  var b = req.body || {};
+  var name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Give the template a name' });
+  var qs = Array.isArray(b.questions) ? b.questions : [];
+  var clean = qs.map(function (q) { return { text: String((q && q.text) || '').slice(0, 600).trim(), prep_secs: Math.max(0, Math.min(300, parseInt(q && q.prep_secs, 10) || 30)), answer_secs: Math.max(15, Math.min(900, parseInt(q && q.answer_secs, 10) || 120)) }; }).filter(function (q) { return q.text; });
+  if (!clean.length) return res.status(400).json({ error: 'Add at least one question' });
+  try { db.prepare('UPDATE question_templates SET name=?, questions=? WHERE id=?').run(name, JSON.stringify(clean), req.params.id); } catch (e) { return res.status(500).json({ error: 'Could not save changes' }); }
+  logAudit(req, 'template.update', 'Edited question template: ' + name);
+  res.json({ ok: true, id: req.params.id });
+});
+
 app.delete('/api/templates/:id', requireAuth, (req, res) => {
   var row = db.prepare('SELECT id, name, org_id FROM question_templates WHERE id=?').get(req.params.id);
   if (!row || row.org_id !== req.session.orgId) return res.status(404).json({ error: 'Template not found' });
