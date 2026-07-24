@@ -101,7 +101,7 @@ function imcBuildDrawer(){
   host.appendChild(mk('/recordings', 'Candidates', '&#128100;'));
   host.appendChild(mk('/company', 'Company', '&#127970;'));
   host.appendChild(mk('/guide', 'Guide', '&#128218;'));
-  host.appendChild(mk('/contact', 'Contact Us', '&#9993;'));
+  host.appendChild(mk('/contact', 'Help & Support', '&#9993;'));
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', imcBuildDrawer); else imcBuildDrawer();
 
