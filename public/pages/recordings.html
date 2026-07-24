@@ -442,19 +442,26 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   body.appendChild(actions);
   (function(){
     var keep={"Watch Full Screen":1};
-    var kids=[].slice.call(actions.children);
-    var extras=kids.filter(function(k){ return !keep[(k.textContent||"").trim()]; });
-    if(extras.length<2) return;
     var wrap=document.createElement("div"); wrap.style.cssText="position:relative;display:inline-block";
     var more=document.createElement("button"); more.className="btn btn-outline btn-sm"; more.textContent="More";
     var panel=document.createElement("div");
-    panel.style.cssText="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 26px rgba(15,34,65,.16);padding:6px;z-index:60;min-width:210px";
-    extras.forEach(function(b){ b.style.display="block"; b.style.width="100%"; b.style.textAlign="left"; b.style.margin="2px 0"; b.style.border="none"; b.style.background="transparent"; panel.appendChild(b); });
-    more.onclick=function(e){ e.stopPropagation(); panel.style.display = (panel.style.display==="none") ? "block" : "none"; };
-    panel.onclick=function(e){ e.stopPropagation(); };
+    panel.style.cssText="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 26px rgba(15,34,65,.16);padding:6px;z-index:60;min-width:220px";
+    function sweep(){
+      [].slice.call(actions.children).forEach(function(b){
+        if(b===wrap) return;
+        var label=(b.textContent||"").trim();
+        if(keep[label]) return;
+        b.style.display="block"; b.style.width="100%"; b.style.textAlign="left";
+        b.style.margin="2px 0"; b.style.border="none"; b.style.background="transparent";
+        panel.appendChild(b);
+      });
+    }
+    more.onclick=function(ev){ ev.stopPropagation(); sweep(); panel.style.display=(panel.style.display==="none")?"block":"none"; };
+    panel.onclick=function(ev){ ev.stopPropagation(); };
     document.addEventListener("click", function(){ panel.style.display="none"; });
     wrap.appendChild(more); wrap.appendChild(panel);
     actions.appendChild(wrap);
+    setTimeout(sweep, 0); setTimeout(sweep, 600);
   })();
 
   var pw=document.createElement('div');pw.className='prog-wrap';pw.id='pw-'+rec.id;
