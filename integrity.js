@@ -1,5 +1,5 @@
 // Integrity helpers: client IP/UA, VPN/proxy blocking (proxycheck.io),
-// transactional email (Resend), and anti-cheat flags for one-way interviews.
+// transactional email (Resend), and anti-cheat flags for async interviews.
 // All external calls are gated behind env keys and fail OPEN (never block a
 // candidate or crash a request if a provider key is missing or the API errors).
 module.exports = function (db) {
@@ -82,7 +82,7 @@ module.exports = function (db) {
         + '<div style="background:#0f2241;border-radius:14px 14px 0 0;padding:22px 26px;text-align:center"><span style="color:#fff;font-weight:800;font-size:16px;letter-spacing:-.3px">Interview<span style="color:#60a5fa">My</span>Candidate</span></div>'
         + '<div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 14px 14px;padding:28px 26px;background:#fff">'
         + '<h2 style="color:#0f2241;margin:0 0 12px;font-size:20px">Good news, ' + firstName + '</h2>'
-        + '<p style="font-size:15px;line-height:1.65;color:#334155;margin:0 0 14px"><strong>' + cand + '</strong> just completed their one-way interview for <strong>' + role + '</strong>.</p>'
+        + '<p style="font-size:15px;line-height:1.65;color:#334155;margin:0 0 14px"><strong>' + cand + '</strong> just completed their async interview for <strong>' + role + '</strong>.</p>'
         + '<p style="font-size:15px;line-height:1.65;color:#334155;margin:0 0 22px">It is ready and waiting for you in your library - grab a coffee and take a look whenever you are ready.</p>'
         + '<p style="margin:0"><a href="' + link + '" style="background:#2563eb;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 24px;border-radius:10px;display:inline-block">Watch the interview</a></p>'
         + '</div>'
