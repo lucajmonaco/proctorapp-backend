@@ -939,6 +939,71 @@ app.get('/api/interviews', requireAuth, (req, res) => {
   res.json(rows);
 });
 
+try { db.exec("CREATE TABLE IF NOT EXISTS invoice_runs (period TEXT PRIMARY KEY, sent_at INTEGER, detail TEXT)"); } catch (e) {}
+
+function periodBounds(offset) {
+  var d = new Date(); d.setUTCDate(1); d.setUTCHours(0,0,0,0);
+  d.setUTCMonth(d.getUTCMonth() + (offset || 0));
+  var start = Math.floor(d.getTime() / 1000);
+  var e = new Date(d); e.setUTCMonth(e.getUTCMonth() + 1);
+  return { start: start, end: Math.floor(e.getTime() / 1000), label: d.toISOString().slice(0, 7) };
+}
+
+function buildInvoiceReport(offset) {
+  var p = periodBounds(offset);
+  var lines = [];
+  var totals = { interviews: 0, live: 0, oneway: 0, minutes: 0 };
+  try {
+    db.prepare('SELECT id, name FROM orgs').all().forEach(function (o) {
+      var recs = [];
+      try { recs = db.prepare('SELECT id, created_at, duration_secs FROM recordings WHERE org_id=?').all(o.id); } catch (e) {}
+      var ow = {};
+      try { db.prepare('SELECT recording_id FROM async_interviews WHERE org_id=? AND recording_id IS NOT NULL').all(o.id).forEach(function (a) { ow[a.recording_id] = 1; }); } catch (e) {}
+      var c = { interviews: 0, live: 0, oneway: 0, minutes: 0 };
+      recs.forEach(function (r) {
+        var ts = r.created_at || 0;
+        if (ts < p.start || ts >= p.end) return;
+        c.interviews++; if (ow[r.id]) c.oneway++; else c.live++;
+        c.minutes += Math.round((r.duration_secs || 0) / 60);
+      });
+      if (!c.interviews) return;
+      totals.interviews += c.interviews; totals.live += c.live; totals.oneway += c.oneway; totals.minutes += c.minutes;
+      lines.push((o.name || 'Unnamed') + ': ' + c.interviews + ' interviews (' + c.live + ' live, ' + c.oneway + ' one-way), ' + c.minutes + ' minutes recorded');
+    });
+  } catch (e) {}
+  var body = 'Usage summary for ' + p.label + '\n\n' + (lines.length ? lines.join('\n') : 'No interviews recorded in this period.') +
+    '\n\nTotal: ' + totals.interviews + ' interviews, ' + totals.minutes + ' minutes recorded.' +
+    '\n\nForward the relevant section to each company when invoicing.';
+  return { period: p.label, subject: 'InterviewMyCandidate usage - ' + p.label, body: body, totals: totals };
+}
+
+async function sendInvoiceEmail(offset, force) {
+  var rep = buildInvoiceReport(offset);
+  if (!force) {
+    try { if (db.prepare('SELECT period FROM invoice_runs WHERE period=?').get(rep.period)) return { skipped: 'already sent' }; } catch (e) {}
+  }
+  var to = process.env.INVOICE_TO || 'lucasm@interviewmycandidate.com';
+  if (!process.env.RESEND_API_KEY) return { error: 'Email is not configured' };
+  try {
+    var r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: process.env.INVOICE_FROM || 'billing@interviewmycandidate.com', to: [to], subject: rep.subject, text: rep.body })
+    });
+    if (!r.ok) { var tx=''; try { tx = (await r.text()).slice(0,160); } catch (e) {} return { error: 'Send failed ' + r.status + ' ' + tx }; }
+    try { db.prepare('INSERT OR REPLACE INTO invoice_runs (period, sent_at, detail) VALUES (?,?,?)').run(rep.period, Math.floor(Date.now()/1000), rep.body.slice(0,2000)); } catch (e) {}
+    return { ok: true, period: rep.period };
+  } catch (e) { return { error: String((e && e.message) || e).slice(0,140) }; }
+}
+
+setInterval(function () {
+  try {
+    var now = new Date();
+    if (now.getUTCDate() !== 1) return;
+    sendInvoiceEmail(-1, false);
+  } catch (e) {}
+}, 1000 * 60 * 60 * 6);
+
 function isPlatformOwner(req) {
   try {
     if (!process.env.PLATFORM_OWNER_EMAIL) return false;
@@ -948,6 +1013,18 @@ function isPlatformOwner(req) {
 }
 
 // Numbers only. This view never exposes recordings, transcripts or identity photos.
+app.get('/api/platform/invoice', requireAuth, (req, res) => {
+  if (!isPlatformOwner(req)) return res.status(403).json({ error: 'Not allowed' });
+  res.json(buildInvoiceReport(req.query.current ? 0 : -1));
+});
+
+app.post('/api/platform/invoice/send', requireAuth, async (req, res) => {
+  if (!isPlatformOwner(req)) return res.status(403).json({ error: 'Not allowed' });
+  var out2 = await sendInvoiceEmail(req.body && req.body.current ? 0 : -1, true);
+  logAudit(req, 'platform.invoice_sent', 'Sent the usage summary email');
+  res.json(out2);
+});
+
 app.get('/api/platform/usage', requireAuth, (req, res) => {
   if (!isPlatformOwner(req)) return res.status(403).json({ error: 'Not allowed' });
   var start = new Date(); start.setUTCDate(1); start.setUTCHours(0,0,0,0);
