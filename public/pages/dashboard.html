@@ -749,9 +749,9 @@ setInterval(function(){
   }
   function usageBox(label, value, sub){
     var d=document.createElement('div');
-    d.style.cssText='flex:1;min-width:150px;border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 -2px 0 0 var(--blue) inset';
-    var v=document.createElement('div'); v.style.cssText='font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.5px'; v.textContent=value;
-    var l=document.createElement('div'); l.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-top:3px'; l.textContent=label;
+    d.style.cssText='flex:0 1 auto;min-width:104px;border:1px solid var(--border);border-radius:9px;padding:9px 12px;box-shadow:0 -2px 0 0 var(--blue) inset';
+    var v=document.createElement('div'); v.style.cssText='font-size:18px;font-weight:800;color:var(--navy);letter-spacing:-.4px'; v.textContent=value;
+    var l=document.createElement('div'); l.style.cssText='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);margin-top:2px'; l.textContent=label;
     d.appendChild(v); d.appendChild(l);
     if(sub){ var sEl=document.createElement('div'); sEl.style.cssText='font-size:12px;color:var(--text3);margin-top:4px'; sEl.textContent=sub; d.appendChild(sEl); }
     return d;
@@ -782,6 +782,17 @@ setInterval(function(){
       var note=document.createElement('div');
       note.style.cssText='font-size:11px;color:var(--text3);margin-top:6px';
       note.textContent='Interview counts only. Recordings, transcripts and identity photos are not accessible from here.';
+      var send=document.createElement('button');
+      send.className='btn btn-outline btn-sm'; send.style.cssText='margin-top:10px'; send.textContent='Email me last month usage';
+      send.onclick=function(){
+        send.disabled=true; send.textContent='Sending...';
+        fetch('/api/platform/invoice/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}).then(function(r){return r.json();}).then(function(j){
+          send.disabled=false;
+          send.textContent = (j&&j.ok) ? 'Sent to your inbox' : ((j&&j.error) ? j.error : 'Could not send');
+          setTimeout(function(){ send.textContent='Email me last month usage'; }, 3200);
+        }).catch(function(){ send.disabled=false; send.textContent='Could not send'; });
+      };
+      wrap.appendChild(send);
       wrap.appendChild(note);
       host.appendChild(wrap); host.style.display='';
     }).catch(function(){});
@@ -796,7 +807,7 @@ setInterval(function(){
       var d=new Date((u.period_start||0)*1000);
       h.textContent='Usage this month - '+d.toLocaleDateString(undefined,{month:'long',year:'numeric'});
       box.appendChild(h);
-      var row=document.createElement('div'); row.style.cssText='display:flex;gap:12px;flex-wrap:wrap';
+      var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
       var tm=u.this_month||{}; var lm=u.last_month||{}; var at=u.all_time||{};
       row.appendChild(usageBox('Interviews', String(tm.interviews||0), (lm.interviews||0)+' last month'));
       row.appendChild(usageBox('Live', String(tm.live||0), null));
