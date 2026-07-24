@@ -98,7 +98,7 @@ function imcBuildDrawer(){
   function paint(){ sub.style.display = open ? '' : 'none'; caret.textContent = open ? '-' : '+'; }
   group.onclick = function(e){ e.preventDefault(); open = !open; paint(); };
   paint();
-  host.appendChild(mk('/recordings', 'Recordings Library', '&#127902;'));
+  host.appendChild(mk('/recordings', 'Candidates', '&#128100;'));
   host.appendChild(mk('/company', 'Company', '&#127970;'));
   host.appendChild(mk('/guide', 'Guide', '&#128218;'));
   host.appendChild(mk('/contact', 'Contact Us', '&#9993;'));
