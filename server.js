@@ -1087,7 +1087,7 @@ app.get('/api/platform/usage', requireAuth, (req, res) => {
       });
       var users = 0;
       try { users = db.prepare('SELECT COUNT(*) AS n FROM users WHERE org_id=?').get(o.id).n || 0; } catch (e) {}
-      rows.push({ org: o.name || 'Unnamed', code: o.code || '', this_month: month, live: live, oneway: oneway, minutes: mins, all_time: recs.length, users: users });
+      rows.push({ id: o.id, org: o.name || 'Unnamed', code: o.code || '', this_month: month, live: live, oneway: oneway, minutes: mins, all_time: recs.length, users: users });
     });
   } catch (e) {}
   rows.sort(function (a, b) { return b.this_month - a.this_month; });
