@@ -514,9 +514,9 @@ async function loadCompanyPanel(){
     auditH.textContent='Activity Log';
     var auditSub=document.createElement('div');
     auditSub.style.cssText='font-size:12px;color:var(--text4);margin-bottom:12px';
-    auditSub.textContent='Recent actions across your organization.';
+    auditSub.textContent='Recent actions across your organization. Scroll for older entries.';
     var auditList=document.createElement('div');
-    auditList.style.cssText='border:1px solid var(--border);border-radius:8px;overflow:hidden';
+    auditList.style.cssText='border:1px solid var(--border);border-radius:8px;max-height:430px;overflow-y:auto';
     var auditLoading=document.createElement('div');
     auditLoading.style.cssText='padding:16px;text-align:center;color:var(--text4);font-size:13px';
     auditLoading.textContent='Loading activity...';
@@ -741,7 +741,7 @@ setInterval(function(){
       hide('new-sess-btn');
       show('tab-team-btn'); show('tab-reviews-btn');
       if(typeof switchTab==='function'){ try{ switchTab('team'); }catch(e){} }
-      loadUsage();
+      loadUsage(); loadPlatform();
     }
     var h=document.querySelector('.welcome-title');
     if(h) h.textContent=TITLES[view];
@@ -755,6 +755,36 @@ setInterval(function(){
     d.appendChild(v); d.appendChild(l);
     if(sub){ var sEl=document.createElement('div'); sEl.style.cssText='font-size:12px;color:var(--text3);margin-top:4px'; sEl.textContent=sub; d.appendChild(sEl); }
     return d;
+  }
+  function loadPlatform(){
+    fetch('/api/platform/usage').then(function(r){ return r.ok ? r.json() : null; }).then(function(p){
+      if(!p || !p.companies) return;
+      var host=el('usage-wrap'); if(!host) return;
+      var wrap=document.createElement('div'); wrap.style.cssText='margin-top:20px';
+      var h=document.createElement('div');
+      h.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px';
+      h.textContent='All companies this month';
+      wrap.appendChild(h);
+      var box=document.createElement('div');
+      box.style.cssText='border:1px solid var(--border);border-radius:10px;max-height:340px;overflow-y:auto;box-shadow:0 -2px 0 0 var(--blue) inset';
+      p.companies.forEach(function(c){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;justify-content:space-between;gap:12px;padding:11px 15px;border-bottom:1px solid var(--border);font-size:13px';
+        var left=document.createElement('div');
+        var nm=document.createElement('div'); nm.style.cssText='font-weight:700;color:var(--navy)'; nm.textContent=c.org;
+        var sub=document.createElement('div'); sub.style.cssText='font-size:12px;color:var(--text3)';
+        sub.textContent=c.live+' live  |  '+c.oneway+' one-way  |  '+c.users+' users  |  '+c.all_time+' all time';
+        left.appendChild(nm); left.appendChild(sub);
+        var n=document.createElement('div'); n.style.cssText='font-size:20px;font-weight:800;color:var(--navy)'; n.textContent=c.this_month;
+        row.appendChild(left); row.appendChild(n); box.appendChild(row);
+      });
+      wrap.appendChild(box);
+      var note=document.createElement('div');
+      note.style.cssText='font-size:11px;color:var(--text3);margin-top:6px';
+      note.textContent='Interview counts only. Recordings, transcripts and identity photos are not accessible from here.';
+      wrap.appendChild(note);
+      host.appendChild(wrap); host.style.display='';
+    }).catch(function(){});
   }
   function loadUsage(){
     var box=el('usage-wrap'); if(!box) return;
