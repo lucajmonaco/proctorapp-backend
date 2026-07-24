@@ -766,7 +766,7 @@ setInterval(function(){
       h.textContent='All companies this month';
       wrap.appendChild(h);
       var box=document.createElement('div');
-      box.style.cssText='border:1px solid var(--border);border-radius:10px;max-height:340px;overflow-y:auto;box-shadow:0 -2px 0 0 var(--blue) inset';
+      box.style.cssText='border:1px solid var(--border);border-radius:10px;max-height:300px;overflow-y:auto;box-shadow:0 -2px 0 0 var(--blue) inset';
       p.companies.forEach(function(c){
         var row=document.createElement('div');
         row.style.cssText='display:flex;justify-content:space-between;gap:12px;padding:11px 15px;border-bottom:1px solid var(--border);font-size:13px';
@@ -776,7 +776,25 @@ setInterval(function(){
         sub.textContent=c.live+' live  |  '+c.oneway+' one-way  |  '+c.users+' users  |  '+c.all_time+' all time';
         left.appendChild(nm); left.appendChild(sub);
         var n=document.createElement('div'); n.style.cssText='font-size:20px;font-weight:800;color:var(--navy)'; n.textContent=c.this_month;
-        row.appendChild(left); row.appendChild(n); box.appendChild(row);
+        var right=document.createElement('div'); right.style.cssText='display:flex;align-items:center;gap:10px';
+        right.appendChild(n);
+        if(c.id){
+          var del=document.createElement('button');
+          del.className='btn btn-outline btn-sm';
+          del.style.cssText='font-size:11px;color:var(--red);border-color:var(--red)';
+          del.textContent='Delete';
+          del.onclick=function(){
+            var typed=window.prompt('This permanently deletes '+c.org+', including every recording, transcript and identity photo. This cannot be undone.\n\nType the company name exactly to confirm:');
+            if(typed===null) return;
+            del.disabled=true; del.textContent='Deleting...';
+            fetch('/api/platform/company/'+c.id,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:typed})}).then(function(r){return r.json();}).then(function(j){
+              if(j && j.ok){ row.remove(); }
+              else { del.disabled=false; del.textContent='Delete'; alert((j&&j.error)||'Could not delete that company'); }
+            }).catch(function(){ del.disabled=false; del.textContent='Delete'; });
+          };
+          right.appendChild(del);
+        }
+        row.appendChild(left); row.appendChild(right); box.appendChild(row);
       });
       wrap.appendChild(box);
       var note=document.createElement('div');
