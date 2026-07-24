@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candidate - InterviewMyCandidate</title>
+<link rel="stylesheet" href="/css/main.css">
+<style>
+.rv-wrap{max-width:860px;margin:0 auto;padding:22px 20px 70px}
+.rv-back{display:inline-block;font-size:13px;color:var(--text3);text-decoration:none;margin-bottom:18px}
+.rv-back:hover{color:var(--blue)}
+.rv-name{font-size:28px;font-weight:800;color:var(--navy);letter-spacing:-.7px;margin:0 0 4px}
+.rv-meta{font-size:13px;color:var(--text3);margin-bottom:20px}
+.rv-video{width:100%;background:#000;border-radius:14px;aspect-ratio:16/9}
+.rv-sec{border-top:1px solid var(--border);padding:18px 0}
+.rv-sum{cursor:pointer;font-weight:700;font-size:14px;color:var(--navy);list-style:none;display:flex;justify-content:space-between;align-items:center}
+.rv-cue{font-size:12px;font-weight:600;color:var(--blue)}
+.rv-body{padding-top:12px;font-size:14px;line-height:1.8;color:var(--text2)}
+.rv-line{margin-bottom:8px}
+.rv-tag{font-weight:700;cursor:pointer}
+.rv-pill{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 11px;border-radius:999px;border:1.5px solid;margin-left:8px}
+</style></head><body style="background:var(--bg)">
+<nav class="nav"><a href="/" class="nav-logo"><span class="logo-interview">Interview</span><span class="logo-my">My</span><span class="logo-candidate">Candidate</span></a>
+<div class="nav-right"><div class="topbar-sep"></div><button class="burger-btn" id="burger-btn"><span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span></button></div></nav>
+<div class="nav-drawer" id="nav-drawer"><div class="nav-drawer-bg" id="drawer-bg"></div><div class="nav-drawer-panel"><div class="nav-drawer-header"><span class="nav-drawer-title">Navigation</span><button class="nav-drawer-close" id="drawer-close">X</button></div><nav class="nav-drawer-links" id="drawer-links"></nav></div></div>
+<div class="rv-wrap">
+  <a class="rv-back" href="/recordings">Back to library</a>
+  <h1 class="rv-name" id="rv-name">Loading...</h1>
+  <div class="rv-meta" id="rv-meta"></div>
+  <video id="rv-video" class="rv-video" controls preload="metadata"></video>
+  <details class="rv-sec" id="rv-sum-sec"><summary class="rv-sum">Summary<span class="rv-cue">Show</span></summary><div class="rv-body" id="rv-sum-body">Loading...</div></details>
+  <details class="rv-sec" id="rv-tr-sec"><summary class="rv-sum">Transcript<span class="rv-cue">Show</span></summary><div class="rv-body" id="rv-tr-body">Loading...</div></details>
+  <div class="rv-sec" id="rv-extra"></div>
+</div>
+<script src="/js/utils.js"></script>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id);};
+var d=$("nav-drawer"); function tg(){d.classList.toggle("open");}
+if($("burger-btn")) $("burger-btn").onclick=tg;
+if($("drawer-close")) $("drawer-close").onclick=tg;
+if($("drawer-bg")) $("drawer-bg").onclick=tg;
+var id=location.pathname.split("/").pop();
+function fmt(x){ var s=Math.max(0,Math.floor(x||0)); return Math.floor(s/60)+":"+((s%60)<10?"0":"")+(s%60); }
+["rv-sum-sec","rv-tr-sec"].forEach(function(k){ var el=$(k); if(el) el.addEventListener("toggle",function(){ var c=el.querySelector(".rv-cue"); if(c) c.textContent=el.open?"Hide":"Show"; }); });
+fetch("/api/recordings").then(function(r){ if(r.status===401){ location.href="/"; return null; } return r.json(); }).then(function(rows){
+  if(!rows) return;
+  var rec=(rows||[]).filter(function(x){ return x.id===id; })[0];
+  if(!rec){ $("rv-name").textContent="Recording not found"; return; }
+  $("rv-name").textContent=rec.candidate_name||"Candidate";
+  var bits=[rec.session_title||""];
+  if(rec.created_at) bits.push(new Date(rec.created_at*1000).toLocaleDateString());
+  if(rec.duration_secs) bits.push(Math.round(rec.duration_secs/60)+" min");
+  $("rv-meta").textContent=bits.filter(Boolean).join("  |  ");
+  if(rec.submitted_at){ var p=document.createElement("span"); p.className="rv-pill"; p.style.color="var(--green)"; p.style.borderColor="var(--green)"; p.textContent="Submitted"; $("rv-name").appendChild(p); }
+  $("rv-video").src="/api/recordings/"+rec.id+"/stream";
+  var row=document.createElement("div"); row.style.cssText="display:flex;gap:10px;flex-wrap:wrap";
+  var lib=document.createElement("a"); lib.className="btn btn-outline btn-sm"; lib.href="/recordings"; lib.textContent="Manage in library"; row.appendChild(lib);
+  if(rec.share_token){ var pv=document.createElement("a"); pv.className="btn btn-outline btn-sm"; pv.target="_blank"; pv.href="/share/"+rec.share_token; pv.textContent="Client view"; row.appendChild(pv); }
+  $("rv-extra").appendChild(row);
+  fetch("/api/recordings/"+rec.id+"/summary").then(function(r){return r.json();}).then(function(s){
+    var b=$("rv-sum-body"); b.innerHTML="";
+    if(!s || s.status!=="ready"){ b.textContent=(s&&s.status==="processing")?"Still analysing this interview.":"No summary yet."; return; }
+    var dd=s.data||{};
+    if(dd.recommendation){ var r2=document.createElement("div"); r2.style.cssText="font-weight:800;color:var(--navy);margin-bottom:6px"; r2.textContent=dd.recommendation; b.appendChild(r2); }
+    if(dd.summary){ var p2=document.createElement("div"); p2.textContent=dd.summary; b.appendChild(p2); }
+    function list(t2,a){ if(!a||!a.length) return; var h=document.createElement("div"); h.style.cssText="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-top:12px"; h.textContent=t2; b.appendChild(h); var ul=document.createElement("ul"); ul.style.cssText="margin:4px 0 0;padding-left:18px"; a.forEach(function(x){ var li=document.createElement("li"); li.textContent=String(x); ul.appendChild(li); }); b.appendChild(ul); }
+    list("Strengths",dd.strengths); list("Concerns",dd.concerns); list("Skills",dd.skills);
+  }).catch(function(){ $("rv-sum-body").textContent="Could not load the summary."; });
+  fetch("/api/recordings/"+rec.id+"/transcript").then(function(r){return r.json();}).then(function(tr){
+    var b=$("rv-tr-body"); b.innerHTML="";
+    if(!tr || tr.status!=="ready"){ b.textContent=(tr&&tr.status==="processing")?"Still transcribing.":"No transcript yet."; return; }
+    var segs=tr.segments||[];
+    if(!segs.length){ b.textContent=tr.text||""; return; }
+    segs.forEach(function(sg){
+      var line=document.createElement("div"); line.className="rv-line";
+      var first=(sg.speaker===0); var who=(tr.swap? !first : first)?"Interviewer":"Candidate";
+      var tag=document.createElement("span"); tag.className="rv-tag"; tag.style.color=(who==="Candidate")?"var(--blue)":"var(--navy)";
+      tag.textContent=who+" "+fmt(sg.start)+"  ";
+      tag.onclick=function(){ var v=$("rv-video"); try{ v.currentTime=sg.start||0; v.play(); }catch(e){} };
+      var tx=document.createElement("span"); tx.textContent=sg.text||"";
+      line.appendChild(tag); line.appendChild(tx); b.appendChild(line);
+    });
+  }).catch(function(){ $("rv-tr-body").textContent="Could not load the transcript."; });
+}).catch(function(){ $("rv-name").textContent="Could not load this recording."; });
+})();
+</script></body></html>
