@@ -1013,6 +1013,50 @@ function isPlatformOwner(req) {
 }
 
 // Numbers only. This view never exposes recordings, transcripts or identity photos.
+app.delete('/api/platform/company/:id', requireAuth, (req, res) => {
+  if (!isPlatformOwner(req)) return res.status(403).json({ error: 'Not allowed' });
+  var org = null;
+  try { org = db.prepare('SELECT id, name FROM orgs WHERE id=?').get(req.params.id); } catch (e) {}
+  if (!org) return res.status(404).json({ error: 'Company not found' });
+  if (org.id === req.session.orgId) return res.status(400).json({ error: 'You cannot delete the company you are signed in to' });
+  var typed = String((req.body && req.body.confirm) || '').trim();
+  if (typed !== (org.name || '')) return res.status(400).json({ error: 'Type the company name exactly to confirm' });
+  var removed = { recordings: 0, sessions: 0, users: 0, files: 0 };
+  try {
+    var recs = db.prepare('SELECT id, session_id, file_path FROM recordings WHERE org_id=?').all(org.id);
+    recs.forEach(function (r) {
+      try { if (r.file_path && fs.existsSync(r.file_path)) { fs.unlinkSync(r.file_path); removed.files++; } } catch (e) {}
+      try { db.prepare('DELETE FROM transcripts WHERE session_id=?').run(r.session_id); } catch (e) {}
+      try { db.prepare('DELETE FROM summaries WHERE session_id=?').run(r.session_id); } catch (e) {}
+      try { db.prepare('DELETE FROM interview_ratings WHERE session_id=?').run(r.session_id); } catch (e) {}
+      try { db.prepare('DELETE FROM submissions WHERE session_id=?').run(r.session_id); } catch (e) {}
+      try { db.prepare('DELETE FROM resumes WHERE session_id=?').run(r.session_id); } catch (e) {}
+      try { db.prepare('DELETE FROM id_captures WHERE session_id=?').run(r.session_id); } catch (e) {}
+      try { db.prepare('DELETE FROM flags WHERE session_id=?').run(r.session_id); } catch (e) {}
+    });
+    removed.recordings = recs.length;
+    try { db.prepare('DELETE FROM recordings WHERE org_id=?').run(org.id); } catch (e) {}
+  } catch (e) {}
+  try {
+    var ivs = db.prepare('SELECT id, selfie_path, id_path FROM async_interviews WHERE org_id=?').all(org.id);
+    ivs.forEach(function (iv) {
+      [iv.selfie_path, iv.id_path].forEach(function (p) { try { if (p && fs.existsSync(p)) { fs.unlinkSync(p); removed.files++; } } catch (e) {} });
+      try { db.prepare('SELECT file_path FROM async_answers WHERE interview_id=?').all(iv.id).forEach(function (a) { try { if (a.file_path && fs.existsSync(a.file_path)) { fs.unlinkSync(a.file_path); removed.files++; } } catch (e) {} }); } catch (e) {}
+      try { db.prepare('DELETE FROM async_answers WHERE interview_id=?').run(iv.id); } catch (e) {}
+    });
+    try { db.prepare('DELETE FROM async_interviews WHERE org_id=?').run(org.id); } catch (e) {}
+  } catch (e) {}
+  try { var ss = db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE org_id=?').get(org.id); removed.sessions = ss ? ss.n : 0; } catch (e) {}
+  try { db.prepare('DELETE FROM sessions WHERE org_id=?').run(org.id); } catch (e) {}
+  try { var uu = db.prepare('SELECT COUNT(*) AS n FROM users WHERE org_id=?').get(org.id); removed.users = uu ? uu.n : 0; } catch (e) {}
+  try { db.prepare('DELETE FROM users WHERE org_id=?').run(org.id); } catch (e) {}
+  try { db.prepare('DELETE FROM question_templates WHERE org_id=?').run(org.id); } catch (e) {}
+  try { db.prepare('DELETE FROM job_positions WHERE org_id=?').run(org.id); } catch (e) {}
+  try { db.prepare('DELETE FROM orgs WHERE id=?').run(org.id); } catch (e) {}
+  logAudit(req, 'platform.company_deleted', 'Deleted company ' + (org.name || org.id) + ' (' + removed.recordings + ' recordings, ' + removed.users + ' users, ' + removed.files + ' files)');
+  res.json({ ok: true, removed: removed });
+});
+
 app.get('/api/platform/invoice', requireAuth, (req, res) => {
   if (!isPlatformOwner(req)) return res.status(403).json({ error: 'Not allowed' });
   res.json(buildInvoiceReport(req.query.current ? 0 : -1));
