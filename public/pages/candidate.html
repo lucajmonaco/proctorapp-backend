@@ -593,7 +593,7 @@ function captureIdentity(){
       // Consent
       var consentRow = document.createElement('label'); consentRow.style.cssText='display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#475569;margin:4px 0 12px;cursor:pointer';
       var consentBox = document.createElement('input'); consentBox.type='checkbox'; consentBox.style.cssText='margin-top:2px';
-      var consentText = document.createElement('span'); consentText.textContent='I consent to capturing a selfie and a photo of my ID for identity verification, and to these being stored with my interview recording and reviewed by the interviewer.';
+      var consentText = document.createElement('span'); consentText.textContent='I confirm I am taking this interview myself, on my own personal device, without help and without a VPN. I consent to capturing a selfie and a photo of my ID for identity verification, and to these being stored with my interview recording and reviewed by the interviewer.';
       consentRow.appendChild(consentBox); consentRow.appendChild(consentText); card.appendChild(consentRow);
 
       var err = document.createElement('div'); err.style.cssText='display:none;font-size:12px;color:#dc2626;margin-bottom:8px';
