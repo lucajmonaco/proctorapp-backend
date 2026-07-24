@@ -35,7 +35,7 @@ module.exports = function (db) {
   async function blockIfVpn(req, res) {
     try {
       if (await isVpnIp(ip(req))) {
-        res.status(403).json({ error: 'vpn', message: 'Please turn off your VPN or proxy to continue. This interview must be taken on your own personal connection and device.' });
+        res.status(403).json({ error: 'Please turn off your VPN or proxy to continue. This interview must be taken on your own personal connection and device.', code: 'vpn' });
         return true;
       }
     } catch (e) {}

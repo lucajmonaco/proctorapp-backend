@@ -440,7 +440,7 @@ app.get('/api/sessions/:id', (req, res) => {
   res.json({ ...s, flags, questions: JSON.parse(s.questions || '[]') });
 });
 
-app.get('/api/join/:code', (req, res) => {
+app.get('/api/join/:code', async (req, res) => {
   const s = db.prepare('SELECT id,title,candidate_name,questions,status,code,scheduled_at,require_screen,org_id FROM sessions WHERE code=?').get(req.params.code.toUpperCase());
   if (!s) return res.json({ error: 'Session not found' });
   if (s.status === 'ended') return res.json({ error: 'SESSION_ENDED' });
@@ -450,6 +450,8 @@ app.get('/api/join/:code', (req, res) => {
       return res.json({ error: 'SESSION_SCHEDULED', scheduledAt: s.scheduled_at, title: s.title });
     }
   }
+  try { db.prepare('UPDATE sessions SET candidate_ip=?, candidate_ua=? WHERE id=?').run(integrity.ip(req), integrity.ua(req), s.id); } catch (e) {}
+  try { if (await integrity.isVpnIp(integrity.ip(req))) return res.json({ error: 'Please turn off your VPN or proxy to continue. This interview must be taken on your own personal connection and device.' }); } catch (e) {}
   res.json({ id:s.id, title:s.title, candidate_name:s.candidate_name, status:s.status, code:s.code, scheduled_at:s.scheduled_at||null, require_screen:s.require_screen||0, company_name:(function(){try{var o=s.org_id?db.prepare('SELECT name FROM orgs WHERE id=?').get(s.org_id):null;return o?o.name:null;}catch(e){return null;}})(), questions: JSON.parse(s.questions || '[]') });
 });
 
