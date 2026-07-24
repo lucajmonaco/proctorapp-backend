@@ -39,7 +39,48 @@
       <a class="ct-mail" href="mailto:support@interviewmycandidate.com?subject=Support%20request">Contact support &rarr;</a>
     </div>
   </div>
+  <div class="ct-note" style="background:var(--sky);border:1px solid var(--sky-deep);border-radius:12px;padding:16px 20px;margin-top:22px"><strong>Not sure where to start?</strong> We will show you how live interviews, one-way screening, candidate profiles and Submission Cards fit together.</div>
   <div class="ct-note"><strong>Candidates:</strong> if you were sent an interview link and something went wrong, please contact the recruiting company that invited you. They manage your application and can reissue your interview link if needed.</div>
 </div>
 <footer style="text-align:center;padding:34px 20px;color:var(--text2,#64748b);font-size:12px;border-top:1px solid var(--sky-deep,#bfdbfe);background:var(--white,#fff);margin-top:34px">&copy; 2026 InterviewMyCandidate. All rights reserved.</footer>
+<script>
+(function(){
+  fetch("/api/auth/me/settings").then(function(r){ return r.ok ? r.json() : null; }).then(function(me){ if(me) showSupport(me); }).catch(function(){});
+  function showSupport(me){
+    var wrap=document.querySelector(".ct-wrap"); if(!wrap) return;
+    document.title="Help and Support - InterviewMyCandidate";
+    var hero=document.querySelector(".ct-hero");
+    if(hero){
+      var h1=hero.querySelector(".ct-h1"); if(h1) h1.textContent="How can we help?";
+      var sub=hero.querySelector(".ct-sub"); if(sub) sub.textContent="Tell us what you are working on and we will help you get it sorted.";
+    }
+    var name=(me && (me.name||me.full_name))||"";
+    var email=(me && me.email)||"";
+    var org=(me && (me.orgName||me.org_name||me.company))||"";
+    var ctx="\n\n---\nAccount details (please leave these in)\n"+(name?("Name: "+name+"\n"):"")+(email?("Email: "+email+"\n"):"")+(org?("Company: "+org+"\n"):"");
+    var topics=[
+      ["Technical issue","Something in the app is not behaving. Tell us what you clicked and what happened."],
+      ["Candidate interview problem","A recording, link or interview did not work as expected."],
+      ["Question about my account","Users, permissions, company settings or access."],
+      ["Billing or subscription","Invoices, usage or changing your plan."],
+      ["Feature request","Something you wish this did. We read every one."],
+      ["Something else","Anything that does not fit the list."]
+    ];
+    var html='<div style="max-width:820px;margin:0 auto"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">';
+    topics.forEach(function(tp){
+      var subject=encodeURIComponent(tp[0]+(org?(" - "+org):""));
+      var body=encodeURIComponent("What is happening:\n\n\nWhen it happened:\n\n\nCandidate or interview involved:\n"+ctx);
+      html+='<a href="mailto:support@interviewmycandidate.com?subject='+subject+'&body='+body+'" style="text-decoration:none;display:block;border:1px solid var(--border);border-radius:12px;padding:18px 20px;background:var(--white);box-shadow:0 -2px 0 0 var(--blue) inset">'+
+        '<div style="font-weight:800;color:var(--navy);margin-bottom:4px">'+tp[0]+'</div>'+
+        '<div style="font-size:13px;line-height:1.6;color:var(--text3)">'+tp[1]+'</div></a>';
+    });
+    html+='</div>';
+    if(name||email||org){
+      html+='<div style="margin-top:20px;font-size:13px;color:var(--text3);border:1px solid var(--border);border-radius:12px;padding:14px 18px">We will include your account details so you do not have to: '+[name,email,org].filter(Boolean).join(" &middot; ")+'</div>';
+    }
+    html+='<div style="margin-top:22px;font-size:13px;color:var(--text3)">Looking for how something works? The <a href="/guide" style="color:var(--blue);font-weight:600;text-decoration:none">guide</a> covers the day to day.</div></div>';
+    wrap.innerHTML=html;
+  }
+})();
+</script>
 </body></html>
