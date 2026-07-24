@@ -939,6 +939,55 @@ app.get('/api/interviews', requireAuth, (req, res) => {
   res.json(rows);
 });
 
+app.get('/api/usage', requireAuth, (req, res) => {
+  var org = req.session.orgId;
+  function monthStart(offset) {
+    var d = new Date();
+    d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0);
+    d.setUTCMonth(d.getUTCMonth() + (offset || 0));
+    return Math.floor(d.getTime() / 1000);
+  }
+  var thisStart = monthStart(0);
+  var lastStart = monthStart(-1);
+  function count(sql, args) {
+    try { return db.prepare(sql).get.apply(db.prepare(sql), args).n || 0; } catch (e) { return 0; }
+  }
+  var out = { period_start: thisStart };
+  try {
+    var rows = db.prepare('SELECT id, created_at, duration_secs FROM recordings WHERE org_id=?').all(org);
+    var oneway = {};
+    try { db.prepare('SELECT recording_id FROM async_interviews WHERE org_id=? AND recording_id IS NOT NULL').all(org).forEach(function (a) { oneway[a.recording_id] = 1; }); } catch (e) {}
+    function tally(from, to) {
+      var t2 = { interviews: 0, live: 0, oneway: 0, minutes: 0 };
+      rows.forEach(function (r) {
+        var c = r.created_at || 0;
+        if (c < from) return;
+        if (to && c >= to) return;
+        t2.interviews++;
+        if (oneway[r.id]) t2.oneway++; else t2.live++;
+        t2.minutes += Math.round((r.duration_secs || 0) / 60);
+      });
+      return t2;
+    }
+    out.this_month = tally(thisStart, null);
+    out.last_month = tally(lastStart, thisStart);
+    out.all_time = tally(0, null);
+  } catch (e) {}
+  try {
+    var tr = db.prepare("SELECT COUNT(*) AS n FROM transcripts t JOIN recordings r ON r.session_id=t.session_id WHERE r.org_id=? AND t.status='ready'").get(org);
+    out.transcripts = tr ? tr.n : 0;
+  } catch (e) { out.transcripts = 0; }
+  try {
+    var su = db.prepare("SELECT COUNT(*) AS n FROM summaries s JOIN recordings r ON r.session_id=s.session_id WHERE r.org_id=? AND s.status='ready'").get(org);
+    out.summaries = su ? su.n : 0;
+  } catch (e) { out.summaries = 0; }
+  try {
+    var u = db.prepare('SELECT COUNT(*) AS n FROM users WHERE org_id=?').get(org);
+    out.users = u ? u.n : 0;
+  } catch (e) { out.users = 0; }
+  res.json(out);
+});
+
 app.get('/api/activity', requireAuth, (req, res) => {
   var items = [];
   var now = Math.floor(Date.now() / 1000);
