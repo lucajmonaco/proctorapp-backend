@@ -47,6 +47,7 @@
     
   </div>
 
+  <div id="usage-wrap" style="display:none;margin-bottom:22px"></div>
   <div class="tabs-bar">
     <button class="tab-btn active" id="tab-sessions-btn" data-tab="sessions">Sessions</button>
     <button class="tab-btn" id="tab-upcoming-btn" data-tab="upcoming">Upcoming</button>
@@ -740,10 +741,42 @@ setInterval(function(){
       hide('new-sess-btn');
       show('tab-team-btn'); show('tab-reviews-btn');
       if(typeof switchTab==='function'){ try{ switchTab('team'); }catch(e){} }
+      loadUsage();
     }
     var h=document.querySelector('.welcome-title');
     if(h) h.textContent=TITLES[view];
     document.title=TITLES[view]+' - InterviewMyCandidate';
+  }
+  function usageBox(label, value, sub){
+    var d=document.createElement('div');
+    d.style.cssText='flex:1;min-width:150px;border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 -2px 0 0 var(--blue) inset';
+    var v=document.createElement('div'); v.style.cssText='font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.5px'; v.textContent=value;
+    var l=document.createElement('div'); l.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-top:3px'; l.textContent=label;
+    d.appendChild(v); d.appendChild(l);
+    if(sub){ var sEl=document.createElement('div'); sEl.style.cssText='font-size:12px;color:var(--text3);margin-top:4px'; sEl.textContent=sub; d.appendChild(sEl); }
+    return d;
+  }
+  function loadUsage(){
+    var box=el('usage-wrap'); if(!box) return;
+    fetch('/api/usage').then(function(r){ return r.ok?r.json():null; }).then(function(u){
+      if(!u) return;
+      box.innerHTML='';
+      var h=document.createElement('div');
+      h.style.cssText='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px';
+      var d=new Date((u.period_start||0)*1000);
+      h.textContent='Usage this month - '+d.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+      box.appendChild(h);
+      var row=document.createElement('div'); row.style.cssText='display:flex;gap:12px;flex-wrap:wrap';
+      var tm=u.this_month||{}; var lm=u.last_month||{}; var at=u.all_time||{};
+      row.appendChild(usageBox('Interviews', String(tm.interviews||0), (lm.interviews||0)+' last month'));
+      row.appendChild(usageBox('Live', String(tm.live||0), null));
+      row.appendChild(usageBox('One-way', String(tm.oneway||0), null));
+      row.appendChild(usageBox('Minutes recorded', String(tm.minutes||0), null));
+      row.appendChild(usageBox('Users', String(u.users||0), null));
+      row.appendChild(usageBox('Interviews all time', String(at.interviews||0), (u.transcripts||0)+' transcribed'));
+      box.appendChild(row);
+      box.style.display='';
+    }).catch(function(){});
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply); else apply();
   setTimeout(apply, 400); setTimeout(apply, 1200);
