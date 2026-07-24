@@ -939,6 +939,41 @@ app.get('/api/interviews', requireAuth, (req, res) => {
   res.json(rows);
 });
 
+function isPlatformOwner(req) {
+  try {
+    if (!process.env.PLATFORM_OWNER_EMAIL) return false;
+    var u = db.prepare('SELECT email FROM users WHERE id=?').get(req.session.userId);
+    return !!(u && u.email && String(u.email).toLowerCase() === String(process.env.PLATFORM_OWNER_EMAIL).toLowerCase());
+  } catch (e) { return false; }
+}
+
+// Numbers only. This view never exposes recordings, transcripts or identity photos.
+app.get('/api/platform/usage', requireAuth, (req, res) => {
+  if (!isPlatformOwner(req)) return res.status(403).json({ error: 'Not allowed' });
+  var start = new Date(); start.setUTCDate(1); start.setUTCHours(0,0,0,0);
+  var monthStart = Math.floor(start.getTime() / 1000);
+  var rows = [];
+  try {
+    var orgs = db.prepare('SELECT id, name, code FROM orgs').all();
+    orgs.forEach(function (o) {
+      var recs = [];
+      try { recs = db.prepare('SELECT id, created_at, duration_secs FROM recordings WHERE org_id=?').all(o.id); } catch (e) {}
+      var ow = {};
+      try { db.prepare('SELECT recording_id FROM async_interviews WHERE org_id=? AND recording_id IS NOT NULL').all(o.id).forEach(function (a) { ow[a.recording_id] = 1; }); } catch (e) {}
+      var month = 0, live = 0, oneway = 0, mins = 0;
+      recs.forEach(function (r) {
+        if ((r.created_at || 0) >= monthStart) { month++; if (ow[r.id]) oneway++; else live++; mins += Math.round((r.duration_secs||0)/60); }
+      });
+      var users = 0;
+      try { users = db.prepare('SELECT COUNT(*) AS n FROM users WHERE org_id=?').get(o.id).n || 0; } catch (e) {}
+      rows.push({ org: o.name || 'Unnamed', code: o.code || '', this_month: month, live: live, oneway: oneway, minutes: mins, all_time: recs.length, users: users });
+    });
+  } catch (e) {}
+  rows.sort(function (a, b) { return b.this_month - a.this_month; });
+  try { logAudit(req, 'platform.usage_viewed', 'Viewed platform usage across ' + rows.length + ' companies'); } catch (e) {}
+  res.json({ period_start: monthStart, companies: rows });
+});
+
 app.get('/api/usage', requireAuth, (req, res) => {
   var org = req.session.orgId;
   function monthStart(offset) {
