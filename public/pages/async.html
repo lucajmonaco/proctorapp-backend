@@ -65,6 +65,7 @@
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
+var editingId=null;
 function say(m,c){ try{ if(typeof toast==="function") toast(m,c||"green",2400); }catch(e){} }
 var burger=$("burger-btn"), drawer=$("nav-drawer");
 function tg(){ drawer.classList.toggle("open"); }
@@ -89,8 +90,10 @@ $("tpl-save").onclick=function(){
   if(!name){ $("tpl-msg").textContent="Give the template a name."; return; }
   if(!qs.length){ $("tpl-msg").textContent="Add at least one question."; return; }
   $("tpl-msg").textContent="Saving...";
-  fetch("/api/templates",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,questions:qs})}).then(function(r){return r.json();}).then(function(j){
-    if(j&&j.ok){ $("tpl-msg").textContent=""; say("Template saved"); $("tpl-name").value=""; $("tpl-qs").innerHTML=""; qRow("",30,120); loadTemplates(); }
+  var _url = editingId ? ("/api/templates/"+editingId) : "/api/templates";
+  var _method = editingId ? "PUT" : "POST";
+  fetch(_url,{method:_method,headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,questions:qs})}).then(function(r){return r.json();}).then(function(j){
+    if(j&&j.ok){ $("tpl-msg").textContent=""; say(editingId?"Template updated":"Template saved"); editingId=null; $("tpl-save").textContent="Save template"; var _c=$("tpl-cancel"); if(_c) _c.style.display="none"; $("tpl-name").value=""; $("tpl-qs").innerHTML=""; qRow("",30,120); loadTemplates(); }
     else $("tpl-msg").textContent=(j&&j.error)||"Could not save.";
   }).catch(function(){ $("tpl-msg").textContent="Could not save."; });
 };
@@ -104,6 +107,19 @@ function loadTemplates(){
       var d=document.createElement("div"); d.className="as-item";
       var head=document.createElement("div"); head.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:10px";
       var nm=document.createElement("div"); nm.style.cssText="font-weight:700;color:var(--navy)"; nm.textContent=tp.name+"  ("+tp.questions.length+" questions)";
+      var edit=document.createElement("button"); edit.className="btn btn-outline btn-sm"; edit.style.cssText="font-size:11px;margin-right:8px"; edit.textContent="Edit";
+      edit.onclick=function(){
+        editingId=tp.id;
+        $("tpl-name").value=tp.name||"";
+        $("tpl-qs").innerHTML="";
+        (tp.questions||[]).forEach(function(q){ qRow(q.text,q.prep_secs,q.answer_secs); });
+        if(!(tp.questions||[]).length) qRow("",30,120);
+        $("tpl-save").textContent="Update template";
+        var _c=$("tpl-cancel"); if(_c) _c.style.display="";
+        $("tpl-msg").textContent="Editing "+(tp.name||"template");
+        window.scrollTo({top:0,behavior:"smooth"});
+      };
+      head.insertBefore(edit, head.lastChild);
       var del=document.createElement("button"); del.className="btn btn-outline btn-sm"; del.style.cssText="color:var(--red);border-color:var(--red)"; del.textContent="Delete";
       del.onclick=function(){ if(!confirm("Delete this template?")) return; fetch("/api/templates/"+tp.id,{method:"DELETE"}).then(function(){ say("Template deleted","amber"); loadTemplates(); }); };
       head.appendChild(nm); head.appendChild(del); d.appendChild(head);
@@ -163,6 +179,7 @@ function loadInvites(){
     });
   }).catch(function(){});
 }
+var _cx=$("tpl-cancel"); if(_cx) _cx.onclick=function(){ editingId=null; $("tpl-save").textContent="Save template"; _cx.style.display="none"; $("tpl-name").value=""; $("tpl-qs").innerHTML=""; qRow("",30,120); $("tpl-msg").textContent=""; };
 loadTemplates(); loadInvites();
 setInterval(loadInvites, 30000);
 })();
