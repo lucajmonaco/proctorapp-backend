@@ -376,7 +376,8 @@ async function doCreate(){ var _rq=[["cr-org","Company name"],["cr-name","Your f
   $('cr-code-val').textContent = res.orgCode;
   $('cr-code-display').style.display = 'block';
   $('cr-form').style.display = 'none';
-  $('cr-switch').innerHTML = '<a href="/dashboard">Go to Dashboard &rarr;</a>';
+  $('cr-switch').innerHTML = '<a href="/">Back to home</a>';
+  setTimeout(function(){ window.location.href = '/'; }, 12000);
 }
 async function doJoin(){ var _rq=[["jo-code","Company code"],["jo-name","Your full name"],["jo-email","Work email"],["jo-pass","Password"]]; for(var _i=0;_i<_rq.length;_i++){ if(!$(_rq[_i][0]).value.trim()){ var _re=$("jo-err"); _re.textContent=_rq[_i][1]+" is required"; _re.style.display="block"; try{ $(_rq[_i][0]).focus(); }catch(e){} return; } } var _pw6=$("jo-pass").value; if(_pw6.length<6){ var _pe=$("jo-err"); _pe.textContent="Password must be at least 6 characters"; _pe.style.display="block"; return; }
   var btn = $('jo-btn'), err = $('jo-err');
