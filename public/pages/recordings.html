@@ -453,6 +453,10 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
         if(keep[label]) return;
         b.style.display="block"; b.style.width="100%"; b.style.textAlign="left";
         b.style.margin="2px 0"; b.style.border="none"; b.style.background="transparent";
+        try{ b.classList.remove("btn-primary"); b.classList.add("btn-outline"); }catch(e){}
+        b.style.color="var(--navy)"; b.style.fontWeight="600"; b.style.padding="7px 10px"; b.style.borderRadius="7px";
+        b.onmouseenter=function(){ b.style.background="var(--sky)"; };
+        b.onmouseleave=function(){ b.style.background="transparent"; };
         panel.appendChild(b);
       });
     }
