@@ -277,9 +277,7 @@ function processDeletionWarnings() {
     Object.keys(pendingByOrg).forEach(function(orgId) {
       var list = pendingByOrg[orgId];
       logSystemAudit(orgId === 'none' ? null : orgId, 'recording.expiry_warning', list.length + ' recording(s) will be auto-deleted in ' + WARN_DAYS_BEFORE + ' days');
-      // EMAIL HOOK: when an email provider is configured, send a warning email to the
-      // org admin here. getOrgAdmin(orgId) gives the recipient; list gives the items.
-      // e.g. var admin = getOrgAdmin(orgId); if (admin && admin.email) sendRetentionWarningEmail(admin, list);
+      try { var _admin = (orgId === 'none') ? null : getOrgAdmin(orgId); if (_admin && _admin.email) integrity.notifyRetentionWarning(_admin, list, WARN_DAYS_BEFORE); } catch (e) {}
     });
   } catch (e) {
     try { console.error('[retention] warning pass failed', e && e.message); } catch (e2) {}

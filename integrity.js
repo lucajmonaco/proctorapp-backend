@@ -92,6 +92,33 @@ module.exports = function (db) {
     } catch (e) {}
   }
 
+  function notifyRetentionWarning(admin, list, days) {
+    try {
+      if (!admin || !admin.email || !list || !list.length) return;
+      var firstName = (admin.name || '').split(' ')[0] || 'there';
+      var base = process.env.PUBLIC_BASE_URL || 'https://interviewmycandidate.com';
+      var n = list.length;
+      var rows = list.map(function (it) {
+        var when = '';
+        try { when = new Date(it.deleteAt).toISOString().slice(0, 10); } catch (e) {}
+        var label = (it.candidate || 'Candidate') + (it.title ? (' - ' + it.title) : '');
+        return '<tr><td style="padding:7px 12px;border-bottom:1px solid #eef2f7;font-size:13px;color:#334155">' + label + '</td><td style="padding:7px 12px;border-bottom:1px solid #eef2f7;font-size:13px;color:#94a3b8;white-space:nowrap">deletes ' + when + '</td></tr>';
+      }).join('');
+      var subject = n + ' interview recording' + (n === 1 ? '' : 's') + ' will be deleted in ' + days + ' days';
+      var html = '<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto">'
+        + '<div style="background:#0f2241;border-radius:14px 14px 0 0;padding:22px 26px;text-align:center"><span style="color:#fff;font-weight:800;font-size:16px;letter-spacing:-.3px">Interview<span style="color:#60a5fa">My</span>Candidate</span></div>'
+        + '<div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 14px 14px;padding:28px 26px;background:#fff">'
+        + '<h2 style="color:#0f2241;margin:0 0 12px;font-size:20px">Heads up, ' + firstName + '</h2>'
+        + '<p style="font-size:15px;line-height:1.65;color:#334155;margin:0 0 14px">' + n + ' recording' + (n === 1 ? '' : 's') + ' in your library ' + (n === 1 ? 'is' : 'are') + ' scheduled to be automatically deleted in <strong>' + days + ' days</strong>, in line with the 90-day retention policy. If you still need ' + (n === 1 ? 'it' : 'any of them') + ', please download or review ' + (n === 1 ? 'it' : 'them') + ' before then.</p>'
+        + '<table style="width:100%;border-collapse:collapse;border:1px solid #eef2f7;border-radius:8px;overflow:hidden;margin:0 0 20px">' + rows + '</table>'
+        + '<p style="margin:0"><a href="' + base + '/recordings" style="background:#2563eb;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 24px;border-radius:10px;display:inline-block">Open your library</a></p>'
+        + '</div>'
+        + '<p style="font-size:12px;color:#94a3b8;text-align:center;margin:16px 0 0">You are receiving this as the account admin for your InterviewMyCandidate organisation.</p>'
+        + '</div>';
+      sendMail(admin.email, subject, html);
+    } catch (e) {}
+  }
+
   return {
     ip: ip,
     ua: ua,
@@ -99,6 +126,7 @@ module.exports = function (db) {
     blockIfVpn: blockIfVpn,
     sendMail: sendMail,
     computeAsyncFlags: computeAsyncFlags,
-    notifyRecruiterAsyncComplete: notifyRecruiterAsyncComplete
+    notifyRecruiterAsyncComplete: notifyRecruiterAsyncComplete,
+    notifyRetentionWarning: notifyRetentionWarning
   };
 };
