@@ -436,6 +436,9 @@ function btn(cls,html,cb){var b=document.createElement('button');b.className='bt
   if(rec.share_token){
     btn('btn-outline','Preview Submission Page',function(){window.open('/share/'+rec.share_token+'?v='+Date.now(),'_blank');});
   }
+  var openWrap=document.createElement("div"); openWrap.style.cssText="margin-bottom:10px";
+  var openBtn=document.createElement("a"); openBtn.className="btn btn-primary btn-sm"; openBtn.href="/recording/"+rec.id; openBtn.textContent="Open candidate";
+  openWrap.appendChild(openBtn); body.appendChild(openWrap);
   body.appendChild(actions);
   (function(){
     var keep={"Watch Full Screen":1};
